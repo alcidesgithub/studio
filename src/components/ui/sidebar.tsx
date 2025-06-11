@@ -541,83 +541,90 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-export interface SidebarMenuButtonProps {
+export interface SidebarMenuButtonProps
+  // Allow all HTML attributes for <a> and <button>
+  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> {
   onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
   isActive?: boolean;
   variant?: VariantProps<typeof sidebarMenuButtonVariants>["variant"];
   size?: VariantProps<typeof sidebarMenuButtonVariants>["size"];
-  className?: string; // className passed directly at usage site
-  children?: React.ReactNode;
-  // Note: href and asChild are not part of these direct props;
-  // they are expected to come from a parent Link component via ...restInjectedProps.
+  href?: string; // Explicitly accept href
+  asChild?: boolean; // Explicitly accept asChild to ensure it's destructured
+  // className is part of HTMLAttributes
+  // children is part of HTMLAttributes
+  // onClick is part of HTMLAttributes
+  // type is part of ButtonHTMLAttributes
 }
+
 
 const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement & HTMLAnchorElement,
-  SidebarMenuButtonProps & { [key: string]: any } // Allow any injected props
+  SidebarMenuButtonProps
 >(
   (
     {
-      // Props intrinsic to SidebarMenuButton's direct usage
+      // Destructure all known and potentially problematic props first
       className: intrinsicClassName,
       variant,
       size,
       isActive,
       onItemClick,
       children,
-      // All other props (including href, onClick from Link, and the problematic asChild)
-      // will be in '...restInjectedProps'
-      ...restInjectedProps
+      href: hrefFromProps,       // href from parent (e.g., Link) or direct prop
+      onClick: onClickFromProps, // onClick from parent (e.g., Link) or direct prop
+      type: typeFromProps,       // type from parent (e.g., Link) or direct prop
+      asChild: _receivedAsChild, // Explicitly destructure asChild to remove it from ...rest
+      ...rest                 // Capture all other props
     },
     ref
   ) => {
-    // Explicitly pull out props that Link would pass, especially asChild to discard it.
-    const {
-      href,                        // From Link
-      onClick: linkOnClick,        // From Link (for navigation)
-      asChild: _discardAsChild,    // FROM Link, we must discard this!
-      type: linkType,              // Potentially from Link if it thought it was rendering a button
-      className: injectedClassName,  // className that Link might try to pass
-      ...trulyRemainingInjectedProps // Any other props (e.g., target, rel from Link, or custom data-attrs)
-    } = restInjectedProps;
-
-    const finalHref = href; // href comes purely from injection by Link
+    const finalHref = hrefFromProps;
     const Comp = typeof finalHref === "string" && finalHref.length > 0 ? "a" : "button";
 
     const combinedOnClick = (event: React.MouseEvent<HTMLElement>) => {
-      if (typeof linkOnClick === "function") {
-        linkOnClick(event); // Execute Link's navigation click
+      // If onClickFromProps exists (e.g., passed by Link for navigation), call it.
+      if (typeof onClickFromProps === "function") {
+        onClickFromProps(event);
       }
-      if (typeof onItemClick === "function") {
-        onItemClick(event); // Execute SidebarMenuButton's own click logic (e.g., closing mobile sidebar)
+      // If onItemClick exists (SidebarMenuButton's own handler) and is different, call it.
+      if (typeof onItemClick === "function" && onItemClick !== onClickFromProps) {
+        onItemClick(event);
       }
     };
 
-    // Combine classNames: the one from direct usage and any that Link might inject
     const combinedClassName = cn(
-      sidebarMenuButtonVariants({ variant, size, isActive, className: intrinsicClassName }),
-      injectedClassName // Add className injected by Link (if any)
+      sidebarMenuButtonVariants({ variant, size, isActive, className: intrinsicClassName })
+      // If Link passes a className, it would be part of `intrinsicClassName` if `Link` is the direct parent
+      // or within `...rest` if there's another layer. Given `asChild` usage, `intrinsicClassName`
+      // from `Link` should be handled correctly by `cn`.
     );
 
-    // Props for the actual DOM element
-    // Ensure that _discardAsChild is not included in what's spread to Comp
+    // `rest` should now be clean of `asChild`, `href`, `onClick`, `type`, `className`, `children`,
+    // `variant`, `size`, `isActive`, `onItemClick`.
+    // It should only contain other valid HTML attributes passed down.
     const domProps: React.AllHTMLAttributes<HTMLElement> & { ref: React.ForwardedRef<any> } = {
-      ...trulyRemainingInjectedProps, // Spread the "other" props first
+      ...rest, // Spread the remaining, hopefully clean, props
       ref,
       className: combinedClassName,
-      onClick: combinedOnClick,
       "data-active": isActive,
     };
+
+    // Only add onClick to domProps if combinedOnClick actually does something,
+    // or if Comp is a button (which usually expects an onClick).
+    if (typeof onClickFromProps === "function" || typeof onItemClick === "function") {
+        domProps.onClick = combinedOnClick;
+    }
+
 
     if (Comp === "a") {
       (domProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href = finalHref;
     } else {
-      // If Link thought it was a button, it might pass a 'type'.
-      // Otherwise, default to 'button'.
-      (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = linkType || "button";
+      // For a button, ensure type is set, default to "button" if not provided.
+      (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = typeFromProps || "button";
     }
-    // _discardAsChild is now out of the picture and not in domProps.
-    // trulyRemainingInjectedProps should not contain `asChild`.
+    
+    // _receivedAsChild is captured and not spread into domProps.
+    // The key is that `asChild` is not in `...rest`.
 
     return <Comp {...domProps}>{children}</Comp>;
   }
@@ -793,3 +800,4 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
+
