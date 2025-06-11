@@ -3,7 +3,6 @@
 
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { loadStores, loadEvent, loadAwardTiers } from '@/lib/localStorageUtils';
 import type { Store, Event, AwardTier } from '@/types';
 import { Users, ThumbsUp, Trophy, Building, LayoutDashboard } from 'lucide-react';
@@ -56,26 +55,6 @@ export default function DashboardPage() {
 
 
     return tierCounts;
-  }, [stores, awardTiers]);
-
-
-  const topPerformingStores = useMemo(() => {
-    return stores
-      .filter(s => s.participating)
-      .map(store => {
-        const positivacoesCount = store.positivationsDetails?.length || 0;
-        let currentTier: AwardTier | undefined = undefined;
-        // Iterate from highest tier to lowest to find the current one
-        for (let i = awardTiers.length - 1; i >= 0; i--) {
-          if (positivacoesCount >= awardTiers[i].positivacoesRequired) {
-            currentTier = awardTiers[i];
-            break;
-          }
-        }
-        return { ...store, positivacoesCount, currentTier };
-      })
-      .sort((a, b) => b.positivacoesCount - a.positivacoesCount) // Sort by positivations descending
-      .slice(0, 3); // Take top 3
   }, [stores, awardTiers]);
 
 
@@ -146,29 +125,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4 font-headline">Lojas em Destaque (Top 3 por Selos)</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {topPerformingStores.map(store => (
-            <Card key={store.id} className="shadow-md hover:shadow-lg transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Building className="h-5 w-5 text-primary"/>
-                  {store.name} ({store.code})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-sm">Selos: <span className="font-semibold">{store.positivacoesCount}</span></p>
-                {store.currentTier && <p className="text-sm">Faixa Atual: <span className="font-semibold text-accent">{store.currentTier.name}</span></p>}
-                {!store.currentTier && <p className="text-sm">Faixa Atual: <span className="text-muted-foreground">Nenhuma</span></p>}
-              </CardContent>
-            </Card>
-          ))}
-           {stores.length === 0 && <p className="text-muted-foreground text-center col-span-full py-4">Nenhuma loja cadastrada.</p>}
-           {stores.length > 0 && topPerformingStores.length === 0 && <p className="text-muted-foreground text-center col-span-full py-4">Nenhuma loja participante com selos para exibir destaque.</p>}
-        </div>
-      </div>
     </div>
   );
 }
-
