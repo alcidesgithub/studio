@@ -1,3 +1,5 @@
+"use client";
+
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -5,13 +7,15 @@ import { MOCK_STORES, MOCK_EVENT } from '@/lib/constants';
 import { Users, CheckCircle, Target, Building, ThumbsUp, LayoutDashboard } from 'lucide-react';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Dashboard - Hiperfarma Business Meeting Manager',
-};
+// Metadata should be exported from Server Components or handled differently for Client Components.
+// For now, removing it to resolve the immediate error context, can be revisited.
+// export const metadata: Metadata = {
+//   title: 'Dashboard - Hiperfarma Business Meeting Manager',
+// };
 
 export default function DashboardPage() {
   const participatingStores = MOCK_STORES.filter(s => s.participating).length;
-  const totalPositivacoes = MOCK_STORES.reduce((sum, s) => sum + s.positivacoes, 0);
+  const totalPositivacoes = MOCK_STORES.reduce((sum, s) => sum + (s.positivationsDetails?.length || 0), 0);
   const averageGoalProgress = MOCK_STORES.length > 0
     ? MOCK_STORES.reduce((sum, s) => sum + s.goalProgress, 0) / MOCK_STORES.length
     : 0;
@@ -70,7 +74,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <p className="text-sm">Positivações: <span className="font-semibold">{store.positivacoes}</span></p>
+                <p className="text-sm">Positivações: <span className="font-semibold">{store.positivationsDetails?.length || 0}</span></p>
                 <div className="flex items-center gap-2">
                   <p className="text-sm">Progress: </p><Progress value={store.goalProgress} className="flex-1 h-2" /> <span className="text-sm font-semibold">{store.goalProgress}%</span>
                 </div>
