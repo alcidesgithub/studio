@@ -16,6 +16,7 @@ import { STATES } from '@/lib/constants';
 
 const storeRegistrationSchema = z.object({
   code: z.string().min(1, "Código da loja é obrigatório."),
+  razaoSocial: z.string().min(3, "Razão Social deve ter pelo menos 3 caracteres."),
   cnpj: z.string().min(14, "CNPJ deve ter 14 dígitos.").max(14, "CNPJ deve ter 14 dígitos."), 
   address: z.string().min(5, "Endereço é obrigatório."),
   city: z.string().min(2, "Cidade é obrigatória."),
@@ -36,6 +37,7 @@ export default function StoreRegistrationPage() {
     resolver: zodResolver(storeRegistrationSchema),
     defaultValues: {
       code: '',
+      razaoSocial: '',
       cnpj: '',
       address: '',
       city: '',
@@ -53,7 +55,7 @@ export default function StoreRegistrationPage() {
     console.log("Dados de Cadastro da Loja:", data);
     toast({
       title: "Loja Cadastrada!",
-      description: `Loja ${data.code} - ${data.ownerName} foi (simuladamente) cadastrada.`,
+      description: `Loja ${data.code} - ${data.razaoSocial} foi (simuladamente) cadastrada.`,
     });
     form.reset(); 
   };
@@ -88,12 +90,25 @@ export default function StoreRegistrationPage() {
               />
               <FormField
                 control={form.control}
+                name="razaoSocial"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Razão Social</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Hiperfarma Medicamentos Ltda." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="cnpj"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>CNPJ</FormLabel>
                     <FormControl>
-                      <Input placeholder="00.000.000/0000-00" {...field} />
+                      <Input placeholder="00.000.000/0000-00 (somente números)" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
