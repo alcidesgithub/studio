@@ -51,3 +51,10 @@ export interface SweepstakeEntry {
 export interface SweepstakeResult extends SweepstakeEntry {
   prize: string;
 }
+
+export interface Vendor {
+  id: string;
+  name: string;
+  logoUrl: string;
+  website?: string; // Optional link to vendor's website
+}

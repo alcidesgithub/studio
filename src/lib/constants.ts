@@ -1,4 +1,4 @@
-import type { Event, Store, AwardTier, User, UserRole, SweepstakeEntry } from '@/types';
+import type { Event, Store, AwardTier, User, UserRole, SweepstakeEntry, Vendor } from '@/types';
 
 export const MOCK_EVENT: Event = {
   id: 'evt_1',
@@ -39,3 +39,12 @@ export const MOCK_SWEEPSTAKE_ENTRIES: SweepstakeEntry[] = MOCK_STORES
   }));
 
 export const ROLES: UserRole[] = ['admin', 'manager', 'vendor', 'store'];
+
+export const MOCK_VENDORS: Vendor[] = [
+  { id: 'vendor_1', name: 'PharmaCorp', logoUrl: 'https://placehold.co/200x100.png?text=PharmaCorp', dataAiHint: "pharmacy logo" },
+  { id: 'vendor_2', name: 'HealthPlus', logoUrl: 'https://placehold.co/200x100.png?text=HealthPlus', dataAiHint: "health logo" },
+  { id: 'vendor_3', name: 'BioMed', logoUrl: 'https://placehold.co/200x100.png?text=BioMed', dataAiHint: "medical science" },
+  { id: 'vendor_4', name: 'NutriWell', logoUrl: 'https://placehold.co/200x100.png?text=NutriWell', dataAiHint: "nutrition health" },
+  { id: 'vendor_5', name: 'CareFirst', logoUrl: 'https://placehold.co/200x100.png?text=CareFirst', dataAiHint: "healthcare logo" },
+  { id: 'vendor_6', name: 'MediSupply', logoUrl: 'https://placehold.co/200x100.png?text=MediSupply', dataAiHint: "medical supply" },
+];
