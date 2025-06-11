@@ -2,11 +2,11 @@
 "use client";
 
 import { PageHeader } from '@/components/PageHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { loadStores, loadEvent, loadAwardTiers } from '@/lib/localStorageUtils';
 import type { Store, Event, AwardTier } from '@/types';
-import { Users, ThumbsUp, Target, Building, LayoutDashboard } from 'lucide-react';
+import { Users, ThumbsUp, Trophy, Building, LayoutDashboard } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 
 export default function DashboardPage() {
@@ -17,36 +17,74 @@ export default function DashboardPage() {
   useEffect(() => {
     setStores(loadStores());
     setCurrentEvent(loadEvent());
-    setAwardTiers(loadAwardTiers().sort((a,b) => a.positivacoesRequired - b.positivacoesRequired));
+    // Load tiers and sort them by requirement ascending, crucial for determining highest tier
+    setAwardTiers(loadAwardTiers().sort((a, b) => a.positivacoesRequired - b.positivacoesRequired));
   }, []);
 
   const participatingStoresCount = useMemo(() => stores.filter(s => s.participating).length, [stores]);
   const totalPositivacoes = useMemo(() => stores.reduce((sum, s) => sum + (s.positivationsDetails?.length || 0), 0), [stores]);
-  
-  const averageGoalProgress = useMemo(() => {
-    if (stores.length === 0) return 0;
-    const totalProgress = stores.reduce((sum, s) => sum + s.goalProgress, 0);
-    return totalProgress / stores.length;
-  }, [stores]);
 
-  const storesWithTiers = useMemo(() => {
-    return stores.map(store => {
-      let achievedTier: AwardTier | undefined = undefined;
+  const storesByHighestTier = useMemo(() => {
+    if (awardTiers.length === 0) return {};
+
+    const tierCounts: Record<string, { name: string; count: number; reward: string }> = {};
+    awardTiers.forEach(tier => {
+      tierCounts[tier.id] = { name: tier.name, count: 0, reward: tier.rewardName };
+    });
+    let storesWithNoTierCount = 0;
+
+    stores.filter(s => s.participating).forEach(store => {
       const positivacoesCount = store.positivationsDetails?.length || 0;
-      // Iterate from highest tier to lowest to find the current one
+      let highestAchievedTier: AwardTier | undefined = undefined;
+      // Iterate tiers from highest requirement to lowest to find the max tier achieved
       for (let i = awardTiers.length - 1; i >= 0; i--) {
         if (positivacoesCount >= awardTiers[i].positivacoesRequired) {
-          achievedTier = awardTiers[i];
-          break; 
+          highestAchievedTier = awardTiers[i];
+          break;
         }
       }
-      return {...store, currentTier: achievedTier };
-    }).slice(0,3); // Take first 3 for quick view
+
+      if (highestAchievedTier) {
+        tierCounts[highestAchievedTier.id].count++;
+      } else {
+        storesWithNoTierCount++;
+      }
+    });
+    if(storesWithNoTierCount > 0 && stores.filter(s => s.participating).length > 0) {
+        tierCounts['none'] = { name: 'Nenhuma Faixa', count: storesWithNoTierCount, reward: '-' };
+    }
+
+
+    return tierCounts;
+  }, [stores, awardTiers]);
+
+
+  const topPerformingStores = useMemo(() => {
+    return stores
+      .filter(s => s.participating)
+      .map(store => {
+        const positivacoesCount = store.positivationsDetails?.length || 0;
+        let currentTier: AwardTier | undefined = undefined;
+        // Iterate from highest tier to lowest to find the current one
+        for (let i = awardTiers.length - 1; i >= 0; i--) {
+          if (positivacoesCount >= awardTiers[i].positivacoesRequired) {
+            currentTier = awardTiers[i];
+            break;
+          }
+        }
+        return { ...store, positivacoesCount, currentTier };
+      })
+      .sort((a, b) => b.positivacoesCount - a.positivacoesCount) // Sort by positivations descending
+      .slice(0, 3); // Take top 3
   }, [stores, awardTiers]);
 
 
   if (!currentEvent) {
-    return <div>Carregando painel...</div>; // Or a proper loader
+    return (
+        <div className="flex min-h-screen items-center justify-center">
+            <p>Carregando painel...</p>
+        </div>
+    );
   }
 
   return (
@@ -64,7 +102,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{participatingStoresCount}</div>
-            <p className="text-xs text-muted-foreground">de {stores.length} lojas no total</p>
+            <p className="text-xs text-muted-foreground">de {stores.length} lojas cadastradas</p>
           </CardContent>
         </Card>
 
@@ -81,20 +119,37 @@ export default function DashboardPage() {
 
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Progresso Médio das Lojas</CardTitle>
-            <Target className="h-5 w-5 text-accent" />
+            <CardTitle className="text-sm font-medium">Distribuição por Faixas</CardTitle>
+            <Trophy className="h-5 w-5 text-accent" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{averageGoalProgress.toFixed(0)}%</div>
-            <Progress value={averageGoalProgress} className="mt-2 h-2" />
+          <CardContent className="space-y-1 pt-2">
+            {awardTiers.length > 0 ? (
+                awardTiers.map(tier => (
+                <div key={tier.id} className="text-xs flex justify-between">
+                    <span>{tier.name}:</span>
+                    <span className="font-semibold">{storesByHighestTier[tier.id]?.count || 0} lojas</span>
+                </div>
+                ))
+            ) : (
+                <p className="text-xs text-muted-foreground">Nenhuma faixa de premiação configurada.</p>
+            )}
+             {storesByHighestTier['none'] && storesByHighestTier['none'].count > 0 && (
+                <div className="text-xs flex justify-between text-muted-foreground">
+                    <span>{storesByHighestTier['none'].name}:</span>
+                    <span className="font-semibold">{storesByHighestTier['none'].count} lojas</span>
+                </div>
+            )}
+            {Object.keys(storesByHighestTier).length === 0 && awardTiers.length > 0 && (
+                 <p className="text-xs text-muted-foreground">Nenhuma loja atingiu as faixas.</p>
+            )}
           </CardContent>
         </Card>
       </div>
 
       <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4 font-headline">Visão Rápida das Lojas</h2>
+        <h2 className="text-xl font-semibold mb-4 font-headline">Lojas em Destaque (Top 3 por Selos)</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {storesWithTiers.map(store => (
+          {topPerformingStores.map(store => (
             <Card key={store.id} className="shadow-md hover:shadow-lg transition-shadow duration-300">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -103,18 +158,17 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <p className="text-sm">Selos: <span className="font-semibold">{store.positivationsDetails?.length || 0}</span></p>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm">Progresso: </p><Progress value={store.goalProgress} className="flex-1 h-2" /> <span className="text-sm font-semibold">{store.goalProgress}%</span>
-                </div>
+                <p className="text-sm">Selos: <span className="font-semibold">{store.positivacoesCount}</span></p>
                 {store.currentTier && <p className="text-sm">Faixa Atual: <span className="font-semibold text-accent">{store.currentTier.name}</span></p>}
-                 <p className="text-xs text-muted-foreground">{store.participating ? "Participando" : "Não participando"}</p>
+                {!store.currentTier && <p className="text-sm">Faixa Atual: <span className="text-muted-foreground">Nenhuma</span></p>}
               </CardContent>
             </Card>
           ))}
-           {stores.length === 0 && <p className="text-muted-foreground text-center col-span-full">Nenhuma loja cadastrada.</p>}
+           {stores.length === 0 && <p className="text-muted-foreground text-center col-span-full py-4">Nenhuma loja cadastrada.</p>}
+           {stores.length > 0 && topPerformingStores.length === 0 && <p className="text-muted-foreground text-center col-span-full py-4">Nenhuma loja participante com selos para exibir destaque.</p>}
         </div>
       </div>
     </div>
   );
 }
+
