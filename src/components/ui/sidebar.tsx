@@ -546,12 +546,14 @@ export interface SidebarMenuButtonProps
     Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'type'>,
     VariantProps<typeof sidebarMenuButtonVariants> {
   onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
-  asChild?: boolean;
+  isActive?: boolean;
+  // Note: `asChild` is not part of this component's own props interface.
+  // If passed from a parent (e.g., <Link asChild>), it will be in `...otherProps`.
 }
 
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement | HTMLAnchorElement,
+  HTMLButtonElement & HTMLAnchorElement,
   SidebarMenuButtonProps
 >(
   (
@@ -560,21 +562,22 @@ const SidebarMenuButton = React.forwardRef<
       variant,
       size,
       isActive,
-      // The 'asChild' prop is received from parent (e.g., Link, TooltipTrigger)
-      // SidebarMenuButton will render a DOM element ('a' or 'button') itself,
-      // so this 'asChild' prop (and any from restProps) must not be passed to the DOM element.
-      asChild, 
-      href,
       onItemClick,
-      onClick: inheritedOnClick,
       children,
-      type: inheritedType,
-      ...restProps // Other props from parent (could include asChild from a grandparent)
+      // All other props (including href, onClick, type from parents,
+      // and potentially `asChild` if passed by a parent component)
+      // are captured by `...otherProps`.
+      ...otherProps 
     },
     ref
   ) => {
+    // Extract href, onClick, and type from otherProps to determine element type and behavior.
+    const href = otherProps.href;
+    const inheritedOnClick = otherProps.onClick;
+    const inheritedType = otherProps.type;
+
     const isLinkBehavior = typeof href === 'string' && href.length > 0;
-    // SidebarMenuButton always renders a DOM element, not Slot.
+    // SidebarMenuButton always renders a DOM element (<a> or <button>), not a Slot.
     const Comp = isLinkBehavior ? 'a' : 'button';
 
     const combinedOnClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -582,26 +585,36 @@ const SidebarMenuButton = React.forwardRef<
       if (onItemClick) onItemClick(event);
     };
     
-    // Explicitly remove `asChild` from restProps if it exists, as Comp is a DOM element.
-    // The `asChild` variable (destructured from this component's props) is also not used to determine `Comp` type for Slot.
-    const { asChild: _asChildFromRest, ...finalRestProps } = restProps;
+    // Explicitly destructure and remove `asChild` from `otherProps`
+    // to prevent it from being spread onto the DOM element.
+    const { asChild, ...filteredOtherProps } = otherProps;
 
-    const compFinalProps:any = {
-        ...finalRestProps, // Spread props that are NOT 'asChild'
-        ref,
-        className: cn(sidebarMenuButtonVariants({ variant, size, isActive, className })),
-        onClick: combinedOnClick,
-        "data-active": isActive ? 'true' : undefined,
+    // Props to be passed to the DOM element (Comp).
+    // Start with filteredOtherProps, which has `asChild` removed.
+    const domProps: React.AllHTMLAttributes<HTMLElement> & { ref: typeof ref; 'data-active'?: 'true' } = {
+      ...filteredOtherProps, 
+      ref,
+      className: cn(sidebarMenuButtonVariants({ variant, size, isActive, className })),
+      onClick: combinedOnClick,
     };
-
-    if (Comp === 'a') {
-        compFinalProps.href = href;
-    } else if (Comp === 'button') {
-        // Only set type if it's explicitly a button; Link component might handle its own 'type' if it were different
-        compFinalProps.type = inheritedType || 'button';
+    
+    if (isActive) {
+      domProps['data-active'] = 'true';
     }
 
-    return <Comp {...compFinalProps}>{children}</Comp>;
+    // Set href for <a> tags or type for <button> tags.
+    // Ensure these are not duplicated if already present in filteredOtherProps (though they shouldn't be if correctly passed by Link).
+    if (isLinkBehavior) {
+      (domProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href = href;
+      // Remove 'type' if it accidentally got into domProps for an 'a' tag
+      if ((domProps as any).type) delete (domProps as any).type;
+    } else {
+      (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = inheritedType || 'button';
+      // Remove 'href' if it accidentally got into domProps for a 'button' tag
+      if ((domProps as any).href) delete (domProps as any).href;
+    }
+
+    return <Comp {...domProps}>{children}</Comp>;
   }
 );
 SidebarMenuButton.displayName = "SidebarMenuButton"
@@ -775,3 +788,5 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
+
+    
