@@ -71,7 +71,19 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    const [_open, _setOpen] = React.useState(() => {
+        if (typeof document !== 'undefined') {
+            const cookieValue = document.cookie
+                .split('; ')
+                .find(row => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+                ?.split('=')[1];
+            if (cookieValue) {
+                return cookieValue === 'true';
+            }
+        }
+        return defaultOpen;
+    });
+
     const open = openProp ?? _open
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -503,7 +515,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary data-[active=true]:font-medium data-[active=true]:text-sidebar-primary-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -516,26 +528,30 @@ const sidebarMenuButtonVariants = cva(
         sm: "h-7 text-xs",
         lg: "h-12 text-sm group-data-[collapsible=icon]:!p-0",
       },
+      isActive: {
+        true: "",
+        false: "",
+      }
     },
     defaultVariants: {
       variant: "default",
       size: "default",
+      isActive: false,
     },
   }
 )
 
 export interface SidebarMenuButtonProps
-  extends React.AnchorHTMLAttributes<HTMLAnchorElement>, 
-    Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, keyof React.AnchorHTMLAttributes<HTMLAnchorElement>>,
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'type'>,
     VariantProps<typeof sidebarMenuButtonVariants> {
-  isActive?: boolean;
   onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
-  asChild?: boolean; 
+  asChild?: boolean;
 }
 
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLAnchorElement | HTMLButtonElement,
+  HTMLButtonElement | HTMLAnchorElement,
   SidebarMenuButtonProps
 >(
   (
@@ -543,70 +559,73 @@ const SidebarMenuButton = React.forwardRef<
       className,
       variant,
       size,
-      isActive = false,
+      isActive,
+      asChild: receivedAsChild = false, // Renamed to avoid conflict
+      href,
+      onItemClick,
+      onClick: inheritedOnClick,
       children,
-      href, 
-      onItemClick, 
-      onClick: inheritedOnClick, 
-      asChild: receivedAsChild, 
-      type: inheritedType,
-      ...rest 
+      type: inheritedType, // Destructure type
+      ...rest
     },
     ref
   ) => {
     const isLink = typeof href === 'string' && href.length > 0;
+    const Comp = receivedAsChild ? Slot : (isLink ? 'a' : 'button');
 
-    const combinedOnClick = React.useCallback(
-      (event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
-        if (inheritedOnClick) {
-          (inheritedOnClick as any)(event); 
-        }
-        if (onItemClick) { 
-          onItemClick(event as any); 
-        }
-      },
-      [inheritedOnClick, onItemClick]
-    );
-
-    const elementProps = {
-      ...rest,
-      ref,
-      "data-sidebar": "menu-button",
-      "data-size": size,
-      "data-active": isActive,
-      className: cn(sidebarMenuButtonVariants({ variant, size, className })),
-      onClick: combinedOnClick,
-      ...(isLink && { href }), 
+    const combinedOnClick = (event: React.MouseEvent<HTMLElement>) => {
+      if (inheritedOnClick) (inheritedOnClick as React.MouseEventHandler<HTMLElement>)(event);
+      if (onItemClick) onItemClick(event);
     };
 
-    if (receivedAsChild) {
-      // If parent component (like Link) uses asChild, SidebarMenuButton renders Slot.
-      // This Slot ALSO needs asChild={true} to pass props to its children (icon/span).
-      // Props like href (if isLink is true) are already in elementProps.
-      // Type should not be passed to Slot if it's conceptually an anchor.
-      if (isLink) {
-        delete (elementProps as any).type;
-      }
-      return <Slot asChild={true} {...elementProps}>{children}</Slot>;
-    }
-    
-    // receivedAsChild is false: SidebarMenuButton renders its own 'a' or 'button'.
+    // Prepare props for the component (Slot, a, or button)
+    let finalProps: any = {
+      ...rest,
+      ref,
+      className: cn(sidebarMenuButtonVariants({ variant, size, isActive, className })), // isActive passed to cva
+      onClick: combinedOnClick,
+      "data-active": isActive ? 'true' : undefined, // Ensure data-active is explicitly set
+    };
+
     if (isLink) {
-      // It's an anchor tag. Ensure 'type' is not on elementProps.
-      delete (elementProps as any).type;
-      return (
-        <a {...elementProps}> 
-          {children}
-        </a>
-      );
+      finalProps.href = href;
+      // For 'a' tag, don't pass 'type' unless it's explicitly set for some reason
+      // and ensure `asChild` is not passed to the DOM element if Comp is not Slot
+      if (Comp !== Slot) {
+        // We only want to delete `asChild` if it was part of `rest`
+        // but since we named our received prop `receivedAsChild`, `rest.asChild` would be undefined
+        // unless `asChild` was passed *in addition* to the `asChild` prop we destructured.
+        // This logic is safer: explicitly build props for DOM elements.
+        const domProps: any = { ...rest, ref, className: finalProps.className, onClick: combinedOnClick, "data-active": finalProps["data-active"], href };
+        finalProps = domProps;
+      }
+    } else if (Comp === 'button') {
+      finalProps.type = inheritedType || 'button';
+      if (Comp !== Slot) {
+        const domProps: any = { ...rest, ref, className: finalProps.className, onClick: combinedOnClick, "data-active": finalProps["data-active"], type: finalProps.type };
+        finalProps = domProps;
+      }
     }
-    
-    // It's a button. Ensure 'type' is set.
-    return (
-      <button type={inheritedType || "button"} {...elementProps}>
-        {children}
-      </button>
-    );
+
+
+    if (Comp === Slot) {
+      // If Comp is Slot, ensure `asChild` is not passed in `finalProps` if it came from `rest`
+      // but it should be fine as `receivedAsChild` is handled.
+      // Slot itself does not take `asChild` prop in this manner.
+      // The `asChild` prop on `SidebarMenuButton` is used to determine if `Comp` is `Slot`.
+    }
+
+
+    // Ensure `asChild` prop is not passed to DOM elements.
+    // The `receivedAsChild` is for `SidebarMenuButton` internal logic.
+    // If `...rest` happens to contain an `asChild` (e.g. from a grandparent further up),
+    // it needs to be stripped before rendering a DOM element.
+    if (Comp !== Slot && finalProps.asChild !== undefined) {
+      delete finalProps.asChild;
+    }
+
+
+    return <Comp {...finalProps}>{children}</Comp>;
   }
 );
 SidebarMenuButton.displayName = "SidebarMenuButton"
@@ -780,4 +799,3 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
-
