@@ -542,15 +542,19 @@ const sidebarMenuButtonVariants = cva(
 )
 
 export interface SidebarMenuButtonProps
-  extends React.HTMLAttributes<HTMLElement> {
-  onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
-  isActive?: boolean;
-  variant?: VariantProps<typeof sidebarMenuButtonVariants>["variant"];
-  size?: VariantProps<typeof sidebarMenuButtonVariants>["size"];
+  extends Omit<React.ComponentPropsWithoutRef<'button'>, 'onClick' | 'type' | 'children' | 'className'>,
+    Omit<React.ComponentPropsWithoutRef<'a'>, 'onClick' | 'children' | 'className' | 'href'>,
+    VariantProps<typeof sidebarMenuButtonVariants> {
   
-  href?: string;
-  type?: string;
-  asChild?: boolean; // Explicitly define asChild as a prop it can receive
+  onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
+  children?: React.ReactNode;
+  className?: string; 
+
+  // Props that `next/link` (with asChild) will pass
+  href?: string; 
+  onClick?: React.MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>; 
+  type?: string; 
+  asChild?: boolean; // This is the prop from Link (or TooltipTrigger via Link) that needs to be discarded
 }
 
 
@@ -560,55 +564,70 @@ const SidebarMenuButton = React.forwardRef<
 >(
   (
     {
-      className: intrinsicClassName,
+      // Destructure ALL known props, including asChild
+      className: intrinsicClassName, // className from direct usage on <SidebarMenuButton>
       variant,
       size,
       isActive,
       onItemClick,
       children,
-      href, 
-      onClick, // This will be from Link (navigation) or direct
-      type,
-      asChild: _discardAsChild, // Destructure asChild and alias it to signify it's not used for DOM rendering
-      ...restProps // Collect all other props
+      href,                // from Link
+      onClick: onClickFromProps, // from Link (or direct, needs merging)
+      type,                // from Link or direct
+      asChild: _discardAsChild, // ** CRITICAL: This removes it from the '...restDOMAttributes' **
+      ...restDOMAttributes   // These are now only truly other HTML attributes
     },
     ref
   ) => {
     const Comp = href ? "a" : "button";
 
-    const combinedOnClick = (event: React.MouseEvent<HTMLElement>) => {
-      if (typeof onClick === "function") { // From Link or direct
-        onClick(event);
+    const combinedOnClick = (event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+      if (typeof onClickFromProps === "function") {
+        onClickFromProps(event); // Handle Link's navigation / or direct onClick
       }
-      if (typeof onItemClick === "function" && onItemClick !== onClick) {
+      // onItemClick is specific to SidebarMenuButton and should only be called if different
+      if (typeof onItemClick === "function" && onItemClick !== onClickFromProps) {
         onItemClick(event);
       }
     };
+    
+    // The className from ...restDOMAttributes (if Link passes one) needs to be merged
+    // Pull it out first to avoid spreading it if it's undefined or if intrinsicClassName should take precedence.
+    const { className: restClassName, ...trulyRestDOMAttributes } = restDOMAttributes as Omit<typeof restDOMAttributes, 'className'> & { className?: string };
+
 
     const finalClassName = cn(
-      sidebarMenuButtonVariants({ variant, size, isActive, className: intrinsicClassName })
+      sidebarMenuButtonVariants({ variant, size, isActive }),
+      intrinsicClassName, // from <SidebarMenuButton className="...">
+      restClassName       // from <Link className="..."> or other wrappers if any
     );
-    
-    // `restProps` should not contain `asChild` because it was destructured above.
-    // It also won't contain `href`, `onClick`, `type`, `children`, `variant`, `size`, `isActive`, `onItemClick`, `className`.
-    const domProps: any = {
-        ...restProps, 
-        ref,
-        className: finalClassName,
-        "data-active": isActive,
+
+    // Explicitly type domProps to what 'a' or 'button' can accept, plus our data attribute
+    // Ensure that only valid HTML attributes from trulyRestDOMAttributes are spread.
+    const domProps: React.ButtonHTMLAttributes<HTMLButtonElement> & React.AnchorHTMLAttributes<HTMLAnchorElement> & { "data-active"?: boolean } = {
+      ...(trulyRestDOMAttributes as any), // Cast to any to allow spread of remaining valid HTML attrs
+      ref,
+      className: finalClassName,
+      "data-active": isActive,
     };
 
     if (Comp === "a") {
-        domProps.href = href;
+      domProps.href = href;
+      // Remove button-specific props if Comp is 'a'
+      delete (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type;
     } else {
-        domProps.type = type || "button";
-    }
-    
-    // Only add onClick to domProps if there's a handler to assign
-    if (typeof onClick === "function" || typeof onItemClick === "function") {
-        domProps.onClick = combinedOnClick;
+      // For button, ensure type is set, default to 'button'
+      (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = type || "button";
+      // Remove anchor-specific props if Comp is 'button'
+      delete (domProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href;
+
     }
 
+    if (combinedOnClick) {
+      domProps.onClick = combinedOnClick;
+    }
+
+    // _discardAsChild is not used, ensuring it's not passed to Comp
     return <Comp {...domProps}>{children}</Comp>;
   }
 );
