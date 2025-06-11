@@ -39,6 +39,17 @@ export interface Store {
   currentTier?: AwardTier; // This might need to be re-evaluated
   goalProgress: number; // General progress, might be different from tier progress
   positivationsDetails: PositivationDetail[];
+  // New fields from form
+  address?: string;
+  city?: string;
+  neighborhood?: string;
+  state?: string;
+  phone?: string;
+  ownerName?: string;
+  responsibleName?: string;
+  email?: string;
+  // password is part of the form, but typically not stored directly on the store object after creation for security.
+  // If needed for other purposes, consider how to handle it. For now, it's not added to the Store type.
 }
 
 export interface AwardTier {

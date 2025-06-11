@@ -36,13 +36,17 @@ const storeRegistrationSchema = z.object({
 
 type StoreRegistrationFormValues = z.infer<typeof storeRegistrationSchema>;
 
-// Helper to format CNPJ for display (XX.XXX.XXX/XXXX-XX)
 const formatCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
-  if (cleaned.length !== 14) return cnpj; // Return original if not 14 digits
+  if (cleaned.length !== 14) return cnpj;
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
 
+const getDisplayState = (stateValue?: string) => {
+  if (!stateValue) return 'N/A';
+  const stateObj = STATES.find(s => s.value === stateValue);
+  return stateObj ? stateObj.label.split(' (')[0] : stateValue; // Get only the name part
+};
 
 export default function ManageStoresPage() {
   const { toast } = useToast();
@@ -74,14 +78,14 @@ export default function ManageStoresPage() {
 
   const handleAddNew = () => {
     setEditingStore(null);
-    form.reset({ // Reset with all fields from schema
+    form.reset({
         code: '',
         razaoSocial: '',
         cnpj: '',
         address: '',
         city: '',
         neighborhood: '',
-        state: undefined, // Or a default state if applicable
+        state: undefined,
         phone: '',
         ownerName: '',
         responsibleName: '',
@@ -93,23 +97,19 @@ export default function ManageStoresPage() {
 
   const handleEdit = (store: Store) => {
     setEditingStore(store);
-    // For editing, we primarily care about what's in the Store type.
-    // The form has more fields, which might not be persisted on the Store object itself.
-    // We reset the form with available data. If a field isn't on the store object, it will be blank.
     form.reset({
       code: store.code,
-      razaoSocial: store.name, // Map store.name back to razaoSocial for the form
-      cnpj: formatCNPJ(store.cnpj), // Format CNPJ for display
-      // These fields might not be on the core Store type, provide defaults or load if available elsewhere
-      address: (store as any).address || '', 
-      city: (store as any).city || '',
-      neighborhood: (store as any).neighborhood || '',
-      state: (store as any).state || undefined,
-      phone: (store as any).phone || '',
-      ownerName: (store as any).ownerName || '',
-      responsibleName: (store as any).responsibleName || '',
-      email: (store as any).email || '',
-      password: '', // Password should not be pre-filled for editing
+      razaoSocial: store.name,
+      cnpj: formatCNPJ(store.cnpj),
+      address: store.address || '',
+      city: store.city || '',
+      neighborhood: store.neighborhood || '',
+      state: store.state || undefined,
+      phone: store.phone || '',
+      ownerName: store.ownerName || '',
+      responsibleName: store.responsibleName || '',
+      email: store.email || '',
+      password: '', // Password should not be pre-filled
     });
     setIsDialogOpen(true);
   };
@@ -127,17 +127,29 @@ export default function ManageStoresPage() {
 
   const onSubmit = (data: StoreRegistrationFormValues) => {
     let updatedStores;
+    const storeDataToSave = {
+      code: data.code,
+      name: data.razaoSocial,
+      cnpj: data.cnpj.replace(/\D/g, ''),
+      address: data.address,
+      city: data.city,
+      neighborhood: data.neighborhood,
+      state: data.state,
+      phone: data.phone,
+      ownerName: data.ownerName,
+      responsibleName: data.responsibleName,
+      email: data.email,
+      // Note: password is not typically stored on the store object itself after registration
+      // It's used here for the User type creation if we were linking users directly from this form.
+      // For this app's structure, user management is separate.
+    };
+
     if (editingStore) {
       updatedStores = stores.map(s =>
         s.id === editingStore.id
           ? {
-              ...s, // Keep existing fields from store type
-              code: data.code,
-              name: data.razaoSocial, // Update name from razaoSocial
-              cnpj: data.cnpj.replace(/\D/g, ''), // Store only numbers
-              // If other form fields should update the store object, add them here
-              // e.g. address: data.address, city: data.city, etc.
-              // For now, only core Store fields are updated on edit.
+              ...s, // Keep existing fields like id, participating, goalProgress, positivationsDetails
+              ...storeDataToSave,
             }
           : s
       );
@@ -148,15 +160,10 @@ export default function ManageStoresPage() {
     } else {
       const newStore: Store = {
         id: `store_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
-        code: data.code,
-        name: data.razaoSocial,
-        cnpj: data.cnpj.replace(/\D/g, ''),
-        participating: true,
+        ...storeDataToSave,
+        participating: true, // Default for new stores
         goalProgress: 0,
         positivationsDetails: [],
-        // Persist other fields if the Store type is expanded to include them
-        // For now, the Store type is lean. These extra fields from the form could be stored
-        // on the Store object if the type is updated, or handled differently.
       };
       updatedStores = [...stores, newStore];
       toast({
@@ -174,7 +181,7 @@ export default function ManageStoresPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Gerenciar Lojas"
+        title="Lojas"
         description="Adicione, edite ou remova lojas participantes."
         icon={ClipboardPlus}
         actions={
@@ -185,7 +192,7 @@ export default function ManageStoresPage() {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-3xl"> {/* Increased width */}
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingStore ? 'Editar Loja' : 'Adicionar Nova Loja'}</DialogTitle>
             <DialogDescription>
@@ -210,7 +217,7 @@ export default function ManageStoresPage() {
                       <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Principal, 123" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="city" render={({ field }) => (
-                      <FormItem><FormLabel>Cidade</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="neighborhood" render={({ field }) => (
                       <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Centro" {...field} /></FormControl><FormMessage /></FormItem>
@@ -261,22 +268,24 @@ export default function ManageStoresPage() {
                 <TableHead>Código</TableHead>
                 <TableHead>Razão Social</TableHead>
                 <TableHead>CNPJ</TableHead>
-                {/* <TableHead>Cidade</TableHead>
-                <TableHead>Estado</TableHead> */}
+                <TableHead>Proprietário(a)</TableHead>
+                <TableHead>Município</TableHead>
+                <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {stores.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">Nenhuma loja cadastrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4">Nenhuma loja cadastrada.</TableCell></TableRow>
               )}
               {stores.map((store) => (
                 <TableRow key={store.id}>
                   <TableCell>{store.code}</TableCell>
                   <TableCell className="font-medium">{store.name}</TableCell>
                   <TableCell>{formatCNPJ(store.cnpj)}</TableCell>
-                  {/* <TableCell>{(store as any).city || 'N/A'}</TableCell>
-                  <TableCell>{(store as any).state || 'N/A'}</TableCell> */}
+                  <TableCell>{store.ownerName || 'N/A'}</TableCell>
+                  <TableCell>{store.city || 'N/A'}</TableCell>
+                  <TableCell>{getDisplayState(store.state)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEdit(store)}>
                       <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
@@ -294,5 +303,3 @@ export default function ManageStoresPage() {
     </div>
   );
 }
-
-    

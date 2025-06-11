@@ -45,10 +45,32 @@ const positivationsStore4: PositivationDetail[] = [
 
 
 export const MOCK_STORES: Store[] = [
-  { id: 'store_1', code: 'LJ001', name: 'Hiperfarma Matriz Ltda.', cnpj: '01.234.567/0001-88', participating: true, goalProgress: 75, positivationsDetails: positivationsStore1, currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore1.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore1.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)) },
-  { id: 'store_2', code: 'LJ002', name: 'Hiperfarma Filial Centro Com. de Med. Ltda.', cnpj: '02.345.678/0001-99', participating: true, goalProgress: 40, positivationsDetails: [] },
-  { id: 'store_3', code: 'LJ003', name: 'Hiperfarma Shopping Norte Farmácia EIRELI', cnpj: '03.456.789/0001-00', participating: false, goalProgress: 0, positivationsDetails: [] },
-  { id: 'store_4', code: 'LJ004', name: 'Hiperfarma Av. Paulista Medicamentos S.A.', cnpj: '04.567.890/0001-11', participating: true, goalProgress: 100, positivationsDetails: positivationsStore4, currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore4.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore4.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)) },
+  { 
+    id: 'store_1', code: 'LJ001', name: 'Hiperfarma Matriz Ltda.', cnpj: '01234567000188', 
+    participating: true, goalProgress: 75, positivationsDetails: positivationsStore1, 
+    currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore1.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore1.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)),
+    address: 'Rua Principal, 123', city: 'Curitiba', neighborhood: 'Centro', state: 'PR', phone: '(41) 3333-1111',
+    ownerName: 'João Silva', responsibleName: 'Maria Souza', email: 'matriz@hiperfarma.com'
+  },
+  { 
+    id: 'store_2', code: 'LJ002', name: 'Hiperfarma Filial Centro Com. de Med. Ltda.', cnpj: '02345678000199', 
+    participating: true, goalProgress: 40, positivationsDetails: [],
+    address: 'Av. Comercial, 456', city: 'Londrina', neighborhood: 'Centro', state: 'PR', phone: '(43) 3333-2222',
+    ownerName: 'Pedro Alves', responsibleName: 'Ana Costa', email: 'filial.centro@hiperfarma.com'
+  },
+  { 
+    id: 'store_3', code: 'LJ003', name: 'Hiperfarma Shopping Norte Farmácia EIRELI', cnpj: '03456789000100', 
+    participating: false, goalProgress: 0, positivationsDetails: [],
+    address: 'Rua do Shopping, 789', city: 'Joinville', neighborhood: 'América', state: 'SC', phone: '(47) 3333-3333',
+    ownerName: 'Carlos Pereira', responsibleName: 'Beatriz Santos', email: 'shopping.norte@hiperfarma.com'
+  },
+  { 
+    id: 'store_4', code: 'LJ004', name: 'Hiperfarma Av. Brasil Medicamentos S.A.', cnpj: '04567890000111', 
+    participating: true, goalProgress: 100, positivationsDetails: positivationsStore4, 
+    currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore4.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore4.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)),
+    address: 'Av. Brasil, 1011', city: 'Florianópolis', neighborhood: 'Centro', state: 'SC', phone: '(48) 3333-4444',
+    ownerName: 'Fernanda Lima', responsibleName: 'Ricardo Oliveira', email: 'av.brasil@hiperfarma.com'
+  },
 ];
 
 
@@ -59,7 +81,7 @@ export const MOCK_USERS: User[] = [
   { id: 'user_vendor_rep', email: 'vendor@supplier.com', role: 'vendor', name: 'Rep. Farmacoop', storeName: 'Farmacoop Produtos Farmacêuticos Ltda.' }, // storeName here implies their company for display
   { id: 'user_store_1', email: 'store1@hiperfarma.com', role: 'store', name: 'Equipe Matriz', storeName: MOCK_STORES[0].name },
   { id: 'user_store_2', email: 'store2@hiperfarma.com', role: 'store', name: 'Equipe Filial Centro', storeName: MOCK_STORES[1].name },
-  { id: 'user_store_4', email: 'store4@hiperfarma.com', role: 'store', name: 'Equipe Av. Paulista', storeName: MOCK_STORES[3].name },
+  { id: 'user_store_4', email: 'store4@hiperfarma.com', role: 'store', name: 'Equipe Av. Brasil', storeName: MOCK_STORES[3].name },
 ];
 
 export const ROLES: UserRole[] = ['admin', 'manager', 'vendor', 'store'];
@@ -91,4 +113,3 @@ export const MOCK_SWEEPSTAKE_ENTRIES: SweepstakeEntry[] = MOCK_STORES
     // Qualification rate could be percentage of max possible positivations, or just goalProgress
     qualificationRate: s.goalProgress / 100,
   }));
-
