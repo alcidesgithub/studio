@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -22,7 +23,10 @@ import Image from 'next/image';
 
 const vendorSchema = z.object({
   name: z.string().min(3, "Nome da empresa deve ter pelo menos 3 caracteres."),
-  cnpj: z.string().length(14, "CNPJ deve ter 14 dígitos (somente números).").or(z.string().length(18, "CNPJ deve ter 18 caracteres (com formatação).")),
+  cnpj: z.string().refine(value => {
+    const cleaned = value.replace(/\D/g, '');
+    return cleaned.length === 14;
+  }, { message: "CNPJ deve ter 14 dígitos (após remover formatação)." }),
   address: z.string().min(5, "Endereço é obrigatório."),
   city: z.string().min(2, "Cidade é obrigatória."),
   neighborhood: z.string().min(2, "Bairro é obrigatório."),
@@ -41,7 +45,6 @@ const salespersonSchema = z.object({
 });
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
-// Helper to format CNPJ for display (XX.XXX.XXX/XXXX-XX)
 const formatCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
   if (cleaned.length !== 14) return cnpj; 
@@ -54,6 +57,7 @@ export default function ManageVendorsPage() {
   const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
   const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
 
   useEffect(() => {
     setVendors(loadVendors());
@@ -86,7 +90,7 @@ export default function ManageVendorsPage() {
     setEditingVendor(vendor);
     vendorForm.reset({
       name: vendor.name,
-      cnpj: formatCNPJ(vendor.cnpj),
+      cnpj: formatCNPJ(vendor.cnpj), // Format for display, raw will be saved
       address: vendor.address,
       city: vendor.city,
       neighborhood: vendor.neighborhood,
@@ -97,25 +101,45 @@ export default function ManageVendorsPage() {
     setIsVendorDialogOpen(true);
   };
 
-  const handleDeleteVendor = (vendorId: string) => {
-    // Also remove associated salespeople
-    const updatedSalespeople = salespeople.filter(sp => sp.vendorId !== vendorId);
+  const confirmDeleteVendor = (vendor: Vendor) => {
+    setVendorToDelete(vendor);
+  };
+
+  const handleDeleteVendor = () => {
+    if (!vendorToDelete) return;
+
+    // Remove associated salespeople
+    const updatedSalespeople = salespeople.filter(sp => sp.vendorId !== vendorToDelete.id);
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
 
-    const updatedVendors = vendors.filter(v => v.id !== vendorId);
+    const updatedVendors = vendors.filter(v => v.id !== vendorToDelete.id);
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
-    toast({ title: "Fornecedor Excluído!", description: "O fornecedor e seus vendedores vinculados foram removidos.", variant: "destructive" });
+    
+    toast({ 
+      title: "Fornecedor Excluído!", 
+      description: `O fornecedor "${vendorToDelete.name}" e seus vendedores vinculados foram removidos.`, 
+      variant: "destructive" 
+    });
+    setVendorToDelete(null); // Close dialog
   };
 
   const onVendorSubmit = (data: VendorFormValues) => {
     let updatedVendors;
+    const rawCnpj = data.cnpj.replace(/\D/g, ''); // Save raw CNPJ
+
     if (editingVendor) {
-      updatedVendors = vendors.map(v => v.id === editingVendor.id ? { ...editingVendor, ...data, cnpj: data.cnpj.replace(/\D/g, '') } : v);
+      updatedVendors = vendors.map(v => 
+        v.id === editingVendor.id ? { ...editingVendor, ...data, cnpj: rawCnpj } : v
+      );
       toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.` });
     } else {
-      const newVendor: Vendor = { id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data, cnpj: data.cnpj.replace(/\D/g, '') };
+      const newVendor: Vendor = { 
+        id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, 
+        ...data, 
+        cnpj: rawCnpj 
+      };
       updatedVendors = [...vendors, newVendor];
       toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado.` });
     }
@@ -133,7 +157,7 @@ export default function ManageVendorsPage() {
     saveSalespeople(updatedSalespeople);
     const linkedVendor = vendors.find(v => v.id === data.vendorId);
     toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${linkedVendor?.name || 'fornecedor'}.` });
-    salespersonForm.reset();
+    salespersonForm.reset({ name: '', phone: '', email: '', password: '', vendorId: data.vendorId }); // Keep vendorId if adding multiple
   };
 
   return (
@@ -164,8 +188,8 @@ export default function ManageVendorsPage() {
                 <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Cidade</FormLabel><FormControl><Input placeholder="Ex: São Paulo" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Pinheiros" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="dataAiHint" render={({ field }) => (<FormItem><FormLabel>Dica para IA (Logo)</FormLabel><FormControl><Input placeholder="Ex: company logo" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} defaultValue={field.value || 'https://placehold.co/120x60.png?text=Logo'} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={vendorForm.control} name="dataAiHint" render={({ field }) => (<FormItem><FormLabel>Dica para IA (Logo)</FormLabel><FormControl><Input placeholder="Ex: company logo" {...field} defaultValue={field.value || 'company logo'} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <DialogFooter className="pt-4">
                 <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setEditingVendor(null); vendorForm.reset(); setIsVendorDialogOpen(false); }}>Cancelar</Button></DialogClose>
@@ -175,6 +199,22 @@ export default function ManageVendorsPage() {
           </Form>
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={!!vendorToDelete} onOpenChange={(open) => !open && setVendorToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o fornecedor "{vendorToDelete?.name}"? Esta ação também removerá todos os vendedores vinculados a ele e não poderá ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setVendorToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteVendor} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <Card className="shadow-lg">
         <CardHeader>
@@ -208,9 +248,11 @@ export default function ManageVendorsPage() {
                     <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditVendor(vendor)}>
                       <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
                     </Button>
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDeleteVendor(vendor.id)}>
-                      <Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span>
-                    </Button>
+                    <AlertDialogTrigger asChild>
+                       <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteVendor(vendor)}>
+                          <Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span>
+                       </Button>
+                    </AlertDialogTrigger>
                   </TableCell>
                 </TableRow>
               ))}
@@ -244,3 +286,6 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
+
+
+    
