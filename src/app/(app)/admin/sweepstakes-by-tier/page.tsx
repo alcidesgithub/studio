@@ -18,7 +18,7 @@ interface SweepstakeWinnerRecord {
   tierName: string;
   prizeName: string;
   storeId: string;
-  storeName: string;
+  storeName: string; // Will store "Code - Razão Social (CNPJ: XXXXX)"
   drawnAt: Date;
 }
 
@@ -87,7 +87,7 @@ export default function AdminTieredSweepstakesPage() {
       tierName: tier.name,
       prizeName: tier.rewardName,
       storeId: winningStore.id,
-      storeName: winningStore.name,
+      storeName: `${winningStore.code} - ${winningStore.name} (CNPJ: ${winningStore.cnpj})`,
       drawnAt: new Date(),
     };
 
@@ -107,7 +107,7 @@ export default function AdminTieredSweepstakesPage() {
     const dataToExport = drawnWinners.map(r => ({
       Faixa: r.tierName,
       Premio: r.prizeName,
-      Vencedor: r.storeName,
+      Loja_Vencedora_Detalhes: r.storeName, // StoreName now contains Code - Razao Social (CNPJ)
       SorteadoEm: format(r.drawnAt, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
     }));
     exportToCSV(dataToExport, "log_vencedores_sorteio_faixas_hiperfarma");
@@ -147,7 +147,9 @@ export default function AdminTieredSweepstakesPage() {
                 <h4 className="font-semibold text-sm mb-1 flex items-center gap-1"><ListChecks /> Lojas Elegíveis ({tier.eligibleStores.length}):</h4>
                 {tier.eligibleStores.length > 0 ? (
                   <ul className="list-disc list-inside text-xs text-muted-foreground max-h-24 overflow-y-auto bg-muted/30 p-2 rounded-md">
-                    {tier.eligibleStores.map(store => <li key={store.id}>{store.name}</li>)}
+                    {tier.eligibleStores.map(store => 
+                      <li key={store.id}>{store.code} - {store.name} (CNPJ: {store.cnpj})</li>
+                    )}
                   </ul>
                 ) : (
                   <p className="text-xs text-muted-foreground p-2">Nenhuma loja elegível para o sorteio desta faixa (ou todas já ganharam, ou nenhuma atende aos critérios).</p>
@@ -163,15 +165,15 @@ export default function AdminTieredSweepstakesPage() {
 
                   return (
                     <div key={prizeIndex} className="flex items-center justify-between p-3 border rounded-lg bg-background hover:shadow-sm transition-shadow">
-                      <div className="text-sm">
-                        <span className="font-medium text-primary">{tier.rewardName} - Prêmio #{prizeIndex + 1}</span>
+                      <div className="text-sm flex-1">
+                        <span className="font-medium text-primary block">{tier.rewardName} - Prêmio #{prizeIndex + 1}</span>
                         {isSlotDrawn && winnerRecord ? (
-                          <p className="text-xs text-green-700 font-semibold">
+                          <p className="text-xs text-green-700 font-semibold mt-1">
                             Ganho por: {winnerRecord.storeName}
-                            <span className="text-muted-foreground font-normal"> ({format(winnerRecord.drawnAt, "dd/MM HH:mm", { locale: ptBR })})</span>
+                            <span className="text-muted-foreground font-normal block"> ({format(winnerRecord.drawnAt, "dd/MM HH:mm", { locale: ptBR })})</span>
                           </p>
                         ) : (
-                          <p className="text-xs text-muted-foreground">Disponível para sorteio</p>
+                          <p className="text-xs text-muted-foreground mt-1">Disponível para sorteio</p>
                         )}
                       </div>
                       {!isSlotDrawn && (
@@ -180,7 +182,7 @@ export default function AdminTieredSweepstakesPage() {
                           onClick={() => handleDrawWinner(tier)}
                           disabled={!canDrawForThisSlot || isLoadingDraw === tier.id}
                           variant={canDrawForThisSlot ? "default" : "outline"}
-                          className="w-28"
+                          className="w-28 ml-2"
                         >
                           {isLoadingDraw === tier.id ? (
                             <PlayCircle className="mr-2 h-4 w-4 animate-spin" />
@@ -191,7 +193,7 @@ export default function AdminTieredSweepstakesPage() {
                         </Button>
                       )}
                        {isSlotDrawn && (
-                        <div className="w-28 text-right">
+                        <div className="w-28 text-right ml-2">
                             <span className="text-xs text-green-600 font-bold">PREMIADO</span>
                         </div>
                        )}
@@ -216,7 +218,7 @@ export default function AdminTieredSweepstakesPage() {
                 <TableRow>
                   <TableHead>Faixa</TableHead>
                   <TableHead>Prêmio</TableHead>
-                  <TableHead>Loja Vencedora</TableHead>
+                  <TableHead>Loja Vencedora (Código - Razão Social - CNPJ)</TableHead>
                   <TableHead className="text-right">Sorteado Em</TableHead>
                 </TableRow>
               </TableHeader>

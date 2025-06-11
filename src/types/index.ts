@@ -31,7 +31,9 @@ export interface PositivationDetail {
 
 export interface Store {
   id: string;
-  name: string;
+  code: string; // Código da loja
+  name: string; // Razão Social
+  cnpj: string; // CNPJ da loja
   participating: boolean;
   // positivacoes: number; // This will be derived from positivationsDetails.length
   currentTier?: AwardTier; // This might need to be re-evaluated

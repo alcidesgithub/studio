@@ -19,12 +19,12 @@ export const MOCK_AWARD_TIERS: AwardTier[] = [
 ].sort((a,b) => a.positivacoesRequired - b.positivacoesRequired); // Ensure sorted for progress logic
 
 export const MOCK_VENDORS: Vendor[] = [
-  { id: 'vendor_1', name: 'Farmacoop', cnpj: '11222333000144', address: 'Rua dos Medicamentos, 123', city: 'São Paulo', neighborhood: 'Centro', state: 'SP', logoUrl: 'https://placehold.co/120x60.png?text=Farmacoop', dataAiHint: "pharmacy logo" },
-  { id: 'vendor_2', name: 'SaúdeMais', cnpj: '44555666000177', address: 'Av. Bem Estar, 456', city: 'Curitiba', neighborhood: 'Batel', state: 'PR', logoUrl: 'https://placehold.co/120x60.png?text=SaudeMais', dataAiHint: "health logo" },
-  { id: 'vendor_3', name: 'BioMedicina', cnpj: '77888999000100', address: 'Travessa da Ciência, 789', city: 'Florianópolis', neighborhood: 'Trindade', state: 'SC', logoUrl: 'https://placehold.co/120x60.png?text=BioMed', dataAiHint: "medical science" },
-  { id: 'vendor_4', name: 'NutriBem', cnpj: '12345678000191', address: 'Alameda da Nutrição, 101', city: 'Porto Alegre', neighborhood: 'Moinhos de Vento', state: 'RS', logoUrl: 'https://placehold.co/120x60.png?text=NutriBem', dataAiHint: "nutrition health" },
-  { id: 'vendor_5', name: 'CuidadoTotal', cnpj: '98765432000121', address: 'Praça do Cuidado, 202', city: 'Rio de Janeiro', neighborhood: 'Copacabana', state: 'RJ', logoUrl: 'https://placehold.co/120x60.png?text=CuidadoTotal', dataAiHint: "healthcare logo" },
-  { id: 'vendor_6', name: 'MediSuprimentos', cnpj: '54321098000154', address: 'Rodovia dos Suprimentos, 303', city: 'Belo Horizonte', neighborhood: 'Savassi', state: 'MG', logoUrl: 'https://placehold.co/120x60.png?text=MediSupri', dataAiHint: "medical supply" },
+  { id: 'vendor_1', name: 'Farmacoop Produtos Farmacêuticos Ltda.', cnpj: '11222333000144', address: 'Rua dos Medicamentos, 123', city: 'São Paulo', neighborhood: 'Centro', state: 'SP', logoUrl: 'https://placehold.co/120x60.png?text=Farmacoop', dataAiHint: "pharmacy logo" },
+  { id: 'vendor_2', name: 'SaúdeMais Distribuidora S.A.', cnpj: '44555666000177', address: 'Av. Bem Estar, 456', city: 'Curitiba', neighborhood: 'Batel', state: 'PR', logoUrl: 'https://placehold.co/120x60.png?text=SaudeMais', dataAiHint: "health logo" },
+  { id: 'vendor_3', name: 'BioMedicina Inovações Farm. EIRELI', cnpj: '77888999000100', address: 'Travessa da Ciência, 789', city: 'Florianópolis', neighborhood: 'Trindade', state: 'SC', logoUrl: 'https://placehold.co/120x60.png?text=BioMed', dataAiHint: "medical science" },
+  { id: 'vendor_4', name: 'NutriBem Alimentos Funcionais Ltda.', cnpj: '12345678000191', address: 'Alameda da Nutrição, 101', city: 'Porto Alegre', neighborhood: 'Moinhos de Vento', state: 'RS', logoUrl: 'https://placehold.co/120x60.png?text=NutriBem', dataAiHint: "nutrition health" },
+  { id: 'vendor_5', name: 'CuidadoTotal Cosméticos e Higiene Pessoal S.A.', cnpj: '98765432000121', address: 'Praça do Cuidado, 202', city: 'Rio de Janeiro', neighborhood: 'Copacabana', state: 'RJ', logoUrl: 'https://placehold.co/120x60.png?text=CuidadoTotal', dataAiHint: "healthcare logo" },
+  { id: 'vendor_6', name: 'MediSuprimentos Hospitalares Ltda.', cnpj: '54321098000154', address: 'Rodovia dos Suprimentos, 303', city: 'Belo Horizonte', neighborhood: 'Savassi', state: 'MG', logoUrl: 'https://placehold.co/120x60.png?text=MediSupri', dataAiHint: "medical supply" },
 ].sort((a,b) => a.name.localeCompare(b.name)); // Sort vendors alphabetically
 
 const today = new Date();
@@ -45,10 +45,10 @@ const positivationsStore4: PositivationDetail[] = [
 
 
 export const MOCK_STORES: Store[] = [
-  { id: 'store_1', name: 'Hiperfarma Matriz', participating: true, goalProgress: 75, positivationsDetails: positivationsStore1, currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore1.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore1.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)) },
-  { id: 'store_2', name: 'Hiperfarma Filial Centro', participating: true, goalProgress: 40, positivationsDetails: [] },
-  { id: 'store_3', name: 'Hiperfarma Shopping Norte', participating: false, goalProgress: 0, positivationsDetails: [] },
-  { id: 'store_4', name: 'Hiperfarma Av. Paulista', participating: true, goalProgress: 100, positivationsDetails: positivationsStore4, currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore4.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore4.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)) },
+  { id: 'store_1', code: 'LJ001', name: 'Hiperfarma Matriz Ltda.', cnpj: '01.234.567/0001-88', participating: true, goalProgress: 75, positivationsDetails: positivationsStore1, currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore1.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore1.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)) },
+  { id: 'store_2', code: 'LJ002', name: 'Hiperfarma Filial Centro Com. de Med. Ltda.', cnpj: '02.345.678/0001-99', participating: true, goalProgress: 40, positivationsDetails: [] },
+  { id: 'store_3', code: 'LJ003', name: 'Hiperfarma Shopping Norte Farmácia EIRELI', cnpj: '03.456.789/0001-00', participating: false, goalProgress: 0, positivationsDetails: [] },
+  { id: 'store_4', code: 'LJ004', name: 'Hiperfarma Av. Paulista Medicamentos S.A.', cnpj: '04.567.890/0001-11', participating: true, goalProgress: 100, positivationsDetails: positivationsStore4, currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore4.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore4.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)) },
 ];
 
 
@@ -56,7 +56,7 @@ export const MOCK_USERS: User[] = [
   { id: 'user_admin', email: 'admin@hiperfarma.com', role: 'admin', name: 'Usuário Admin' },
   { id: 'user_alcides', email: 'alcides@redehiperfarma.com.br', role: 'admin', name: 'Alcides' },
   { id: 'user_manager', email: 'manager@hiperfarma.com', role: 'manager', name: 'Usuário Gerente' },
-  { id: 'user_vendor_rep', email: 'vendor@supplier.com', role: 'vendor', name: 'Rep. Farmacoop', storeName: 'Farmacoop Rep' }, // storeName here implies their company for display
+  { id: 'user_vendor_rep', email: 'vendor@supplier.com', role: 'vendor', name: 'Rep. Farmacoop', storeName: 'Farmacoop Produtos Farmacêuticos Ltda.' }, // storeName here implies their company for display
   { id: 'user_store_1', email: 'store1@hiperfarma.com', role: 'store', name: 'Equipe Matriz', storeName: MOCK_STORES[0].name },
   { id: 'user_store_2', email: 'store2@hiperfarma.com', role: 'store', name: 'Equipe Filial Centro', storeName: MOCK_STORES[1].name },
   { id: 'user_store_4', email: 'store4@hiperfarma.com', role: 'store', name: 'Equipe Av. Paulista', storeName: MOCK_STORES[3].name },
