@@ -541,45 +541,40 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-// Interface for props SidebarMenuButton uses for its own styling/logic
-interface SidebarMenuButtonOwnProps {
+// Props for SidebarMenuButton's own styling/logic
+interface SidebarMenuButtonSpecificProps {
   variant?: VariantProps<typeof sidebarMenuButtonVariants>["variant"];
   size?: VariantProps<typeof sidebarMenuButtonVariants>["size"];
   isActive?: boolean;
-  onItemClick?: (event: React.MouseEvent<HTMLElement>) => void; // SidebarMenuButton's own click
-  children?: React.ReactNode;
-  className?: string; // className passed directly to SidebarMenuButton
+  onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
 }
 
-// Interface for props that might be injected by a parent component like Next.js Link
-// when that parent uses `asChild`.
-interface InjectedParentProps {
+// Props that might be injected by a parent component like Next.js Link
+// when that parent uses `asChild`. This includes the `asChild` prop itself.
+interface InjectedParentAsChildProps {
   href?: string;
-  onClick?: React.MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>; // Link's navigation onClick or Tooltip's internal handler
+  onClick?: React.MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>;
   type?: "button" | "submit" | "reset";
-  // The `asChild` prop is expected here because a parent (like Link) might pass it.
-  // SidebarMenuButton must handle it by not passing it to the DOM.
-  asChild?: boolean;
+  asChild?: boolean; // This prop is received from the parent (Link or TooltipTrigger)
 }
 
-// Combine own props, injected props, and allow any other standard HTML attributes for <a> or <button>.
+// Combine own props, injected props, and standard HTML attributes for <a> or <button>.
 // Omit props from HTMLAttributes that we are managing explicitly to avoid type conflicts.
-type CombinedProps = SidebarMenuButtonOwnProps &
-  InjectedParentProps &
+type CombinedProps = SidebarMenuButtonSpecificProps &
+  InjectedParentAsChildProps &
   Omit<
     React.HTMLAttributes<HTMLAnchorElement | HTMLButtonElement>,
-    // Omit keys that are explicitly defined in OwnProps or InjectedParentProps
-    // to prevent type clashes, especially for `onClick` and `className`.
-    'onClick' | 'className' | 'children' | 'type' | 'href'
+    // Omit keys explicitly defined to prevent type clashes.
+    "onClick" | "className" | "children" | "type" | "href"
   >;
 
 
 const SidebarMenuButton = React.forwardRef<
   HTMLAnchorElement | HTMLButtonElement,
-  CombinedProps // Use the well-defined CombinedProps
->( (props, ref) => {
+  CombinedProps
+>( (allProps, ref) => {
   const {
-    // Destructure SidebarMenuButton's own props
+    // Destructure SidebarMenuButton's specific props
     variant,
     size,
     isActive,
@@ -587,33 +582,34 @@ const SidebarMenuButton = React.forwardRef<
     children,
     className: intrinsicClassName,
 
-    // Destructure props potentially injected by Link
+    // Destructure props potentially injected by parent (e.g., Link or TooltipTrigger)
     href: hrefFromParent,
     onClick: onClickFromParent,
     type: typeFromParent,
 
-    // CRITICAL: Destructure and discard 'asChild'
-    // This 'asChild' is received from the parent (e.g., Link) and must not reach the DOM element.
+    // CRITICAL: Destructure and discard 'asChild' prop received from parent.
+    // This ensures it's not passed to the underlying DOM element.
     asChild: _discardAsChild,
 
-    // Collect all other props (these should be valid HTML attributes)
+    // Collect all other props; these should be valid HTML attributes for <a> or <button>.
     ...restHtmlAttributes
-  } = props; // Destructure from the 'props' argument
+  } = allProps;
 
   const Comp = hrefFromParent ? "a" : "button";
 
   const finalClassName = cn(
     sidebarMenuButtonVariants({ variant, size, isActive }),
     intrinsicClassName,
-    restHtmlAttributes.className // Account for className potentially in restHtmlAttributes
+    (restHtmlAttributes as any).className // Safely access className from restHtmlAttributes if it exists
   );
 
   // Prepare DOM attributes, ensuring 'className' from restHtmlAttributes is handled by finalClassName
-  // and 'asChild' is definitely not present.
-  const { className: _restClassNameToDiscard, ...safeRestHtmlAttributes } = restHtmlAttributes;
+  // and `asChild` is definitely not present.
+  const { className: _classNameFromRestToDiscard, ...safeRestHtmlAttributes } = restHtmlAttributes as any;
+
 
   const domProps: React.AllHTMLAttributes<HTMLAnchorElement | HTMLButtonElement> & { "data-active"?: boolean; } = {
-    ...safeRestHtmlAttributes, // Spread the cleaned (no asChild, no duplicate className) HTML attributes
+    ...safeRestHtmlAttributes,
     ref,
     className: finalClassName,
     "data-active": isActive,
@@ -629,14 +625,15 @@ const SidebarMenuButton = React.forwardRef<
     (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = typeFromParent || "button";
   }
 
-  // Combine onClick handlers
+  // Combine onClick handlers: parent's (e.g., Link navigation) and SidebarMenuButton's own
   domProps.onClick = (event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
     if (typeof onClickFromParent === "function") {
-      onClickFromParent(event); // Execute Link's navigation or Tooltip's handler
+      onClickFromParent(event);
     }
     // Check if onItemClick is different to avoid double execution if they were the same function
+    // (though in this asChild chain, Link's onClick is for navigation, Tooltip's is for its state)
     if (typeof onItemClick === "function" && onItemClick !== onClickFromParent) {
-      onItemClick(event as React.MouseEvent<HTMLElement>); // Execute SidebarMenuButton's specific logic
+      onItemClick(event as React.MouseEvent<HTMLElement>);
     }
   };
 
@@ -813,3 +810,4 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
+
