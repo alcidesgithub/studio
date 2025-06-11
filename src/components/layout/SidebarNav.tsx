@@ -72,9 +72,10 @@ export function SidebarNav() {
               </SidebarGroupLabel>
             ) : (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href!}>
+                <Link href={item.href!} asChild>
                   <SidebarMenuButton
-                    asChild
+                    // No 'asChild' here, so SidebarMenuButton renders its own element (e.g., button)
+                    // Link's 'asChild' will pass href to this rendered element.
                     variant="default"
                     size="default"
                     isActive={pathname === item.href}
@@ -82,10 +83,8 @@ export function SidebarNav() {
                     onClick={handleLinkClick}
                     className="justify-start"
                   >
-                    <>
-                      {item.icon && <item.icon className="h-5 w-5" />}
-                      <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                    </>
+                    {item.icon && <item.icon className="h-5 w-5" />}
+                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
