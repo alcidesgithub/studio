@@ -1,3 +1,4 @@
+
 "use client"; // For onClick handlers
 
 import { PageHeader } from '@/components/PageHeader';
@@ -13,8 +14,20 @@ import { useToast } from '@/hooks/use-toast';
 // Mock function to simulate CSV export
 const exportToCSV = (data: any[], filename: string) => {
   if (typeof window === "undefined") return;
-  const csvContent = "data:text/csv;charset=utf-8," + 
-    [Object.keys(data[0]).join(","), ...data.map(item => Object.values(item).join(","))].join("\n");
+  // Simple CSV header generation from keys of the first object
+  const header = Object.keys(data[0]).join(",");
+  const csvRows = data.map(row => 
+    Object.values(row).map(value => {
+      const stringValue = String(value);
+      // Escape commas and quotes
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    }).join(",")
+  );
+
+  const csvContent = "data:text/csv;charset=utf-8," + [header, ...csvRows].join("\n");
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
@@ -35,14 +48,25 @@ export default function AdminSweepstakesPage() {
     // Simulate API call and random drawing
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Simple mock: pick 3 random winners from eligible stores
-    const eligibleStores = [...MOCK_SWEEPSTAKE_ENTRIES];
+    // Simple mock: pick up to 3 random winners from eligible stores
+    const eligibleStores = [...MOCK_SWEEPSTAKE_ENTRIES]; // Make a mutable copy
     const winners: SweepstakeResult[] = [];
-    const prizes = ["Grand Prize: Smart TV", "Second Prize: Tablet", "Third Prize: Gift Basket"];
+    const prizes = ["Grand Prize: Smart TV 55\"", "Second Prize: Tablet Pro", "Third Prize: Premium Gift Basket"];
 
-    for (let i = 0; i < Math.min(prizes.length, eligibleStores.length); i++) {
+    if (eligibleStores.length === 0) {
+        toast({
+            title: "No Eligible Stores",
+            description: "There are no stores currently qualifying for the sweepstakes.",
+            variant: "default"
+        });
+        setIsLoading(false);
+        return;
+    }
+
+    for (let i = 0; i < Math.min(prizes.length, MOCK_SWEEPSTAKE_ENTRIES.length); i++) {
+      if(eligibleStores.length === 0) break; // No more stores to pick from
       const randomIndex = Math.floor(Math.random() * eligibleStores.length);
-      const winner = eligibleStores.splice(randomIndex, 1)[0];
+      const winner = eligibleStores.splice(randomIndex, 1)[0]; // Remove winner from list
       winners.push({ ...winner, prize: prizes[i] });
     }
     
@@ -50,28 +74,33 @@ export default function AdminSweepstakesPage() {
     setIsLoading(false);
     toast({
       title: "Sweepstakes Complete!",
-      description: `${winners.length} winners selected.`,
+      description: `${winners.length} winners selected. Check the results below.`,
     });
   };
 
   const handleExportResults = () => {
     if (results.length === 0) {
-      toast({ title: "No results to export", variant: "destructive"});
+      toast({ title: "No results to export", description: "Run a sweepstake first to generate results.", variant: "default"});
       return;
     }
-    exportToCSV(results, "sweepstake_results");
-    toast({ title: "Results exported to CSV" });
+    const dataToExport = results.map(r => ({
+        storeName: r.storeName,
+        prize: r.prize,
+        qualificationRate: `${(r.qualificationRate * 100).toFixed(0)}%`
+    }));
+    exportToCSV(dataToExport, "hiperfarma_sweepstake_results");
+    toast({ title: "Results Exported", description: "Sweepstake results have been exported to a CSV file." });
   };
 
   return (
     <div className="animate-fadeIn">
       <PageHeader
         title="Sweepstakes Management"
-        description="Perform random drawings and manage results."
+        description="Perform random drawings for qualifying stores and export the results."
         icon={Gift}
         actions={
-          <div className="flex gap-2">
-            <Button onClick={handleRunSweepstakes} disabled={isLoading}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={handleRunSweepstakes} disabled={isLoading || MOCK_SWEEPSTAKE_ENTRIES.length === 0}>
               <PlayCircle className="mr-2 h-4 w-4" /> {isLoading ? "Running..." : "Run Sweepstakes"}
             </Button>
             <Button onClick={handleExportResults} variant="outline" disabled={results.length === 0}>
@@ -85,7 +114,7 @@ export default function AdminSweepstakesPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><ListChecks /> Qualifying Stores</CardTitle>
-            <CardDescription>Stores eligible for the current sweepstakes based on success rate.</CardDescription>
+            <CardDescription>Stores eligible for the sweepstakes based on their success rate.</CardDescription>
           </CardHeader>
           <CardContent>
             {MOCK_SWEEPSTAKE_ENTRIES.length > 0 ? (
@@ -109,12 +138,18 @@ export default function AdminSweepstakesPage() {
               <p className="text-muted-foreground text-center py-4">No stores currently qualify for sweepstakes.</p>
             )}
           </CardContent>
+           <CardFooter className="text-xs text-muted-foreground">
+            {MOCK_SWEEPSTAKE_ENTRIES.length > 0 ? 
+              `A total of ${MOCK_SWEEPSTAKE_ENTRIES.length} stores are currently eligible.` :
+              "Register stores and track their performance to make them eligible."
+            }
+          </CardFooter>
         </Card>
 
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Sweepstakes Results</CardTitle>
-            <CardDescription>Winners from the latest drawing.</CardDescription>
+            <CardDescription>Winners from the latest drawing will appear here.</CardDescription>
           </CardHeader>
           <CardContent>
             {results.length > 0 ? (
@@ -122,7 +157,7 @@ export default function AdminSweepstakesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Store Name</TableHead>
-                    <TableHead>Prize</TableHead>
+                    <TableHead>Prize Won</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -135,19 +170,16 @@ export default function AdminSweepstakesPage() {
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-muted-foreground text-center py-4">No sweepstakes run yet, or no winners.</p>
+              <p className="text-muted-foreground text-center py-4">
+                {isLoading ? "Running sweepstakes, please wait..." : "No sweepstakes run yet, or no winners from the last run."}
+              </p>
             )}
           </CardContent>
           <CardFooter className="text-xs text-muted-foreground">
-            Sweepstakes results are logged for auditing purposes (mock).
+            Sweepstakes results are logged for auditing purposes (mock implementation).
           </CardFooter>
         </Card>
       </div>
     </div>
   );
 }
-
-// Add metadata if server rendering, but this is a client component
-// export const metadata: Metadata = {
-//   title: 'Sweepstakes - Hiperfarma Business Meeting Manager',
-// };
