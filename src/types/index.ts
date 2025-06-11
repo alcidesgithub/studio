@@ -24,15 +24,16 @@ export interface Store {
   name: string;
   participating: boolean;
   positivacoes: number;
-  currentTier?: AwardTier;
+  currentTier?: AwardTier; // This might need to be re-evaluated if structure changes significantly
   goalProgress: number; // Percentage towards next tier or event goal
 }
 
 export interface AwardTier {
   id: string;
-  name: string;
-  qualificationCriteria: string; // e.g., "5 positivacoes"
-  reward: string;
+  name: string; // Nome da faixa
+  rewardName: string; // Nome do prêmio
+  quantityAvailable: number; // Quantidade de prêmios disponíveis
+  positivacoesRequired: number; // Meta de positivações exigida (número inteiro)
 }
 
 export interface Positivacao {
@@ -74,3 +75,4 @@ export interface Salesperson {
   email: string;
   password?: string; // For login (mock)
 }
+
