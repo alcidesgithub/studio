@@ -19,13 +19,24 @@ export interface Event {
   mapEmbedUrl: string;
 }
 
+export interface PositivationDetail {
+  vendorId: string;
+  vendorName: string;
+  vendorLogoUrl: string;
+  vendorDataAiHint?: string;
+  date: string; // ISO string
+  // salespersonName?: string; // Future enhancement
+  // salespersonEmail?: string; // Future enhancement
+}
+
 export interface Store {
   id: string;
   name: string;
   participating: boolean;
-  positivacoes: number;
-  currentTier?: AwardTier; // This might need to be re-evaluated if structure changes significantly
-  goalProgress: number; // Percentage towards next tier or event goal
+  // positivacoes: number; // This will be derived from positivationsDetails.length
+  currentTier?: AwardTier; // This might need to be re-evaluated
+  goalProgress: number; // General progress, might be different from tier progress
+  positivationsDetails: PositivationDetail[];
 }
 
 export interface AwardTier {
@@ -75,4 +86,3 @@ export interface Salesperson {
   email: string;
   password?: string; // For login (mock)
 }
-

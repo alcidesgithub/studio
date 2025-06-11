@@ -1,5 +1,6 @@
 
-import type { Event, Store, AwardTier, User, UserRole, SweepstakeEntry, Vendor, Salesperson } from '@/types';
+import type { Event, Store, AwardTier, User, UserRole, SweepstakeEntry, Vendor, Salesperson, PositivationDetail } from '@/types';
+import { parseISO, subDays } from 'date-fns';
 
 export const MOCK_EVENT: Event = {
   id: 'evt_1',
@@ -15,13 +16,39 @@ export const MOCK_AWARD_TIERS: AwardTier[] = [
   { id: 'tier_1', name: 'Bronze', rewardName: 'R$100 Gift Card', quantityAvailable: 20, positivacoesRequired: 3 },
   { id: 'tier_2', name: 'Silver', rewardName: 'R$250 Gift Card', quantityAvailable: 10, positivacoesRequired: 7 },
   { id: 'tier_3', name: 'Gold', rewardName: 'R$500 Gift Card + Destaque', quantityAvailable: 5, positivacoesRequired: 10 },
+].sort((a,b) => a.positivacoesRequired - b.positivacoesRequired); // Ensure sorted for progress logic
+
+export const MOCK_VENDORS: Vendor[] = [
+  { id: 'vendor_1', name: 'PharmaCorp', cnpj: '11222333000144', address: 'Rua dos Medicamentos, 123', city: 'São Paulo', neighborhood: 'Centro', state: 'SP', logoUrl: 'https://placehold.co/120x60.png?text=PharmaCorp', dataAiHint: "pharmacy logo" },
+  { id: 'vendor_2', name: 'HealthPlus', cnpj: '44555666000177', address: 'Av. Bem Estar, 456', city: 'Curitiba', neighborhood: 'Batel', state: 'PR', logoUrl: 'https://placehold.co/120x60.png?text=HealthPlus', dataAiHint: "health logo" },
+  { id: 'vendor_3', name: 'BioMed', cnpj: '77888999000100', address: 'Travessa da Ciência, 789', city: 'Florianópolis', neighborhood: 'Trindade', state: 'SC', logoUrl: 'https://placehold.co/120x60.png?text=BioMed', dataAiHint: "medical science" },
+  { id: 'vendor_4', name: 'NutriWell', cnpj: '12345678000191', address: 'Alameda da Nutrição, 101', city: 'Porto Alegre', neighborhood: 'Moinhos de Vento', state: 'RS', logoUrl: 'https://placehold.co/120x60.png?text=NutriWell', dataAiHint: "nutrition health" },
+  { id: 'vendor_5', name: 'CareFirst', cnpj: '98765432000121', address: 'Praça do Cuidado, 202', city: 'Rio de Janeiro', neighborhood: 'Copacabana', state: 'RJ', logoUrl: 'https://placehold.co/120x60.png?text=CareFirst', dataAiHint: "healthcare logo" },
+  { id: 'vendor_6', name: 'MediSupply', cnpj: '54321098000154', address: 'Rodovia dos Suprimentos, 303', city: 'Belo Horizonte', neighborhood: 'Savassi', state: 'MG', logoUrl: 'https://placehold.co/120x60.png?text=MediSupply', dataAiHint: "medical supply" },
+].sort((a,b) => a.name.localeCompare(b.name)); // Sort vendors alphabetically
+
+const today = new Date();
+const positivationsStore1: PositivationDetail[] = [
+  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, vendorDataAiHint: MOCK_VENDORS[0].dataAiHint, date: subDays(today, 5).toISOString() },
+  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, vendorDataAiHint: MOCK_VENDORS[1].dataAiHint, date: subDays(today, 4).toISOString() },
+  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, vendorDataAiHint: MOCK_VENDORS[2].dataAiHint, date: subDays(today, 3).toISOString() },
 ];
 
+const positivationsStore4: PositivationDetail[] = [
+  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, vendorDataAiHint: MOCK_VENDORS[0].dataAiHint, date: subDays(today, 2).toISOString() },
+  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, vendorDataAiHint: MOCK_VENDORS[1].dataAiHint, date: subDays(today, 2).toISOString() },
+  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, vendorDataAiHint: MOCK_VENDORS[2].dataAiHint, date: subDays(today, 1).toISOString() },
+  { vendorId: MOCK_VENDORS[3].id, vendorName: MOCK_VENDORS[3].name, vendorLogoUrl: MOCK_VENDORS[3].logoUrl, vendorDataAiHint: MOCK_VENDORS[3].dataAiHint, date: subDays(today, 1).toISOString() },
+  { vendorId: MOCK_VENDORS[4].id, vendorName: MOCK_VENDORS[4].name, vendorLogoUrl: MOCK_VENDORS[4].logoUrl, vendorDataAiHint: MOCK_VENDORS[4].dataAiHint, date: subDays(today, 0).toISOString() },
+  { vendorId: MOCK_VENDORS[5].id, vendorName: MOCK_VENDORS[5].name, vendorLogoUrl: MOCK_VENDORS[5].logoUrl, vendorDataAiHint: MOCK_VENDORS[5].dataAiHint, date: subDays(today, 0).toISOString() },
+];
+
+
 export const MOCK_STORES: Store[] = [
-  { id: 'store_1', name: 'Hiperfarma Matriz', participating: true, positivacoes: 5, goalProgress: 75, currentTier: MOCK_AWARD_TIERS[0] },
-  { id: 'store_2', name: 'Hiperfarma Filial Centro', participating: true, positivacoes: 2, goalProgress: 40 },
-  { id: 'store_3', name: 'Hiperfarma Shopping Norte', participating: false, positivacoes: 0, goalProgress: 0 },
-  { id: 'store_4', name: 'Hiperfarma Av. Paulista', participating: true, positivacoes: 8, goalProgress: 100, currentTier: MOCK_AWARD_TIERS[1] },
+  { id: 'store_1', name: 'Hiperfarma Matriz', participating: true, goalProgress: 75, positivationsDetails: positivationsStore1, currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore1.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore1.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)) },
+  { id: 'store_2', name: 'Hiperfarma Filial Centro', participating: true, goalProgress: 40, positivationsDetails: [] },
+  { id: 'store_3', name: 'Hiperfarma Shopping Norte', participating: false, goalProgress: 0, positivationsDetails: [] },
+  { id: 'store_4', name: 'Hiperfarma Av. Paulista', participating: true, goalProgress: 100, positivationsDetails: positivationsStore4, currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore4.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore4.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)) },
 ];
 
 
@@ -29,7 +56,9 @@ export const MOCK_USERS: User[] = [
   { id: 'user_admin', email: 'admin@hiperfarma.com', role: 'admin', name: 'Admin User' },
   { id: 'user_manager', email: 'manager@hiperfarma.com', role: 'manager', name: 'Manager User' },
   { id: 'user_vendor_rep', email: 'vendor@supplier.com', role: 'vendor', name: 'Vendor Rep', storeName: 'PharmaCorp Rep' }, // storeName here implies their company for display
-  { id: 'user_store', email: 'store1@hiperfarma.com', role: 'store', name: 'Store Staff Matriz', storeName: 'Hiperfarma Matriz' },
+  { id: 'user_store_1', email: 'store1@hiperfarma.com', role: 'store', name: 'Staff Matriz', storeName: MOCK_STORES[0].name },
+  { id: 'user_store_2', email: 'store2@hiperfarma.com', role: 'store', name: 'Staff Filial Centro', storeName: MOCK_STORES[1].name },
+  { id: 'user_store_4', email: 'store4@hiperfarma.com', role: 'store', name: 'Staff Av. Paulista', storeName: MOCK_STORES[3].name },
 ];
 
 export const ROLES: UserRole[] = ['admin', 'manager', 'vendor', 'store'];
@@ -65,15 +94,6 @@ export const STATES = [
 ];
 
 
-export const MOCK_VENDORS: Vendor[] = [
-  { id: 'vendor_1', name: 'PharmaCorp', cnpj: '11222333000144', address: 'Rua dos Medicamentos, 123', city: 'São Paulo', neighborhood: 'Centro', state: 'SP', logoUrl: 'https://placehold.co/200x100.png?text=PharmaCorp', dataAiHint: "pharmacy logo" },
-  { id: 'vendor_2', name: 'HealthPlus', cnpj: '44555666000177', address: 'Av. Bem Estar, 456', city: 'Curitiba', neighborhood: 'Batel', state: 'PR', logoUrl: 'https://placehold.co/200x100.png?text=HealthPlus', dataAiHint: "health logo" },
-  { id: 'vendor_3', name: 'BioMed', cnpj: '77888999000100', address: 'Travessa da Ciência, 789', city: 'Florianópolis', neighborhood: 'Trindade', state: 'SC', logoUrl: 'https://placehold.co/200x100.png?text=BioMed', dataAiHint: "medical science" },
-  { id: 'vendor_4', name: 'NutriWell', cnpj: '12345678000191', address: 'Alameda da Nutrição, 101', city: 'Porto Alegre', neighborhood: 'Moinhos de Vento', state: 'RS', logoUrl: 'https://placehold.co/200x100.png?text=NutriWell', dataAiHint: "nutrition health" },
-  { id: 'vendor_5', name: 'CareFirst', cnpj: '98765432000121', address: 'Praça do Cuidado, 202', city: 'Rio de Janeiro', neighborhood: 'Copacabana', state: 'RJ', logoUrl: 'https://placehold.co/200x100.png?text=CareFirst', dataAiHint: "healthcare logo" },
-  { id: 'vendor_6', name: 'MediSupply', cnpj: '54321098000154', address: 'Rodovia dos Suprimentos, 303', city: 'Belo Horizonte', neighborhood: 'Savassi', state: 'MG', logoUrl: 'https://placehold.co/200x100.png?text=MediSupply', dataAiHint: "medical supply" },
-];
-
 export const MOCK_SALESPEOPLE: Salesperson[] = [
     { id: 'sp_1', vendorId: 'vendor_1', name: 'Carlos Silva', phone: '(11) 98765-4321', email: 'carlos.silva@pharmacorp.com', password: 'password123' },
     { id: 'sp_2', vendorId: 'vendor_2', name: 'Ana Pereira', phone: '(41) 91234-5678', email: 'ana.pereira@healthplus.com', password: 'password123' },
@@ -81,10 +101,10 @@ export const MOCK_SALESPEOPLE: Salesperson[] = [
 
 
 export const MOCK_SWEEPSTAKE_ENTRIES: SweepstakeEntry[] = MOCK_STORES
-  .filter(s => s.participating && s.positivacoes > 0)
+  .filter(s => s.participating && s.positivationsDetails.length > 0)
   .map(s => ({
     storeId: s.id,
     storeName: s.name,
-    qualificationRate: s.goalProgress / 100, // This might need adjustment based on how qualification for sweepstakes is defined
+    // Qualification rate could be percentage of max possible positivations, or just goalProgress
+    qualificationRate: s.goalProgress / 100,
   }));
-
