@@ -533,51 +533,67 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-type SidebarMenuButtonProps = 
-  (React.ComponentPropsWithoutRef<"button"> & { href?: undefined }) |
-  (React.ComponentPropsWithoutRef<"a"> & { href: string });
+// Base props common to both button and anchor versions
+interface SidebarMenuButtonSharedProps extends VariantProps<typeof sidebarMenuButtonVariants> {
+  isActive?: boolean;
+  children?: React.ReactNode;
+  className?: string;
+  asChild?: boolean; // Explicitly declare asChild as a prop it can receive and consume
+}
+
+// Props when it's a button (href is undefined)
+type SidebarMenuButtonAsButtonProps = SidebarMenuButtonSharedProps &
+  Omit<React.ComponentPropsWithoutRef<'button'>, 'href'> & {
+    href?: undefined;
+  };
+
+// Props when it's an anchor (href is string)
+type SidebarMenuButtonAsLinkProps = SidebarMenuButtonSharedProps &
+  Omit<React.ComponentPropsWithoutRef<'a'>, 'href'> & {
+    href: string;
+  };
+
+// The final union type for all possible props
+type SidebarMenuButtonCombinedProps = SidebarMenuButtonAsButtonProps | SidebarMenuButtonAsLinkProps;
+
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLAnchorElement | HTMLButtonElement,
-  SidebarMenuButtonProps & {
-    isActive?: boolean;
-    // Removed tooltip prop, will be handled externally
-  } & VariantProps<typeof sidebarMenuButtonVariants>
+  HTMLButtonElement | HTMLAnchorElement,
+  SidebarMenuButtonCombinedProps
 >(
   (
     {
+      // Destructure all known/shared props, including asChild and href
       isActive = false,
       variant = "default",
       size = "default",
       className,
       children,
-      // `asChild` prop from Link (or other parent) is caught by `...props` if not destructured earlier.
-      // `href` will also be in `...props` if passed by Link.
-      ...props
+      asChild, // Destructured: will be true if Link passes it, otherwise undefined. It's consumed here.
+      href,    // Destructured: will be string from Link, or undefined.
+      ...rest  // `rest` now contains only other valid HTML attributes (e.g., onClick, aria-*)
     },
     ref
   ) => {
-    // Destructure `asChild` from `props` to consume it and prevent it from reaching the DOM element.
-    const { asChild: consumedAsChild, ...remainingProps } = props;
+    const Comp = href ? "a" : "button";
 
-    const isLink = !!remainingProps.href;
-    const Comp = isLink ? "a" : "button";
-
+    // `asChild` is consumed by destructuring, so it's not in `rest`.
+    // `href` is explicitly passed to `Comp` if it's an anchor.
     return (
       <Comp
-        ref={ref as any} // Use `as any` for the ref due to conditional component type
+        ref={ref as any}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...remainingProps} // Spread the remainingProps which include href, Link's onClick, etc.
-                           // `consumedAsChild` is NOT spread here.
+        className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
+        href={href} // Only pass href if Comp is 'a' (href has a value)
+        {...rest}   // Spread the remaining attributes (e.g., onClick from Link, ARIA from Tooltip)
       >
         {children}
       </Comp>
-    )
+    );
   }
-)
+);
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
 

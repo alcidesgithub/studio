@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MOCK_USERS, ROLES } from '@/lib/constants';
 import type { User, UserRole } from '@/types';
-import { UsersCog, PlusCircle, Edit, Trash2, Save } from 'lucide-react';
+import { UserCog, PlusCircle, Edit, Trash2, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -69,7 +69,7 @@ export default function AdminUsersPage() {
       <PageHeader
         title="User Management"
         description="Manage administrator and manager accounts."
-        icon={UsersCog}
+        icon={UserCog}
         actions={
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
