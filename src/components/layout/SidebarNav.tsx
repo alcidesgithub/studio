@@ -72,7 +72,7 @@ export function SidebarNav() {
               </SidebarGroupLabel>
             ) : (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href!} legacyBehavior passHref>
+                <Link href={item.href!} passHref>
                   <SidebarMenuButton
                     asChild
                     variant="default"
