@@ -1,17 +1,21 @@
+"use client";
+
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MOCK_EVENT } from '@/lib/constants';
 import { EventMap } from '@/components/event/EventMap';
 import { CalendarDays, Clock, MapPin as MapPinIcon, Building } from 'lucide-react';
-import { format } from 'date-fns';
-import type { Metadata } from 'next';
+import { format, parseISO } from 'date-fns'; // Added parseISO
+// import type { Metadata } from 'next'; // Metadata cannot be used in Client Components
 
-export const metadata: Metadata = {
-  title: 'Event Information - Hiperfarma Business Meeting Manager',
-};
+// export const metadata: Metadata = {
+//   title: 'Event Information - Hiperfarma Business Meeting Manager',
+// };
 
 export default function EventInfoPage() {
-  const eventDate = new Date(MOCK_EVENT.date);
+  // Ensure date is parsed correctly. MOCK_EVENT.date is an ISO string.
+  const eventDate = MOCK_EVENT.date ? parseISO(MOCK_EVENT.date) : new Date();
+
 
   return (
     <div className="animate-fadeIn">
