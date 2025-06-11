@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Home, LogOut, Users, Award, Gift, Store, ShoppingBag, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UsersCog, Trophy, Edit3, ClipboardPlus, Briefcase } from 'lucide-react';
+import { Home, LogOut, Users, Award, Gift, Store, ShoppingBag, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -18,7 +18,7 @@ const navItemsByRole = {
     { href: '/event', label: 'Event Info', icon: MapPin },
     { group: 'Management' },
     { href: '/admin/event-management', label: 'Event Management', icon: Edit3 },
-    { href: '/admin/users', label: 'User Management', icon: UsersCog },
+    { href: '/admin/users', label: 'User Management', icon: UserCog },
     { href: '/admin/awards', label: 'Award Tiers', icon: Trophy },
     { href: '/admin/sweepstakes', label: 'Sweepstakes', icon: Gift },
     { href: '/admin/store-registration', label: 'Register Store', icon: ClipboardPlus },

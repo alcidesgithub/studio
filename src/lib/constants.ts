@@ -54,6 +54,7 @@ export const MOCK_STORES: Store[] = [
 
 export const MOCK_USERS: User[] = [
   { id: 'user_admin', email: 'admin@hiperfarma.com', role: 'admin', name: 'Admin User' },
+  { id: 'user_alcides', email: 'alcides@redehiperfarma.com.br', role: 'admin', name: 'Alcides' },
   { id: 'user_manager', email: 'manager@hiperfarma.com', role: 'manager', name: 'Manager User' },
   { id: 'user_vendor_rep', email: 'vendor@supplier.com', role: 'vendor', name: 'Vendor Rep', storeName: 'PharmaCorp Rep' }, // storeName here implies their company for display
   { id: 'user_store_1', email: 'store1@hiperfarma.com', role: 'store', name: 'Staff Matriz', storeName: MOCK_STORES[0].name },
@@ -108,3 +109,4 @@ export const MOCK_SWEEPSTAKE_ENTRIES: SweepstakeEntry[] = MOCK_STORES
     // Qualification rate could be percentage of max possible positivations, or just goalProgress
     qualificationRate: s.goalProgress / 100,
   }));
+
