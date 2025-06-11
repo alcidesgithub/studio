@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -14,12 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import type { UserRole } from '@/types';
-import { MOCK_USERS, ROLES, ROLES_TRANSLATIONS } from '@/lib/constants'; // ROLES for dropdown
+import { ROLES, ROLES_TRANSLATIONS } from '@/lib/constants'; // ROLES for dropdown
 import { LogIn, Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Endereço de email inválido." }),
-  password: z.string().min(1, { message: "Senha é obrigatória." }), // Simplified for mock
+  password: z.string().min(1, { message: "Senha é obrigatória." }), 
   role: z.custom<UserRole>(val => ROLES.includes(val as UserRole), {message: "Perfil de usuário inválido selecionado."}),
 });
 
@@ -34,9 +35,9 @@ export function LoginForm() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: MOCK_USERS[0].email, 
-      password: "password", 
-      role: MOCK_USERS[0].role,
+      email: '', 
+      password: "", 
+      role: 'admin', // Default to admin or any other sensible default
     },
   });
 
@@ -134,3 +135,5 @@ export function LoginForm() {
     </Card>
   );
 }
+
+    
