@@ -4,7 +4,6 @@
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-// import { MOCK_STORES, MOCK_EVENT } from '@/lib/constants'; // No longer use mocks directly
 import { loadStores, loadEvent, loadAwardTiers } from '@/lib/localStorageUtils';
 import type { Store, Event, AwardTier } from '@/types';
 import { Users, ThumbsUp, Target, Building, LayoutDashboard } from 'lucide-react';
