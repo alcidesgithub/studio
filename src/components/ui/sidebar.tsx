@@ -533,27 +533,26 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-// Base props common to both button and anchor versions
 interface SidebarMenuButtonSharedProps extends VariantProps<typeof sidebarMenuButtonVariants> {
   isActive?: boolean;
   children?: React.ReactNode;
   className?: string;
-  asChild?: boolean; // Prop that might be passed by a parent like Link or TooltipTrigger
+  asChild?: boolean; // Prop received from a parent like Link or TooltipTrigger
+  onItemClick?: (event: React.MouseEvent<HTMLElement, MouseEvent>) => void; // Custom click handler
 }
 
-// Props when it's a button (href is undefined)
+// Props for when SidebarMenuButton renders a <button>
 type SidebarMenuButtonAsButtonProps = SidebarMenuButtonSharedProps &
-  Omit<React.ComponentPropsWithoutRef<'button'>, 'href' | 'asChild'> & { // Omit asChild from button's own props
+  Omit<React.ComponentPropsWithoutRef<'button'>, 'href' | 'asChild' | 'onClick'> & {
     href?: undefined;
   };
 
-// Props when it's an anchor (href is string)
+// Props for when SidebarMenuButton renders an <a>
 type SidebarMenuButtonAsLinkProps = SidebarMenuButtonSharedProps &
-  Omit<React.ComponentPropsWithoutRef<'a'>, 'href' | 'asChild'> & { // Omit asChild from anchor's own props
+  Omit<React.ComponentPropsWithoutRef<'a'>, 'href' | 'asChild' | 'onClick'> & {
     href: string;
   };
 
-// The final union type for all possible props
 type SidebarMenuButtonCombinedProps = SidebarMenuButtonAsButtonProps | SidebarMenuButtonAsLinkProps;
 
 
@@ -568,39 +567,48 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       className,
       children,
-      asChild: forwardedAsChild, // Destructure the 'asChild' prop passed from parent (e.g., Link, TooltipTrigger)
+      asChild: forwardedAsChild, // Consumed, not spread
       href,
+      onItemClick, // Custom click from SidebarNav
+      onClick: inheritedOnClick, // onClick from Link (as part of ...rest or directly passed by Link asChild)
       ...rest
     },
     ref
   ) => {
-    // Determine the component type based on 'href'.
-    // 'forwardedAsChild' is destructured and NOT used to determine Comp.
-    // This SidebarMenuButton will render its own element, not a Slot.
     const Comp = href ? "a" : "button";
 
-    const commonProps = {
+    const handleClick = React.useCallback(
+      (event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+        // Call the onClick passed by Link (for navigation)
+        if (inheritedOnClick) {
+          inheritedOnClick(event as React.MouseEvent<HTMLButtonElement, MouseEvent>); // Cast needed due to union type
+        }
+        // Call the custom click handler (e.g., for closing mobile sidebar)
+        if (onItemClick) {
+          onItemClick(event);
+        }
+      },
+      [inheritedOnClick, onItemClick]
+    );
+    
+    const commonProps: React.ButtonHTMLAttributes<HTMLButtonElement> | React.AnchorHTMLAttributes<HTMLAnchorElement> = {
+      ...rest,
       ref: ref as any,
       "data-sidebar": "menu-button",
       "data-size": size,
       "data-active": isActive,
       className: cn(sidebarMenuButtonVariants({ variant, size, className })),
-      ...rest,
+      onClick: handleClick, // Use the composed handler
     };
 
     if (Comp === "a") {
-      return (
-        <a {...commonProps} href={href}>
-          {children}
-        </a>
-      );
+      if (href) {
+        (commonProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href = href;
+      }
+      return <a {...commonProps as React.AnchorHTMLAttributes<HTMLAnchorElement>}>{children}</a>;
     }
 
-    return (
-      <button {...commonProps} type="button">
-        {children}
-      </button>
-    );
+    return <button {...commonProps as React.ButtonHTMLAttributes<HTMLButtonElement>} type="button">{children}</button>;
   }
 );
 SidebarMenuButton.displayName = "SidebarMenuButton"

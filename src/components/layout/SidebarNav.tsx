@@ -60,7 +60,7 @@ export function SidebarNav() {
   return (
     <>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <Link href="/dashboard" className="flex items-center gap-2" onClick={handleLinkClick}>
+        <Link href="/dashboard" className="flex items-center gap-2" onItemClick={handleLinkClick}>
           <Building className="h-8 w-8 text-primary" />
           <h1 className="font-headline text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
             Hiperfarma
@@ -84,7 +84,7 @@ export function SidebarNav() {
                           variant="default"
                           size="default"
                           isActive={pathname === item.href}
-                          onClick={handleLinkClick}
+                          onItemClick={handleLinkClick} // Changed from onClick
                           className="justify-start"
                         >
                           {item.icon && <item.icon className="h-5 w-5" />}
