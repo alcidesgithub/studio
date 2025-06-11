@@ -13,7 +13,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 const chartConfig = {
   lojas: {
     label: "Lojas",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--secondary))", // Changed from --primary to --secondary
   },
 } satisfies ChartConfig;
 
@@ -102,7 +102,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Lojas Participantes</CardTitle>
-            <Users className="h-5 w-5 text-accent" />
+            <Users className="h-5 w-5 text-secondary" /> 
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{participatingStoresCount}</div>
@@ -113,7 +113,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Selos (Positivações)</CardTitle>
-            <ThumbsUp className="h-5 w-5 text-accent" />
+            <ThumbsUp className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalPositivacoes}</div>
@@ -124,7 +124,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Distribuição por Faixas</CardTitle>
-            <Trophy className="h-5 w-5 text-accent" />
+            <Trophy className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent className="pt-4">
             {noTiersConfigured ? (
