@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle } from 'lucide-react';
+import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -41,13 +41,13 @@ const salespersonSchema = z.object({
   phone: z.string().min(10, "Telefone é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres."),
-  vendorId: z.string({ required_error: "Deve ser vinculado a um fornecedor." }),
+  // vendorId is not part of the form, it will be passed programmatically
 });
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
 const formatCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
-  if (cleaned.length !== 14) return cnpj; 
+  if (cleaned.length !== 14) return cnpj;
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
 
@@ -55,9 +55,16 @@ export default function ManageVendorsPage() {
   const { toast } = useToast();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
+
   const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
+
+  const [isSalespersonDialogOpen, setIsSalespersonDialogOpen] = useState(false);
+  const [editingSalesperson, setEditingSalesperson] = useState<Salesperson | null>(null);
+  const [currentVendorIdForSalesperson, setCurrentVendorIdForSalesperson] = useState<string | null>(null);
+  const [salespersonToDelete, setSalespersonToDelete] = useState<Salesperson | null>(null);
+
 
   useEffect(() => {
     setVendors(loadVendors());
@@ -74,7 +81,7 @@ export default function ManageVendorsPage() {
 
   const salespersonForm = useForm<SalespersonFormValues>({
     resolver: zodResolver(salespersonSchema),
-    defaultValues: { name: '', phone: '', email: '', password: '', vendorId: undefined },
+    defaultValues: { name: '', phone: '', email: '', password: '' },
   });
 
   const handleAddNewVendor = () => {
@@ -90,7 +97,7 @@ export default function ManageVendorsPage() {
     setEditingVendor(vendor);
     vendorForm.reset({
       name: vendor.name,
-      cnpj: formatCNPJ(vendor.cnpj), // Format for display, raw will be saved
+      cnpj: formatCNPJ(vendor.cnpj),
       address: vendor.address,
       city: vendor.city,
       neighborhood: vendor.neighborhood,
@@ -108,7 +115,6 @@ export default function ManageVendorsPage() {
   const handleDeleteVendor = () => {
     if (!vendorToDelete) return;
 
-    // Remove associated salespeople
     const updatedSalespeople = salespeople.filter(sp => sp.vendorId !== vendorToDelete.id);
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
@@ -116,29 +122,30 @@ export default function ManageVendorsPage() {
     const updatedVendors = vendors.filter(v => v.id !== vendorToDelete.id);
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
-    
-    toast({ 
-      title: "Fornecedor Excluído!", 
-      description: `O fornecedor "${vendorToDelete.name}" e seus vendedores vinculados foram removidos.`, 
-      variant: "destructive" 
+
+    toast({
+      title: "Fornecedor Excluído!",
+      description: `O fornecedor "${vendorToDelete.name}" e seus vendedores vinculados foram removidos.`,
+      variant: "destructive"
     });
-    setVendorToDelete(null); // Close dialog
+    setVendorToDelete(null);
   };
 
   const onVendorSubmit = (data: VendorFormValues) => {
     let updatedVendors;
-    const rawCnpj = data.cnpj.replace(/\D/g, ''); // Save raw CNPJ
+    const rawCnpj = data.cnpj.replace(/\D/g, '');
 
     if (editingVendor) {
-      updatedVendors = vendors.map(v => 
-        v.id === editingVendor.id ? { ...editingVendor, ...data, cnpj: rawCnpj } : v
+      updatedVendors = vendors.map(v =>
+        v.id === editingVendor.id ? { ...editingVendor, ...data, cnpj: rawCnpj, dataAiHint: data.dataAiHint || 'company logo' } : v
       );
       toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.` });
     } else {
-      const newVendor: Vendor = { 
-        id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, 
-        ...data, 
-        cnpj: rawCnpj 
+      const newVendor: Vendor = {
+        id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+        ...data,
+        cnpj: rawCnpj,
+        dataAiHint: data.dataAiHint || 'company logo',
       };
       updatedVendors = [...vendors, newVendor];
       toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado.` });
@@ -150,20 +157,84 @@ export default function ManageVendorsPage() {
     setEditingVendor(null);
   };
 
-  const onSalespersonSubmit = (data: SalespersonFormValues) => {
-    const newSalesperson: Salesperson = { id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data };
-    const updatedSalespeople = [...salespeople, newSalesperson];
-    setSalespeople(updatedSalespeople);
-    saveSalespeople(updatedSalespeople);
-    const linkedVendor = vendors.find(v => v.id === data.vendorId);
-    toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${linkedVendor?.name || 'fornecedor'}.` });
-    salespersonForm.reset({ name: '', phone: '', email: '', password: '', vendorId: data.vendorId }); // Keep vendorId if adding multiple
+  // Salesperson handlers
+  const handleAddNewSalesperson = (vendorId: string) => {
+    setCurrentVendorIdForSalesperson(vendorId);
+    setEditingSalesperson(null);
+    salespersonForm.reset({ name: '', phone: '', email: '', password: '' });
+    setIsSalespersonDialogOpen(true);
   };
 
+  const handleEditSalesperson = (salesperson: Salesperson) => {
+    setCurrentVendorIdForSalesperson(salesperson.vendorId);
+    setEditingSalesperson(salesperson);
+    salespersonForm.reset({
+      name: salesperson.name,
+      phone: salesperson.phone,
+      email: salesperson.email,
+      password: '', // Do not pre-fill password for editing
+    });
+    setIsSalespersonDialogOpen(true);
+  };
+
+  const confirmDeleteSalesperson = (salesperson: Salesperson) => {
+    setSalespersonToDelete(salesperson);
+  };
+
+  const handleDeleteSalesperson = () => {
+    if (!salespersonToDelete) return;
+    const updatedSalespeople = salespeople.filter(sp => sp.id !== salespersonToDelete.id);
+    setSalespeople(updatedSalespeople);
+    saveSalespeople(updatedSalespeople);
+    toast({
+        title: "Vendedor Excluído!",
+        description: `O vendedor "${salespersonToDelete.name}" foi removido.`,
+        variant: "destructive"
+    });
+    setSalespersonToDelete(null); // Close confirmation dialog
+  };
+
+
+  const onSalespersonSubmit = (data: SalespersonFormValues) => {
+    if (!currentVendorIdForSalesperson) {
+        toast({ title: "Erro", description: "ID do Fornecedor não encontrado.", variant: "destructive" });
+        return;
+    }
+    let updatedSalespeople;
+    const vendorForSalesperson = vendors.find(v => v.id === currentVendorIdForSalesperson);
+
+    if (editingSalesperson) {
+        updatedSalespeople = salespeople.map(sp =>
+            sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson } : sp
+        );
+        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado para ${vendorForSalesperson?.name}.` });
+    } else {
+        const newSalesperson: Salesperson = {
+            id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+            ...data,
+            vendorId: currentVendorIdForSalesperson
+        };
+        updatedSalespeople = [...salespeople, newSalesperson];
+        toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson?.name}.` });
+    }
+    setSalespeople(updatedSalespeople);
+    saveSalespeople(updatedSalespeople);
+    salespersonForm.reset();
+    setIsSalespersonDialogOpen(false);
+    setEditingSalesperson(null);
+    setCurrentVendorIdForSalesperson(null);
+  };
+
+  const salespeopleForCurrentVendor = useMemo(() => {
+    if (!editingVendor) return [];
+    return salespeople.filter(sp => sp.vendorId === editingVendor.id);
+  }, [salespeople, editingVendor]);
+
+  // Attempting to fix parsing error by ensuring clean state before return.
   return (
     <div className="animate-fadeIn space-y-8">
       <PageHeader
-        title="Gerenciar Fornecedores"
+        title="Fornecedores"
         description="Adicione, edite ou remova fornecedores e gerencie seus vendedores."
         icon={Briefcase}
         actions={
@@ -173,44 +244,146 @@ export default function ManageVendorsPage() {
         }
       />
 
-      <Dialog open={isVendorDialogOpen} onOpenChange={setIsVendorDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+      {/* Vendor Dialog */}
+      <Dialog open={isVendorDialogOpen} onOpenChange={(isOpen) => {
+          setIsVendorDialogOpen(isOpen);
+          if (!isOpen) setEditingVendor(null);
+      }}>
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingVendor ? 'Editar Fornecedor' : 'Adicionar Novo Fornecedor'}</DialogTitle>
-            <DialogDescription>{editingVendor ? 'Atualize os detalhes deste fornecedor.' : 'Preencha os detalhes para o novo fornecedor.'}</DialogDescription>
+            <DialogDescription>{editingVendor ? 'Atualize os detalhes deste fornecedor e gerencie seus vendedores.' : 'Preencha os detalhes para o novo fornecedor.'}</DialogDescription>
           </DialogHeader>
           <Form {...vendorForm}>
             <form onSubmit={vendorForm.handleSubmit(onVendorSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
-              <div className="grid md:grid-cols-2 gap-x-6 gap-y-4">
-                <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome da Empresa</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (<FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua das Indústrias, 789" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Cidade</FormLabel><FormControl><Input placeholder="Ex: São Paulo" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Pinheiros" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} defaultValue={field.value || 'https://placehold.co/120x60.png?text=Logo'} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="dataAiHint" render={({ field }) => (<FormItem><FormLabel>Dica para IA (Logo)</FormLabel><FormControl><Input placeholder="Ex: company logo" {...field} defaultValue={field.value || 'company logo'} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
+              <Card>
+                <CardHeader><CardTitle className="text-xl">Informações do Fornecedor</CardTitle></CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4">
+                  <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome da Empresa</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (<FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua das Indústrias, 789" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Cidade</FormLabel><FormControl><Input placeholder="Ex: São Paulo" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Pinheiros" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="dataAiHint" render={({ field }) => (<FormItem><FormLabel>Dica para IA (Logo)</FormLabel><FormControl><Input placeholder="Ex: company logo" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                </CardContent>
+              </Card>
+
+              {editingVendor && (
+                <Card className="mt-6">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle>
+                        <CardDescription>Gerencie os vendedores deste fornecedor.</CardDescription>
+                    </div>
+                    <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(editingVendor.id)}>
+                      <UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {salespeopleForCurrentVendor.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Telefone</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {salespeopleForCurrentVendor.map(sp => (
+                            <TableRow key={sp.id}>
+                              <TableCell>{sp.name}</TableCell>
+                              <TableCell>{sp.email}</TableCell>
+                              <TableCell>{sp.phone}</TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteSalesperson(sp)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum vendedor cadastrado para este fornecedor.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               <DialogFooter className="pt-4">
-                <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setEditingVendor(null); vendorForm.reset(); setIsVendorDialogOpen(false); }}>Cancelar</Button></DialogClose>
-                <Button type="submit" disabled={vendorForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingVendor ? 'Salvar Alterações' : 'Cadastrar Fornecedor'}</Button>
+                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                <Button type="submit" disabled={vendorForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingVendor ? 'Salvar Alterações no Fornecedor' : 'Cadastrar Fornecedor'}</Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
-      
+
+      {/* Salesperson Dialog (Nested) */}
+      <Dialog open={isSalespersonDialogOpen} onOpenChange={(isOpen) => {
+          setIsSalespersonDialogOpen(isOpen);
+          if (!isOpen) {
+              setEditingSalesperson(null);
+              setCurrentVendorIdForSalesperson(null);
+          }
+      }}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>{editingSalesperson ? 'Editar Vendedor' : 'Adicionar Novo Vendedor'}</DialogTitle>
+                <DialogDescription>
+                    {editingSalesperson ? `Atualize os dados de ${editingSalesperson.name}.` : `Adicione um novo vendedor para ${vendors.find(v => v.id === currentVendorIdForSalesperson)?.name || 'este fornecedor'}.`}
+                </DialogDescription>
+            </DialogHeader>
+            <Form {...salespersonForm}>
+                <form onSubmit={salespersonForm.handleSubmit(onSalespersonSubmit)} className="space-y-4 py-4">
+                    <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={salespersonForm.control} name="password" render={({ field }) => (<FormItem><FormLabel>Senha de Login {editingSalesperson ? '(Deixe em branco para não alterar)' : ''}</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <DialogFooter className="pt-4">
+                        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                        <Button type="submit" disabled={salespersonForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingSalesperson ? 'Salvar Alterações' : 'Cadastrar Vendedor'}</Button>
+                    </DialogFooter>
+                </form>
+            </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog for Vendor Deletion */}
       <AlertDialog open={!!vendorToDelete} onOpenChange={(open) => !open && setVendorToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar Exclusão de Fornecedor</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir o fornecedor "{vendorToDelete?.name}"? Esta ação também removerá todos os vendedores vinculados a ele e não poderá ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setVendorToDelete(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteVendor} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteVendor} className="bg-destructive hover:bg-destructive/90">Excluir Fornecedor</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog for Salesperson Deletion */}
+      <AlertDialog open={!!salespersonToDelete} onOpenChange={(open) => !open && setSalespersonToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão de Vendedor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o vendedor "{salespersonToDelete?.name}"? Esta ação não poderá ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSalespersonToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSalesperson} className="bg-destructive hover:bg-destructive/90">Excluir Vendedor</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -229,12 +402,13 @@ export default function ManageVendorsPage() {
                 <TableHead>Nome da Empresa</TableHead>
                 <TableHead>CNPJ</TableHead>
                 <TableHead>Cidade</TableHead>
+                <TableHead>Vendedores</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {vendors.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>
               )}
               {vendors.map((vendor) => (
                 <TableRow key={vendor.id}>
@@ -244,6 +418,7 @@ export default function ManageVendorsPage() {
                   <TableCell className="font-medium">{vendor.name}</TableCell>
                   <TableCell>{formatCNPJ(vendor.cnpj)}</TableCell>
                   <TableCell>{vendor.city}</TableCell>
+                  <TableCell>{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditVendor(vendor)}>
                       <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
@@ -260,32 +435,9 @@ export default function ManageVendorsPage() {
           </Table>
         </CardContent>
       </Card>
-
-      <Card className="shadow-lg mt-12">
-        <CardHeader>
-          <CardTitle>Cadastrar Novo Vendedor</CardTitle>
-          <CardDescription>Adicione um vendedor e vincule-o a um fornecedor existente.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...salespersonForm}>
-            <form onSubmit={salespersonForm.handleSubmit(onSalespersonSubmit)} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField control={salespersonForm.control} name="vendorId" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Vincular ao Fornecedor</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione um fornecedor" /></SelectTrigger></FormControl><SelectContent>{vendors.map((v: Vendor) => (<SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>))}{vendors.length === 0 && <SelectItem value="disabled" disabled>Nenhum fornecedor</SelectItem>}</SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={salespersonForm.control} name="password" render={({ field }) => (<FormItem><FormLabel>Senha de Login</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="flex justify-end">
-                <Button type="submit" size="lg" disabled={salespersonForm.formState.isSubmitting}><UserPlus className="mr-2 h-4 w-4" /> Cadastrar Vendedor</Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
     </div>
   );
 }
-
+    
 
     
