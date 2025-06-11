@@ -78,13 +78,15 @@ export function SidebarNav() {
                 <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Link href={item.href!} asChild>
+                      {/* Link agora não tem asChild. SidebarMenuButton é seu filho direto. */}
+                      <Link href={item.href!}>
                         <SidebarMenuButton
                           variant="default"
                           size="default"
                           isActive={pathname === item.href}
                           onItemClick={handleLinkClick} 
                           className="justify-start"
+                          // href e onClick de navegação são passados implicitamente pelo Link ao SidebarMenuButton
                         >
                           {item.icon && <item.icon className="h-5 w-5" />}
                           <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
