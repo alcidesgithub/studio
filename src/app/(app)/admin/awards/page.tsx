@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { MOCK_AWARD_TIERS } from '@/lib/constants';
+// import { MOCK_AWARD_TIERS } from '@/lib/constants'; // No longer using MOCK directly
+import { loadAwardTiers, saveAwardTiers } from '@/lib/localStorageUtils';
 import type { AwardTier } from '@/types';
 import { Trophy, PlusCircle, Edit, Trash2, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -26,14 +27,15 @@ const awardTierSchema = z.object({
 
 type AwardTierFormValues = z.infer<typeof awardTierSchema>;
 
-let currentMockTiers: AwardTier[] = [...MOCK_AWARD_TIERS];
-
-
 export default function AdminAwardsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<AwardTier | null>(null);
-  const [tiers, setTiers] = useState<AwardTier[]>(currentMockTiers); 
+  const [tiers, setTiers] = useState<AwardTier[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setTiers(loadAwardTiers());
+  }, []);
 
   const form = useForm<AwardTierFormValues>({
     resolver: zodResolver(awardTierSchema),
@@ -68,34 +70,36 @@ export default function AdminAwardsPage() {
   };
   
   const handleDelete = (tierId: string) => {
-    currentMockTiers = currentMockTiers.filter(t => t.id !== tierId);
-    setTiers(currentMockTiers);
+    const updatedTiers = tiers.filter(t => t.id !== tierId);
+    setTiers(updatedTiers);
+    saveAwardTiers(updatedTiers);
     toast({
       title: "Faixa Excluída",
-      description: "A faixa de premiação foi (simuladamente) excluída.",
+      description: "A faixa de premiação foi excluída do armazenamento local.",
       variant: "destructive"
     });
   };
 
   const onSubmit = (data: AwardTierFormValues) => {
+    let updatedTiers;
     if (editingTier) {
-      currentMockTiers = currentMockTiers.map(t => 
+      updatedTiers = tiers.map(t => 
         t.id === editingTier.id ? { ...editingTier, ...data } : t
       );
-      setTiers(currentMockTiers);
       toast({
         title: "Faixa Atualizada!",
-        description: `A faixa de premiação "${data.name}" foi (simuladamente) atualizada.`,
+        description: `A faixa de premiação "${data.name}" foi atualizada no armazenamento local.`,
       });
     } else {
-      const newTier: AwardTier = { id: `tier_${Date.now()}`, ...data };
-      currentMockTiers = [...currentMockTiers, newTier];
-      setTiers(currentMockTiers);
+      const newTier: AwardTier = { id: `tier_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data }; // ensure unique ID
+      updatedTiers = [...tiers, newTier];
       toast({
         title: "Faixa Criada!",
-        description: `A faixa de premiação "${data.name}" foi (simuladamente) criada.`,
+        description: `A faixa de premiação "${data.name}" foi criada no armazenamento local.`,
       });
     }
+    setTiers(updatedTiers);
+    saveAwardTiers(updatedTiers);
     form.reset();
     setIsDialogOpen(false);
     setEditingTier(null);
@@ -116,7 +120,8 @@ export default function AdminAwardsPage() {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild /> 
+        {/* DialogTrigger is not explicitly needed if Dialog controls open state directly */}
+        {/* <DialogTrigger asChild />  */}
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>{editingTier ? 'Editar Faixa de Premiação' : 'Adicionar Nova Faixa de Premiação'}</DialogTitle>
@@ -180,7 +185,7 @@ export default function AdminAwardsPage() {
               />
               <DialogFooter className="pt-4">
                  <DialogClose asChild>
-                   <Button type="button" variant="outline" onClick={() => { setEditingTier(null); form.reset();}}>Cancelar</Button>
+                   <Button type="button" variant="outline" onClick={() => { setEditingTier(null); form.reset(); setIsDialogOpen(false);}}>Cancelar</Button>
                 </DialogClose>
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                    <Save className="mr-2 h-4 w-4" /> {editingTier ? 'Salvar Alterações' : 'Criar Faixa'}

@@ -6,69 +6,107 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { MOCK_STORES, MOCK_AWARD_TIERS, MOCK_EVENT, MOCK_VENDORS } from '@/lib/constants';
+// import { MOCK_STORES, MOCK_AWARD_TIERS, MOCK_EVENT, MOCK_VENDORS } from '@/lib/constants'; // No longer use mocks directly
+import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
-import type { Store, AwardTier, PositivationDetail, Vendor } from '@/types';
+import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
 import { Star, ThumbsUp, Medal, TrendingUp, CheckCircle, Gift } from 'lucide-react';
 import Image from 'next/image';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useEffect, useState, useMemo } from 'react';
 
 export default function StorePositivacaoPage() {
   const { user } = useAuth();
+  const [allStores, setAllStores] = useState<Store[]>([]);
+  const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
+  const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
+  const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   
-  const currentStore = MOCK_STORES.find(s => s.name === user?.storeName);
+  useEffect(() => {
+    setAllStores(loadStores());
+    setAwardTiers(loadAwardTiers().sort((a,b) => a.positivacoesRequired - b.positivacoesRequired));
+    setCurrentEvent(loadEvent());
+    setAllVendors(loadVendors().sort((a,b) => a.name.localeCompare(b.name)));
+  }, []);
 
-  if (!user || !currentStore) {
+  const currentStore = useMemo(() => {
+    if (!user || !user.storeName) return undefined;
+    return allStores.find(s => s.name === user.storeName);
+  }, [user, allStores]);
+
+  const positivacoesCount = useMemo(() => currentStore?.positivationsDetails?.length || 0, [currentStore]);
+
+  const currentAchievedTier = useMemo(() => {
+    if (!currentStore || awardTiers.length === 0) return undefined;
+    let achievedTier: AwardTier | undefined = undefined;
+    for (let i = awardTiers.length - 1; i >= 0; i--) {
+      if (positivacoesCount >= awardTiers[i].positivacoesRequired) {
+        achievedTier = awardTiers[i];
+        break; 
+      }
+    }
+    return achievedTier;
+  }, [currentStore, awardTiers, positivacoesCount]);
+  
+  const nextTier = useMemo(() => {
+    if (awardTiers.length === 0) return undefined;
+    if (currentAchievedTier) {
+      const currentTierIndex = awardTiers.findIndex(t => t.id === currentAchievedTier!.id);
+      if (currentTierIndex < awardTiers.length - 1) {
+        return awardTiers[currentTierIndex + 1];
+      }
+      return undefined; // Max tier achieved
+    }
+    return awardTiers[0]; // First tier if none achieved
+  }, [awardTiers, currentAchievedTier]);
+
+  const progressToNextTier = useMemo(() => {
+    if (!nextTier) return currentAchievedTier ? 100 : 0;
+    return (positivacoesCount / nextTier.positivacoesRequired) * 100;
+  }, [nextTier, positivacoesCount, currentAchievedTier]);
+
+  const positivationsMap = useMemo(() => {
+    const map = new Map<string, PositivationDetail>();
+    currentStore?.positivationsDetails?.forEach(detail => {
+      map.set(detail.vendorId, detail);
+    });
+    return map;
+  }, [currentStore]);
+
+  if (!user || !currentEvent) {
     return (
-      <div className="animate-fadeIn">
+      <div className="animate-fadeIn p-6">
         <PageHeader title="Minha Cartela de Selos" icon={Star} />
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
-            {user ? "Dados da loja não encontrados." : "Carregando dados da loja..."}
+            Carregando dados...
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  if (!currentStore) {
+     return (
+      <div className="animate-fadeIn p-6">
+        <PageHeader title="Minha Cartela de Selos" icon={Star} />
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            Dados da loja não encontrados para o usuário {user.name}.
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const positivacoesCount = currentStore.positivationsDetails.length;
-
-  let currentAchievedTier: AwardTier | undefined = undefined;
-  // Iterate from highest tier to lowest to find the current one
-  for (let i = MOCK_AWARD_TIERS.length - 1; i >= 0; i--) {
-    if (positivacoesCount >= MOCK_AWARD_TIERS[i].positivacoesRequired) {
-      currentAchievedTier = MOCK_AWARD_TIERS[i];
-      break; 
-    }
-  }
-  
-  let nextTier: AwardTier | undefined = undefined;
-  if (currentAchievedTier) {
-    const currentTierIndex = MOCK_AWARD_TIERS.findIndex(t => t.id === currentAchievedTier!.id);
-    if (currentTierIndex < MOCK_AWARD_TIERS.length - 1) {
-      nextTier = MOCK_AWARD_TIERS[currentTierIndex + 1];
-    }
-  } else if (MOCK_AWARD_TIERS.length > 0) {
-    nextTier = MOCK_AWARD_TIERS[0]; // First tier if none achieved
-  }
-
-
-  const progressToNextTier = nextTier 
-    ? (positivacoesCount / nextTier.positivacoesRequired) * 100 
-    : (currentAchievedTier ? 100 : 0); // Max tier reached or no tiers/no progress
-
-  const positivationsMap = new Map<string, PositivationDetail>();
-  currentStore.positivationsDetails.forEach(detail => {
-    positivationsMap.set(detail.vendorId, detail);
-  });
 
   return (
     <TooltipProvider>
       <div className="animate-fadeIn">
         <PageHeader
           title={`${currentStore.name} - Cartela de Selos`}
-          description={`Sua performance e selos recebidos no ${MOCK_EVENT.name}`}
+          description={`Sua performance e selos recebidos no ${currentEvent.name}`}
           icon={Star}
         />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
@@ -120,7 +158,7 @@ export default function StorePositivacaoPage() {
                     </>
                 ) : (
                     <>
-                    <div className="text-xl font-bold">0 / {MOCK_AWARD_TIERS.length > 0 ? MOCK_AWARD_TIERS[0].positivacoesRequired : '-'} selos</div>
+                    <div className="text-xl font-bold">0 / {awardTiers.length > 0 ? awardTiers[0].positivacoesRequired : '-'} selos</div>
                      <Progress value={0} className="mt-2 h-3" />
                     <p className="text-xs text-muted-foreground mt-1">Comece a coletar selos!</p>
                     </>
@@ -136,11 +174,11 @@ export default function StorePositivacaoPage() {
             <CardDescription>Veja quais fornecedores já te prestigiaram neste evento.</CardDescription>
           </CardHeader>
           <CardContent>
-            {MOCK_VENDORS.length === 0 ? (
+            {allVendors.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Nenhum fornecedor cadastrado para o evento.</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                {MOCK_VENDORS.map((vendor: Vendor) => {
+                {allVendors.map((vendor: Vendor) => {
                   const positivation = positivationsMap.get(vendor.id);
                   const isPositivated = !!positivation;
 
@@ -166,7 +204,7 @@ export default function StorePositivacaoPage() {
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="bg-background border-border shadow-xl p-3">
                         <p className="font-semibold text-lg text-primary">{vendor.name}</p>
-                        {isPositivated && positivation ? (
+                        {isPositivated && positivation && isValid(parseISO(positivation.date)) ? (
                           <>
                             <p className="text-sm text-green-600">
                               <ThumbsUp className="inline-block h-4 w-4 mr-1" /> Positivado!
@@ -184,9 +222,9 @@ export default function StorePositivacaoPage() {
                 })}
               </div>
             )}
-            {positivacoesCount === 0 && MOCK_VENDORS.length > 0 && (
+            {positivacoesCount === 0 && allVendors.length > 0 && (
               <p className="mt-8 text-center text-lg text-muted-foreground">
-                Ainda não há positivações. Converse com seus fornecedores para recebê-las e começar a ganhar prêmios!
+                Ainda não há selos (positivações). Interaja com os fornecedores para recebê-los!
               </p>
             )}
           </CardContent>

@@ -12,17 +12,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Briefcase, Save, UserPlus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { MOCK_VENDORS, STATES } from '@/lib/constants'; 
-import type { Vendor } from '@/types';
+import { STATES } from '@/lib/constants'; // STATES can remain from constants
+import { loadVendors, saveVendors, loadSalespeople, saveSalespeople } from '@/lib/localStorageUtils';
+import type { Vendor, Salesperson } from '@/types';
+import { useEffect, useState } from 'react';
 
 const vendorSchema = z.object({
   name: z.string().min(3, "Nome da empresa deve ter pelo menos 3 caracteres."),
-  cnpj: z.string().length(14, "CNPJ deve ter 14 dígitos."),
+  cnpj: z.string().length(14, "CNPJ deve ter 14 dígitos (somente números).").or(z.string().length(18, "CNPJ deve ter 18 caracteres (com formatação).")),
   address: z.string().min(5, "Endereço é obrigatório."),
   city: z.string().min(2, "Cidade é obrigatória."),
   neighborhood: z.string().min(2, "Bairro é obrigatório."),
   state: z.string().min(2, "Estado é obrigatório."),
-  logoUrl: z.string().url("Deve ser uma URL válida para o logo."),
+  logoUrl: z.string().url("Deve ser uma URL válida para o logo.").startsWith("https://placehold.co/", {message: "Para demonstração, use https://placehold.co/"}),
+  dataAiHint: z.string().optional().describe("Dica para IA sobre o logo (ex: company logo)"),
 });
 type VendorFormValues = z.infer<typeof vendorSchema>;
 
@@ -37,6 +40,13 @@ type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
 export default function VendorManagementPage() {
   const { toast } = useToast();
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
+
+  useEffect(() => {
+    setVendors(loadVendors());
+    setSalespeople(loadSalespeople());
+  }, []);
 
   const vendorForm = useForm<VendorFormValues>({
     resolver: zodResolver(vendorSchema),
@@ -47,7 +57,8 @@ export default function VendorManagementPage() {
       city: '',
       neighborhood: '',
       state: '',
-      logoUrl: '',
+      logoUrl: 'https://placehold.co/120x60.png?text=NovoFornecedor',
+      dataAiHint: 'company logo',
     },
   });
 
@@ -63,20 +74,34 @@ export default function VendorManagementPage() {
   });
 
   const onVendorSubmit = (data: VendorFormValues) => {
-    console.log("Dados do Novo Fornecedor:", data);
+    const newVendor: Vendor = {
+      id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+      ...data,
+      cnpj: data.cnpj.replace(/\D/g, ''), // Store only numbers
+    };
+    const updatedVendors = [...vendors, newVendor];
+    setVendors(updatedVendors);
+    saveVendors(updatedVendors);
     toast({
       title: "Fornecedor Cadastrado!",
-      description: `${data.name} foi (simuladamente) cadastrado.`,
+      description: `${data.name} foi cadastrado no armazenamento local.`,
     });
     vendorForm.reset();
   };
 
   const onSalespersonSubmit = (data: SalespersonFormValues) => {
-    console.log("Dados do Novo Vendedor:", data);
-    const linkedVendor = MOCK_VENDORS.find(v => v.id === data.vendorId);
+    const newSalesperson: Salesperson = {
+      id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+      ...data,
+    };
+    const updatedSalespeople = [...salespeople, newSalesperson];
+    setSalespeople(updatedSalespeople);
+    saveSalespeople(updatedSalespeople);
+
+    const linkedVendor = vendors.find(v => v.id === data.vendorId);
     toast({
       title: "Vendedor Cadastrado!",
-      description: `${data.name} foi (simuladamente) cadastrado para ${linkedVendor?.name || 'fornecedor selecionado'}.`,
+      description: `${data.name} foi cadastrado para ${linkedVendor?.name || 'fornecedor selecionado'} no armaz. local.`,
     });
     salespersonForm.reset();
   };
@@ -114,8 +139,8 @@ export default function VendorManagementPage() {
                   name="cnpj"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CNPJ (14 dígitos, sem pontuação)</FormLabel>
-                      <FormControl><Input placeholder="00000000000000" {...field} /></FormControl>
+                      <FormLabel>CNPJ</FormLabel>
+                      <FormControl><Input placeholder="00.000.000/0000-00" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -177,7 +202,18 @@ export default function VendorManagementPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>URL do Logo</FormLabel>
-                      <FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl>
+                      <FormControl><Input type="url" placeholder="https://placehold.co/120x60.png" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={vendorForm.control}
+                  name="dataAiHint"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dica para IA (Logo)</FormLabel>
+                      <FormControl><Input placeholder="Ex: company logo, health brand" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -211,10 +247,10 @@ export default function VendorManagementPage() {
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Selecione um fornecedor" /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {MOCK_VENDORS.map((vendor: Vendor) => (
+                          {vendors.map((vendor: Vendor) => (
                             <SelectItem key={vendor.id} value={vendor.id}>{vendor.name}</SelectItem>
                           ))}
-                           {MOCK_VENDORS.length === 0 && <SelectItem value="disabled" disabled>Nenhum fornecedor cadastrado</SelectItem>}
+                           {vendors.length === 0 && <SelectItem value="disabled" disabled>Nenhum fornecedor cadastrado</SelectItem>}
                         </SelectContent>
                       </Select>
                       <FormMessage />

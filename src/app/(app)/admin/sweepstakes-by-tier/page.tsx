@@ -1,33 +1,28 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MOCK_AWARD_TIERS, MOCK_STORES, MOCK_EVENT } from '@/lib/constants';
-import type { AwardTier, Store } from '@/types';
+// import { MOCK_AWARD_TIERS, MOCK_STORES, MOCK_EVENT } from '@/lib/constants'; // No longer use mocks
+import { loadAwardTiers, loadStores, loadEvent, loadDrawnWinners, saveDrawnWinners } from '@/lib/localStorageUtils';
+import type { AwardTier, Store, Event as EventType, SweepstakeWinnerRecord } from '@/types';
 import { Dice6, ListChecks, Trophy, Download, PlayCircle } from 'lucide-react'; 
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface SweepstakeWinnerRecord {
-  tierId: string;
-  tierName: string;
-  prizeName: string;
-  storeId: string;
-  storeName: string; // Will store "Code - Razão Social (CNPJ: XXXXX)"
-  drawnAt: Date;
-}
 
 const exportToCSV = (data: any[], filename: string) => {
   if (typeof window === "undefined") return;
   const header = Object.keys(data[0]).join(",");
   const csvRows = data.map(row =>
     Object.values(row).map(value => {
-      const stringValue = String(value instanceof Date ? format(value, "yyyy-MM-dd HH:mm:ss", { locale: ptBR }) : value);
+      let stringValue = String(value);
+      if (value instanceof Date) {
+        stringValue = format(value, "yyyy-MM-dd HH:mm:ss", { locale: ptBR });
+      }
       if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
         return `"${stringValue.replace(/"/g, '""')}"`;
       }
@@ -49,13 +44,32 @@ export default function AdminTieredSweepstakesPage() {
   const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]);
   const [isLoadingDraw, setIsLoadingDraw] = useState<string | null>(null); 
   const { toast } = useToast();
+  
+  const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
+
+  useEffect(() => {
+    setAwardTiers(loadAwardTiers().sort((a,b) => a.positivacoesRequired - b.positivacoesRequired));
+    setStores(loadStores());
+    setCurrentEvent(loadEvent());
+    setDrawnWinners(loadDrawnWinners());
+  }, []);
+
+  useEffect(() => {
+    // Save drawn winners whenever it changes, but only if it's not the initial empty load
+    if (drawnWinners.length > 0 || localStorage.getItem('hiperfarma_drawn_winners')) {
+        saveDrawnWinners(drawnWinners);
+    }
+  }, [drawnWinners]);
+
 
   const awardTiersWithStats = useMemo(() => {
-    return MOCK_AWARD_TIERS.map(tier => {
-      const winnersForThisTier = drawnWinners.filter(w => w.tierId === tier.id).sort((a,b) => a.drawnAt.getTime() - b.drawnAt.getTime());
+    return awardTiers.map(tier => {
+      const winnersForThisTier = drawnWinners.filter(w => w.tierId === tier.id).sort((a,b) => new Date(a.drawnAt).getTime() - new Date(b.drawnAt).getTime());
       const remainingQuantity = tier.quantityAvailable - winnersForThisTier.length;
       
-      const eligibleStoresForTier = MOCK_STORES.filter(store => {
+      const eligibleStoresForTier = stores.filter(store => {
         const meetsPositivationRequirement = (store.positivationsDetails?.length || 0) >= tier.positivacoesRequired;
         const hasNotWonThisTier = !winnersForThisTier.some(w => w.storeId === store.id); 
         return store.participating && meetsPositivationRequirement && hasNotWonThisTier;
@@ -68,7 +82,7 @@ export default function AdminTieredSweepstakesPage() {
         winners: winnersForThisTier, 
       };
     });
-  }, [drawnWinners]); 
+  }, [drawnWinners, awardTiers, stores]); 
 
   const handleDrawWinner = async (tier: typeof awardTiersWithStats[0]) => {
     if (tier.remainingQuantity <= 0 || tier.eligibleStores.length === 0) {
@@ -92,6 +106,7 @@ export default function AdminTieredSweepstakesPage() {
     };
 
     setDrawnWinners(prev => [...prev, newWinnerRecord]);
+    // saveDrawnWinners([...drawnWinners, newWinnerRecord]); // Save immediately to localStorage
     setIsLoadingDraw(null);
     toast({
       title: "Vencedor Sorteado!",
@@ -107,18 +122,22 @@ export default function AdminTieredSweepstakesPage() {
     const dataToExport = drawnWinners.map(r => ({
       Faixa: r.tierName,
       Premio: r.prizeName,
-      Loja_Vencedora_Detalhes: r.storeName, // StoreName now contains Code - Razao Social (CNPJ)
-      SorteadoEm: format(r.drawnAt, "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
+      Loja_Vencedora_Detalhes: r.storeName,
+      SorteadoEm: format(new Date(r.drawnAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
     }));
-    exportToCSV(dataToExport, "log_vencedores_sorteio_faixas_hiperfarma");
+    exportToCSV(dataToExport, `log_vencedores_sorteio_faixas_${currentEvent?.name.replace(/\s+/g, '_') || 'evento'}`);
     toast({ title: "Log Exportado", description: "O log de vencedores do sorteio foi exportado para um arquivo CSV." });
   };
+
+  if (!currentEvent) {
+    return <div>Carregando dados do sorteio...</div>
+  }
 
   return (
     <div className="animate-fadeIn space-y-8">
       <PageHeader
         title="Gerenciamento de Sorteios por Faixa"
-        description={`Sorteie vencedores para cada faixa de premiação no ${MOCK_EVENT.name}.`}
+        description={`Sorteie vencedores para cada faixa de premiação no ${currentEvent.name}.`}
         icon={Dice6}
         actions={
           <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0}>
@@ -138,7 +157,7 @@ export default function AdminTieredSweepstakesPage() {
               <CardTitle className="flex items-center gap-2"><Trophy className="text-accent h-6 w-6" /> Faixa {tier.name}</CardTitle>
               <CardDescription>
                 Tipo de Prêmio: <span className="font-semibold">{tier.rewardName}</span> <br />
-                Requer: <span className="font-semibold">{tier.positivacoesRequired}</span> positivacões. <br />
+                Requer: <span className="font-semibold">{tier.positivacoesRequired}</span> selos (positivações). <br />
                 Total de Prêmios: <span className="font-semibold">{tier.quantityAvailable}</span> | Restantes: <span className="font-semibold">{tier.remainingQuantity}</span>
               </CardDescription>
             </CardHeader>
@@ -170,7 +189,7 @@ export default function AdminTieredSweepstakesPage() {
                         {isSlotDrawn && winnerRecord ? (
                           <p className="text-xs text-green-700 font-semibold mt-1">
                             Ganho por: {winnerRecord.storeName}
-                            <span className="text-muted-foreground font-normal block"> ({format(winnerRecord.drawnAt, "dd/MM HH:mm", { locale: ptBR })})</span>
+                            <span className="text-muted-foreground font-normal block"> ({format(new Date(winnerRecord.drawnAt), "dd/MM HH:mm", { locale: ptBR })})</span>
                           </p>
                         ) : (
                           <p className="text-xs text-muted-foreground mt-1">Disponível para sorteio</p>
@@ -223,12 +242,12 @@ export default function AdminTieredSweepstakesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {drawnWinners.sort((a,b) => b.drawnAt.getTime() - a.drawnAt.getTime()).map((record, index) => (
+                {drawnWinners.sort((a,b) => new Date(b.drawnAt).getTime() - new Date(a.drawnAt).getTime()).map((record, index) => (
                   <TableRow key={`${record.tierId}-${record.storeId}-${index}`}>
                     <TableCell className="font-medium">{record.tierName}</TableCell>
                     <TableCell>{record.prizeName}</TableCell>
                     <TableCell className="font-semibold">{record.storeName}</TableCell>
-                    <TableCell className="text-right text-xs">{format(record.drawnAt, "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}</TableCell>
+                    <TableCell className="text-right text-xs">{format(new Date(record.drawnAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

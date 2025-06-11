@@ -12,12 +12,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ClipboardPlus, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { STATES } from '@/lib/constants';
+import { STATES } from '@/lib/constants'; // STATES can remain from constants
+import { loadStores, saveStores } from '@/lib/localStorageUtils';
+import type { Store } from '@/types';
+import { useEffect, useState } from 'react';
 
 const storeRegistrationSchema = z.object({
   code: z.string().min(1, "Código da loja é obrigatório."),
   razaoSocial: z.string().min(3, "Razão Social deve ter pelo menos 3 caracteres."),
-  cnpj: z.string().min(14, "CNPJ deve ter 14 dígitos.").max(14, "CNPJ deve ter 14 dígitos."), 
+  cnpj: z.string().min(14, "CNPJ deve ter 14 dígitos.").max(18, "CNPJ deve ter 14 a 18 caracteres (com formatação)."), // Allow formatted CNPJ
   address: z.string().min(5, "Endereço é obrigatório."),
   city: z.string().min(2, "Cidade é obrigatória."),
   neighborhood: z.string().min(2, "Bairro é obrigatório."),
@@ -33,6 +36,12 @@ type StoreRegistrationFormValues = z.infer<typeof storeRegistrationSchema>;
 
 export default function StoreRegistrationPage() {
   const { toast } = useToast();
+  const [stores, setStores] = useState<Store[]>([]);
+
+  useEffect(() => {
+    setStores(loadStores());
+  }, []);
+
   const form = useForm<StoreRegistrationFormValues>({
     resolver: zodResolver(storeRegistrationSchema),
     defaultValues: {
@@ -52,10 +61,25 @@ export default function StoreRegistrationPage() {
   });
 
   const onSubmit = (data: StoreRegistrationFormValues) => {
-    console.log("Dados de Cadastro da Loja:", data);
+    const newStore: Store = {
+      id: `store_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+      code: data.code,
+      name: data.razaoSocial, // Map razaoSocial to name
+      cnpj: data.cnpj.replace(/\D/g, ''), // Store only numbers for CNPJ
+      participating: true, // Default to participating
+      goalProgress: 0,
+      positivationsDetails: [],
+      // address, city, neighborhood, state, phone, ownerName, responsibleName, email are not part of core Store type for now
+      // but are collected by the form. This data could be stored elsewhere or added to Store type if needed broadly.
+    };
+
+    const updatedStores = [...stores, newStore];
+    setStores(updatedStores);
+    saveStores(updatedStores);
+
     toast({
       title: "Loja Cadastrada!",
-      description: `Loja ${data.code} - ${data.razaoSocial} foi (simuladamente) cadastrada.`,
+      description: `Loja ${data.code} - ${data.razaoSocial} foi cadastrada no armazenamento local.`,
     });
     form.reset(); 
   };
@@ -108,7 +132,7 @@ export default function StoreRegistrationPage() {
                   <FormItem>
                     <FormLabel>CNPJ</FormLabel>
                     <FormControl>
-                      <Input placeholder="00.000.000/0000-00 (somente números)" {...field} />
+                      <Input placeholder="00.000.000/0000-00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -195,8 +219,8 @@ export default function StoreRegistrationPage() {
 
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle>Contato e Informações de Login</CardTitle>
-              <CardDescription>Detalhes do proprietário/responsável e credenciais de login.</CardDescription>
+              <CardTitle>Contato e Informações de Login (para usuários da loja)</CardTitle>
+              <CardDescription>Detalhes do proprietário/responsável e credenciais de login para o usuário principal da loja.</CardDescription>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
               <FormField
@@ -217,7 +241,7 @@ export default function StoreRegistrationPage() {
                 name="responsibleName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome do Responsável</FormLabel>
+                    <FormLabel>Nome do Responsável (para o sistema)</FormLabel>
                     <FormControl>
                       <Input placeholder="Ex: Maria Oliveira" {...field} />
                     </FormControl>
@@ -230,7 +254,7 @@ export default function StoreRegistrationPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email de Login</FormLabel>
+                    <FormLabel>Email de Login (para usuário da loja)</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="loja.login@example.com" {...field} />
                     </FormControl>
@@ -243,7 +267,7 @@ export default function StoreRegistrationPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Senha de Login</FormLabel>
+                    <FormLabel>Senha de Login (para usuário da loja)</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>

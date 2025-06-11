@@ -1,3 +1,4 @@
+
 // src/app/(app)/admin/event-management/page.tsx
 "use client";
 
@@ -10,16 +11,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MOCK_EVENT, MOCK_VENDORS } from '@/lib/constants';
+// import { MOCK_EVENT, MOCK_VENDORS } from '@/lib/constants'; // No longer directly use MOCK_EVENT
+import { loadEvent, saveEvent, loadVendors } from '@/lib/localStorageUtils';
+import type { Event, Vendor } from '@/types';
 import { Edit3, CalendarIcon, Save, Users } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 
 const eventFormSchema = z.object({
   name: z.string().min(5, { message: "Nome do evento deve ter pelo menos 5 caracteres." }),
@@ -34,29 +38,48 @@ type EventFormValues = z.infer<typeof eventFormSchema>;
 
 export default function AdminEventManagementPage() {
   const { toast } = useToast();
+  const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
-    defaultValues: {
-      name: MOCK_EVENT.name,
-      date: MOCK_EVENT.date ? parseISO(MOCK_EVENT.date) : new Date(),
-      time: MOCK_EVENT.time,
-      location: MOCK_EVENT.location,
-      address: MOCK_EVENT.address,
-      mapEmbedUrl: MOCK_EVENT.mapEmbedUrl,
-    },
+    // Default values will be set in useEffect after loading from local storage
   });
 
-  const onSubmit = (data: EventFormValues) => {
-    console.log("Dados do evento submetidos:", {
-      ...data,
-      date: format(data.date, 'yyyy-MM-dd'), 
+  useEffect(() => {
+    const loadedEvent = loadEvent();
+    setCurrentEvent(loadedEvent);
+    setVendors(loadVendors());
+
+    // Set form default values once event is loaded
+    const eventDate = loadedEvent.date && isValid(parseISO(loadedEvent.date)) ? parseISO(loadedEvent.date) : new Date();
+    form.reset({
+      name: loadedEvent.name,
+      date: eventDate,
+      time: loadedEvent.time,
+      location: loadedEvent.location,
+      address: loadedEvent.address,
+      mapEmbedUrl: loadedEvent.mapEmbedUrl,
     });
+  }, [form]);
+
+  const onSubmit = (data: EventFormValues) => {
+    const eventToSave: Event = {
+      ...(currentEvent as Event), // Keep ID and any other non-form fields
+      ...data,
+      date: format(data.date, 'yyyy-MM-dd'), // Store date as ISO string
+    };
+    saveEvent(eventToSave);
+    setCurrentEvent(eventToSave); // Update state
     toast({
       title: "Configurações do Evento Salvas!",
-      description: "Os detalhes do evento foram (simuladamente) atualizados com sucesso.",
+      description: "Os detalhes do evento foram atualizados com sucesso no armazenamento local.",
     });
   };
+
+  if (!currentEvent) {
+    return <div>Carregando detalhes do evento...</div>; // Or a proper loader
+  }
 
   return (
     <div className="animate-fadeIn">
@@ -179,10 +202,10 @@ export default function AdminEventManagementPage() {
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Users /> Fornecedores Participantes</CardTitle>
-              <CardDescription>Esta lista é gerenciada via cadastro de fornecedores (atualmente dados de demonstração).</CardDescription>
+              <CardDescription>Esta lista é gerenciada via cadastro de fornecedores (lendo do armazenamento local).</CardDescription>
             </CardHeader>
             <CardContent>
-              {MOCK_VENDORS.length > 0 ? (
+              {vendors.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -191,7 +214,7 @@ export default function AdminEventManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {MOCK_VENDORS.map((vendor) => (
+                    {vendors.map((vendor) => (
                       <TableRow key={vendor.id}>
                         <TableCell>
                           <Image

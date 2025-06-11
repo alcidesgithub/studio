@@ -88,3 +88,13 @@ export interface Salesperson {
   email: string;
   password?: string; // For login (mock)
 }
+
+// Added for sweepstakes-by-tier page state persistence
+export interface SweepstakeWinnerRecord {
+  tierId: string;
+  tierName: string;
+  prizeName: string;
+  storeId: string;
+  storeName: string;
+  drawnAt: Date | string; // Allow string for JSON, convert to Date on load
+}
