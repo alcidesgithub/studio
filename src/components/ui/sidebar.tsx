@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
+import { Slot, type SlotProps } from "@radix-ui/react-slot" // Import Slot and SlotProps
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
@@ -541,20 +541,23 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-export interface SidebarMenuButtonProps
-  extends Omit<React.ComponentPropsWithoutRef<'button'>, 'onClick' | 'type' | 'children' | 'className'>,
-    Omit<React.ComponentPropsWithoutRef<'a'>, 'onClick' | 'children' | 'className' | 'href'>,
-    VariantProps<typeof sidebarMenuButtonVariants> {
-  
+// Define a comprehensive props type for SidebarMenuButton
+// This includes its own specific props, props from Link (when Link uses asChild),
+// and general HTML attributes.
+interface SidebarMenuButtonProps extends VariantProps<typeof sidebarMenuButtonVariants> {
   onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
   children?: React.ReactNode;
-  className?: string; 
-
-  // Props that `next/link` (with asChild) will pass
-  href?: string; 
+  className?: string; // className applied directly to SidebarMenuButton
+  isActive?: boolean;
+  
+  // Props potentially passed by Link asChild (or TooltipTrigger asChild via Link)
+  href?: string;
   onClick?: React.MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>; 
   type?: string; 
-  asChild?: boolean; // This is the prop from Link (or TooltipTrigger via Link) that needs to be discarded
+  asChild?: boolean; // The prop that needs to be handled and removed
+
+  // To catch any other valid HTML attributes or props passed by Radix Slot
+  [key: string]: any;
 }
 
 
@@ -562,72 +565,78 @@ const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement & HTMLAnchorElement,
   SidebarMenuButtonProps
 >(
-  (
-    {
-      // Destructure ALL known props, including asChild
-      className: intrinsicClassName, // className from direct usage on <SidebarMenuButton>
+  (props, ref) => {
+    // Destructure all known/expected props, including 'asChild'
+    const {
+      className: intrinsicClassName, // className passed directly to SidebarMenuButton
       variant,
       size,
       isActive,
       onItemClick,
       children,
-      href,                // from Link
-      onClick: onClickFromProps, // from Link (or direct, needs merging)
-      type,                // from Link or direct
-      asChild: _discardAsChild, // ** CRITICAL: This removes it from the '...restDOMAttributes' **
-      ...restDOMAttributes   // These are now only truly other HTML attributes
-    },
-    ref
-  ) => {
-    const Comp = href ? "a" : "button";
+      href: hrefFromParent,
+      onClick: onClickFromParent,
+      type: typeFromParent,
+      asChild: _discardAsChild, // Explicitly destructure 'asChild' to remove it from '...remainingProps'
+      ...remainingProps // These should now be only other valid HTML attributes or Slot-passed props
+    } = props;
+
+    const Comp = hrefFromParent ? "a" : "button";
 
     const combinedOnClick = (event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
-      if (typeof onClickFromProps === "function") {
-        onClickFromProps(event); // Handle Link's navigation / or direct onClick
+      // Call the onClick from parent (Link/TooltipTrigger) if it exists
+      if (typeof onClickFromParent === "function") {
+        onClickFromParent(event);
       }
-      // onItemClick is specific to SidebarMenuButton and should only be called if different
-      if (typeof onItemClick === "function" && onItemClick !== onClickFromProps) {
+      // Call onItemClick if it's different and exists (specific to SidebarMenuButton)
+      if (typeof onItemClick === "function" && onItemClick !== onClickFromParent) {
         onItemClick(event);
       }
     };
     
-    // The className from ...restDOMAttributes (if Link passes one) needs to be merged
-    // Pull it out first to avoid spreading it if it's undefined or if intrinsicClassName should take precedence.
-    const { className: restClassName, ...trulyRestDOMAttributes } = restDOMAttributes as Omit<typeof restDOMAttributes, 'className'> & { className?: string };
-
-
+    // Merge classNames:
+    // 1. From variants
+    // 2. Passed directly to SidebarMenuButton (intrinsicClassName)
+    // 3. Passed through spread props (e.g., from Link if it injects one)
     const finalClassName = cn(
       sidebarMenuButtonVariants({ variant, size, isActive }),
-      intrinsicClassName, // from <SidebarMenuButton className="...">
-      restClassName       // from <Link className="..."> or other wrappers if any
+      intrinsicClassName,
+      (remainingProps as any).className 
     );
+    
+    // Remove className from remainingProps if it was there, to avoid duplicate application
+    const { className: _discardRemainingClassName, ...safeRemainingProps } = remainingProps as any;
 
-    // Explicitly type domProps to what 'a' or 'button' can accept, plus our data attribute
-    // Ensure that only valid HTML attributes from trulyRestDOMAttributes are spread.
-    const domProps: React.ButtonHTMLAttributes<HTMLButtonElement> & React.AnchorHTMLAttributes<HTMLAnchorElement> & { "data-active"?: boolean } = {
-      ...(trulyRestDOMAttributes as any), // Cast to any to allow spread of remaining valid HTML attrs
+    const domProps: React.ButtonHTMLAttributes<HTMLButtonElement> & 
+                  React.AnchorHTMLAttributes<HTMLAnchorElement> & 
+                  { "data-active"?: boolean; [key: string]: any; } = {
+      ...safeRemainingProps, // Spread only the truly leftover valid HTML/Radix attributes
       ref,
       className: finalClassName,
       "data-active": isActive,
     };
 
-    if (Comp === "a") {
-      domProps.href = href;
-      // Remove button-specific props if Comp is 'a'
-      delete (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type;
-    } else {
-      // For button, ensure type is set, default to 'button'
-      (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = type || "button";
-      // Remove anchor-specific props if Comp is 'button'
-      delete (domProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href;
-
-    }
-
-    if (combinedOnClick) {
+    if (combinedOnClick && typeof combinedOnClick === 'function') {
       domProps.onClick = combinedOnClick;
     }
 
-    // _discardAsChild is not used, ensuring it's not passed to Comp
+
+    if (Comp === "a") {
+      (domProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href = hrefFromParent;
+      // Ensure button-specific 'type' is not on 'a' tag unless explicitly set in remainingProps
+      if (!(typeFromParent) && domProps.type) {
+         delete domProps.type;
+      } else if (typeFromParent) {
+         domProps.type = typeFromParent; // though 'type' on 'a' is not standard
+      }
+    } else {
+      (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = typeFromParent || "button";
+      // Ensure anchor-specific 'href' is not on 'button' tag
+      delete (domProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href;
+    }
+    
+    // Because `_discardAsChild` was destructured from `props`, `asChild` is NOT in `safeRemainingProps`.
+    // Thus, it will not be spread to the underlying `Comp`.
     return <Comp {...domProps}>{children}</Comp>;
   }
 );
@@ -802,3 +811,4 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
+
