@@ -547,8 +547,6 @@ export interface SidebarMenuButtonProps
     VariantProps<typeof sidebarMenuButtonVariants> {
   onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
   isActive?: boolean;
-  // `asChild` is intentionally NOT listed here.
-  // If a parent passes `asChild`, it will be in `...otherProps`.
 }
 
 
@@ -564,7 +562,8 @@ const SidebarMenuButton = React.forwardRef<
       isActive,
       onItemClick,
       children,
-      ...otherProps // This will capture `href`, `onClick` from Link, and potentially `asChild`
+      // `asChild` from a parent component like Link will be captured in otherProps
+      ...otherProps 
     },
     ref
   ) => {
@@ -572,37 +571,40 @@ const SidebarMenuButton = React.forwardRef<
     const inheritedOnClick = otherProps.onClick;
     const inheritedType = otherProps.type;
 
+    // Create a mutable copy of otherProps to safely delete asChild
+    // This is the critical step: ensure 'asChild' is not in the final props passed to the DOM element.
+    const finalDomProps: Record<string, any> = { ...otherProps };
+    if ('asChild' in finalDomProps) {
+      delete finalDomProps.asChild;
+    }
+    
     const Comp = typeof href === 'string' && href.length > 0 ? 'a' : 'button';
-
-    // Explicitly remove `asChild` from `otherProps` before spreading
-    const { asChild, ...domSafeOtherProps } = otherProps;
 
     const combinedOnClick = (event: React.MouseEvent<HTMLElement>) => {
       if (typeof inheritedOnClick === 'function') (inheritedOnClick as React.MouseEventHandler<HTMLElement>)(event);
       if (onItemClick) onItemClick(event);
     };
 
-    // Build the props for the DOM element, ensuring `asChild` is not included
-    const domProps: any = {
-      ...domSafeOtherProps,
-      ref,
-      className: cn(sidebarMenuButtonVariants({ variant, size, isActive, className })),
-      onClick: combinedOnClick,
-    };
+    // Apply specific attributes based on Comp type and other logic
+    finalDomProps.ref = ref;
+    finalDomProps.className = cn(sidebarMenuButtonVariants({ variant, size, isActive, className }));
+    finalDomProps.onClick = combinedOnClick;
     
     if (isActive) {
-      domProps['data-active'] = 'true';
+      finalDomProps['data-active'] = 'true';
     }
 
     if (Comp === 'a') {
-      domProps.href = href;
-      delete domProps.type; // type is not a valid attribute for <a>
+      // href is already in finalDomProps if it came from otherProps (and wasn't 'asChild')
+      // Ensure 'type' attribute is not passed to 'a' tags
+      delete finalDomProps.type; 
     } else {
-      domProps.type = inheritedType || 'button';
-      delete domProps.href; // href is not a valid attribute for <button>
+      finalDomProps.type = inheritedType || 'button';
+      // Ensure 'href' attribute is not passed to 'button' tags
+      delete finalDomProps.href; 
     }
 
-    return <Comp {...domProps}>{children}</Comp>;
+    return <Comp {...finalDomProps}>{children}</Comp>;
   }
 );
 SidebarMenuButton.displayName = "SidebarMenuButton"
