@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Home, LogOut, Users, Award, Gift, Store, ShoppingBag, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase, Dice6 } from 'lucide-react';
+import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase, Dice6 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ROLES_TRANSLATIONS } from '@/lib/constants';
@@ -21,7 +21,6 @@ const navItemsByRole = {
     { href: '/admin/event-management', label: 'Gerenciar Evento', icon: Edit3 },
     { href: '/admin/users', label: 'Gerenciar Usuários', icon: UserCog },
     { href: '/admin/awards', label: 'Faixas de Prêmios', icon: Trophy },
-    { href: '/admin/sweepstakes', label: 'Sorteio Simples', icon: Gift },
     { href: '/admin/sweepstakes-by-tier', label: 'Sorteio por Faixa', icon: Dice6 },
     { href: '/admin/store-registration', label: 'Cadastrar Loja', icon: ClipboardPlus },
     { href: '/admin/vendor-management', label: 'Gerenciar Fornecedor', icon: Briefcase },
@@ -29,7 +28,6 @@ const navItemsByRole = {
   manager: [
     { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
     { href: '/event', label: 'Info Evento', icon: MapPin },
-    { href: '/admin/sweepstakes', label: 'Realizar Sorteios', icon: Gift },
     { href: '/admin/sweepstakes-by-tier', label: 'Sorteio por Faixa', icon: Dice6 },
     { href: '/admin/vendor-management', label: 'Gerenciar Fornecedor', icon: Briefcase },
   ],
