@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'manager' | 'vendor' | 'store';
 
 export interface User {
@@ -54,7 +55,22 @@ export interface SweepstakeResult extends SweepstakeEntry {
 
 export interface Vendor {
   id: string;
-  name: string;
+  name: string; // Empresa
+  cnpj: string;
+  address: string;
+  city: string;
+  neighborhood: string;
+  state: string; // e.g., "PR" or "SC"
   logoUrl: string;
+  dataAiHint?: string;
   website?: string; // Optional link to vendor's website
+}
+
+export interface Salesperson {
+  id: string;
+  vendorId: string;
+  name: string;
+  phone: string;
+  email: string;
+  password?: string; // For login (mock)
 }

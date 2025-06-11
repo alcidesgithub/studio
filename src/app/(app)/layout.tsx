@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -43,7 +44,9 @@ export default function AppLayout({
   }
   
   // Check role-based access for admin routes
-  if (pathname.startsWith('/admin') && user.role !== 'admin') {
+  // Allow admins and managers for /admin routes.
+  // Specific page components should handle finer-grained control if a manager shouldn't see a particular admin page.
+  if (pathname.startsWith('/admin') && !['admin', 'manager'].includes(user.role)) {
      return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4">
           <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
