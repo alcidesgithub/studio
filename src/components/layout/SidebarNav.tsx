@@ -72,7 +72,7 @@ export function SidebarNav() {
               </SidebarGroupLabel>
             ) : (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href!} passHref>
+                <Link href={item.href!}>
                   <SidebarMenuButton
                     asChild
                     variant="default"
@@ -82,10 +82,10 @@ export function SidebarNav() {
                     onClick={handleLinkClick}
                     className="justify-start"
                   >
-                    <a> {/* Content of the button is <a> tag due to asChild */}
+                    <>
                       {item.icon && <item.icon className="h-5 w-5" />}
                       <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                    </a>
+                    </>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
