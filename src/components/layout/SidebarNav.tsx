@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Home, LogOut, Users, Award, Gift, Store, ShoppingBag, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase } from 'lucide-react';
+import { Home, LogOut, Users, Award, Gift, Store, ShoppingBag, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase, Dice6 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -20,7 +20,8 @@ const navItemsByRole = {
     { href: '/admin/event-management', label: 'Event Management', icon: Edit3 },
     { href: '/admin/users', label: 'User Management', icon: UserCog },
     { href: '/admin/awards', label: 'Award Tiers', icon: Trophy },
-    { href: '/admin/sweepstakes', label: 'Sweepstakes', icon: Gift },
+    { href: '/admin/sweepstakes', label: 'Simple Sweepstakes', icon: Gift },
+    { href: '/admin/sweepstakes-by-tier', label: 'Tiered Sweepstakes', icon: Dice6 },
     { href: '/admin/store-registration', label: 'Register Store', icon: ClipboardPlus },
     { href: '/admin/vendor-management', label: 'Vendor Management', icon: Briefcase },
   ],
@@ -28,6 +29,7 @@ const navItemsByRole = {
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/event', label: 'Event Info', icon: MapPin },
     { href: '/admin/sweepstakes', label: 'Run Sweepstakes', icon: Gift },
+    { href: '/admin/sweepstakes-by-tier', label: 'Tiered Sweepstakes', icon: Dice6 },
     { href: '/admin/vendor-management', label: 'Vendor Management', icon: Briefcase },
   ],
   vendor: [
@@ -45,13 +47,11 @@ const navItemsByRole = {
 export function SidebarNav() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { setOpenMobile, state: sidebarState, isMobile } = useSidebar(); // Get sidebar state and isMobile
+  const { setOpenMobile, state: sidebarState, isMobile } = useSidebar(); 
 
   const navItems = user?.role ? navItemsByRole[user.role] : [];
 
-  const handleLinkClick = (e: React.MouseEvent) => {
-    // In some cases, Next.js Link's navigation might be prevented if e.preventDefault() is called.
-    // We only want to close the mobile sidebar.
+  const handleLinkClick = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
     if (isMobile) {
       setOpenMobile(false);
     }
