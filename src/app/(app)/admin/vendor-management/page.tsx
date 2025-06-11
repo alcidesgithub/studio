@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"; // Removed AlertDialogTrigger from here
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -306,11 +306,9 @@ export default function ManageVendorsPage() {
                               <TableCell>{sp.phone}</TableCell>
                               <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteSalesperson(sp)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
+                                <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteSalesperson(sp)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -426,11 +424,9 @@ export default function ManageVendorsPage() {
                     <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditVendor(vendor)}>
                       <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
                     </Button>
-                    <AlertDialogTrigger asChild>
-                       <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteVendor(vendor)}>
-                          <Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span>
-                       </Button>
-                    </AlertDialogTrigger>
+                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteVendor(vendor)}>
+                        <Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
