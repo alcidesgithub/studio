@@ -11,25 +11,20 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MOCK_USERS, ROLES } from '@/lib/constants';
+import { MOCK_USERS, ROLES, ROLES_TRANSLATIONS } from '@/lib/constants';
 import type { User, UserRole } from '@/types';
 import { UserCog, PlusCircle, Edit, Trash2, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-// import type { Metadata } from 'next'; // Metadata cannot be used in client components
-
-// export const metadata: Metadata = {
-//   title: 'User Management - Hiperfarma Business Meeting Manager',
-// };
 
 const userFormSchema = z.object({
-  name: z.string().min(3, { message: "Name must be at least 3 characters." }),
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres." }),
+  email: z.string().email({ message: "Endereço de email inválido." }),
+  password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres." }),
   role: z.custom<UserRole>(val => ['admin', 'manager'].includes(val as UserRole), {
-    message: "Role must be either 'admin' or 'manager'.",
+    message: "Perfil deve ser 'admin' ou 'manager'.",
   }),
 });
 
@@ -47,18 +42,15 @@ export default function AdminUsersPage() {
       name: '',
       email: '',
       password: '',
-      role: 'manager', // Default to manager
+      role: 'manager', 
     },
   });
 
   const onSubmit = (data: UserFormValues) => {
-    // Mock user creation
-    console.log("New User Data:", data);
-    // In a real app, you'd add this to your MOCK_USERS or send to an API
-    // For now, we just show a toast and close the dialog
+    console.log("Dados do Novo Usuário:", data);
     toast({
-      title: "User Created!",
-      description: `${data.role.charAt(0).toUpperCase() + data.role.slice(1)} user ${data.name} has been (mock) created.`,
+      title: "Usuário Criado!",
+      description: `Usuário ${ROLES_TRANSLATIONS[data.role]} ${data.name} foi (simuladamente) criado.`,
     });
     form.reset();
     setIsDialogOpen(false);
@@ -67,21 +59,21 @@ export default function AdminUsersPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="User Management"
-        description="Manage administrator and manager accounts."
+        title="Gerenciamento de Usuários"
+        description="Gerencie contas de administrador e gerente."
         icon={UserCog}
         actions={
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => { form.reset(); setIsDialogOpen(true); }}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New User
+                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Novo Usuário
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Add New Privileged User</DialogTitle>
+                <DialogTitle>Adicionar Novo Usuário Privilegiado</DialogTitle>
                 <DialogDescription>
-                  Create a new administrator or manager. Click save when you're done.
+                  Crie um novo administrador ou gerente. Clique em salvar quando terminar.
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -91,9 +83,9 @@ export default function AdminUsersPage() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>Nome</FormLabel>
                         <FormControl>
-                          <Input placeholder="Full Name" {...field} />
+                          <Input placeholder="Nome Completo" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -106,7 +98,7 @@ export default function AdminUsersPage() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="user@example.com" {...field} />
+                          <Input type="email" placeholder="usuario@example.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -117,7 +109,7 @@ export default function AdminUsersPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>Senha</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="••••••••" {...field} />
                         </FormControl>
@@ -130,17 +122,17 @@ export default function AdminUsersPage() {
                     name="role"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Role</FormLabel>
+                        <FormLabel>Perfil</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a role" />
+                              <SelectValue placeholder="Selecione um perfil" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {privilegedRoles.map(role => (
                               <SelectItem key={role} value={role} className="capitalize">
-                                {role.charAt(0).toUpperCase() + role.slice(1)}
+                                {ROLES_TRANSLATIONS[role]}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -151,10 +143,10 @@ export default function AdminUsersPage() {
                   />
                   <DialogFooter className="pt-4">
                     <DialogClose asChild>
-                       <Button type="button" variant="outline">Cancel</Button>
+                       <Button type="button" variant="outline">Cancelar</Button>
                     </DialogClose>
                     <Button type="submit" disabled={form.formState.isSubmitting}>
-                       <Save className="mr-2 h-4 w-4" /> Save User
+                       <Save className="mr-2 h-4 w-4" /> Salvar Usuário
                     </Button>
                   </DialogFooter>
                 </form>
@@ -165,18 +157,18 @@ export default function AdminUsersPage() {
       />
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Registered Users</CardTitle>
-          <CardDescription>List of all users in the system (mock data).</CardDescription>
+          <CardTitle>Usuários Cadastrados</CardTitle>
+          <CardDescription>Lista de todos os usuários no sistema (dados de demonstração).</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Store (if applicable)</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Perfil</TableHead>
+                <TableHead>Loja (se aplicável)</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -184,16 +176,16 @@ export default function AdminUsersPage() {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{user.role}</Badge></TableCell>
+                  <TableCell><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
                   <TableCell>{user.storeName || 'N/A'}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-accent disabled:text-muted-foreground" disabled={user.role === 'admin' && MOCK_USERS.filter(u => u.role === 'admin').length === 1 && user.id === MOCK_USERS.find(u => u.role === 'admin')?.id /* Prevent deleting the only admin for demo purposes */}>
+                    <Button variant="ghost" size="icon" className="hover:text-accent disabled:text-muted-foreground" disabled={user.role === 'admin' && MOCK_USERS.filter(u => u.role === 'admin').length === 1 && user.id === MOCK_USERS.find(u => u.role === 'admin')?.id }>
                       <Edit className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
+                      <span className="sr-only">Editar</span>
                     </Button>
                     <Button variant="ghost" size="icon" className="hover:text-destructive disabled:text-muted-foreground" disabled={user.role === 'admin' && MOCK_USERS.filter(u => u.role === 'admin').length === 1 && user.id === MOCK_USERS.find(u => u.role === 'admin')?.id}>
                       <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete</span>
+                      <span className="sr-only">Excluir</span>
                     </Button>
                   </TableCell>
                 </TableRow>

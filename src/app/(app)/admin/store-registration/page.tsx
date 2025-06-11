@@ -12,27 +12,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ClipboardPlus, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { STATES } from '@/lib/constants';
 
 const storeRegistrationSchema = z.object({
-  code: z.string().min(1, "Store code is required."),
-  cnpj: z.string().min(14, "CNPJ must be 14 digits.").max(14, "CNPJ must be 14 digits."), // Simplified, consider a specific CNPJ validator
-  address: z.string().min(5, "Address is required."),
-  city: z.string().min(2, "City is required."),
-  neighborhood: z.string().min(2, "Neighborhood is required."),
-  state: z.enum(["PR", "SC"], { required_error: "State is required." }),
-  phone: z.string().min(10, "Phone number is required."),
-  ownerName: z.string().min(3, "Owner name is required."),
-  responsibleName: z.string().min(3, "Responsible person's name is required."),
-  email: z.string().email("Invalid email address."),
-  password: z.string().min(6, "Password must be at least 6 characters."),
+  code: z.string().min(1, "Código da loja é obrigatório."),
+  cnpj: z.string().min(14, "CNPJ deve ter 14 dígitos.").max(14, "CNPJ deve ter 14 dígitos."), 
+  address: z.string().min(5, "Endereço é obrigatório."),
+  city: z.string().min(2, "Cidade é obrigatória."),
+  neighborhood: z.string().min(2, "Bairro é obrigatório."),
+  state: z.enum(STATES.map(s => s.value) as [string, ...string[]], { required_error: "Estado é obrigatório." }),
+  phone: z.string().min(10, "Telefone é obrigatório."),
+  ownerName: z.string().min(3, "Nome do proprietário é obrigatório."),
+  responsibleName: z.string().min(3, "Nome do responsável é obrigatório."),
+  email: z.string().email("Endereço de email inválido."),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres."),
 });
 
 type StoreRegistrationFormValues = z.infer<typeof storeRegistrationSchema>;
-
-const STATES = [
-  { value: "PR", label: "Paraná (PR)" },
-  { value: "SC", label: "Santa Catarina (SC)" },
-];
 
 export default function StoreRegistrationPage() {
   const { toast } = useToast();
@@ -44,6 +40,7 @@ export default function StoreRegistrationPage() {
       address: '',
       city: '',
       neighborhood: '',
+      state: undefined,
       phone: '',
       ownerName: '',
       responsibleName: '',
@@ -53,28 +50,27 @@ export default function StoreRegistrationPage() {
   });
 
   const onSubmit = (data: StoreRegistrationFormValues) => {
-    // Mock submission
-    console.log("Store Registration Data:", data);
+    console.log("Dados de Cadastro da Loja:", data);
     toast({
-      title: "Store Registered!",
-      description: `Store ${data.code} - ${data.ownerName} has been (mock) registered.`,
+      title: "Loja Cadastrada!",
+      description: `Loja ${data.code} - ${data.ownerName} foi (simuladamente) cadastrada.`,
     });
-    form.reset(); // Reset form after successful mock submission
+    form.reset(); 
   };
 
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Register New Store"
-        description="Fill in the details to add a new participating store."
+        title="Cadastrar Nova Loja"
+        description="Preencha os detalhes para adicionar uma nova loja participante."
         icon={ClipboardPlus}
       />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle>Store Information</CardTitle>
-              <CardDescription>Provide the main details for the store.</CardDescription>
+              <CardTitle>Informações da Loja</CardTitle>
+              <CardDescription>Forneça os detalhes principais da loja.</CardDescription>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
               <FormField
@@ -82,9 +78,9 @@ export default function StoreRegistrationPage() {
                 name="code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Store Code</FormLabel>
+                    <FormLabel>Código da Loja</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., ST001" {...field} />
+                      <Input placeholder="Ex: LJ001" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -108,9 +104,9 @@ export default function StoreRegistrationPage() {
                 name="address"
                 render={({ field }) => (
                   <FormItem className="md:col-span-2">
-                    <FormLabel>Address</FormLabel>
+                    <FormLabel>Endereço</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Rua Principal, 123" {...field} />
+                      <Input placeholder="Ex: Rua Principal, 123" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -121,9 +117,9 @@ export default function StoreRegistrationPage() {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City</FormLabel>
+                    <FormLabel>Cidade</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Curitiba" {...field} />
+                      <Input placeholder="Ex: Curitiba" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -134,9 +130,9 @@ export default function StoreRegistrationPage() {
                 name="neighborhood"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Neighborhood</FormLabel>
+                    <FormLabel>Bairro</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Centro" {...field} />
+                      <Input placeholder="Ex: Centro" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -147,11 +143,11 @@ export default function StoreRegistrationPage() {
                 name="state"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>State</FormLabel>
+                    <FormLabel>Estado</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select state" />
+                          <SelectValue placeholder="Selecione o estado" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -171,7 +167,7 @@ export default function StoreRegistrationPage() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone</FormLabel>
+                    <FormLabel>Telefone</FormLabel>
                     <FormControl>
                       <Input placeholder="(XX) XXXXX-XXXX" {...field} />
                     </FormControl>
@@ -184,8 +180,8 @@ export default function StoreRegistrationPage() {
 
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle>Contact & Login Information</CardTitle>
-              <CardDescription>Details for the store owner/responsible and login credentials.</CardDescription>
+              <CardTitle>Contato e Informações de Login</CardTitle>
+              <CardDescription>Detalhes do proprietário/responsável e credenciais de login.</CardDescription>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
               <FormField
@@ -193,9 +189,9 @@ export default function StoreRegistrationPage() {
                 name="ownerName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Owner's Name</FormLabel>
+                    <FormLabel>Nome do Proprietário(a)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., João da Silva" {...field} />
+                      <Input placeholder="Ex: João da Silva" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -206,9 +202,9 @@ export default function StoreRegistrationPage() {
                 name="responsibleName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Responsible Person's Name</FormLabel>
+                    <FormLabel>Nome do Responsável</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Maria Oliveira" {...field} />
+                      <Input placeholder="Ex: Maria Oliveira" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -219,9 +215,9 @@ export default function StoreRegistrationPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Login Email</FormLabel>
+                    <FormLabel>Email de Login</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="store.login@example.com" {...field} />
+                      <Input type="email" placeholder="loja.login@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -232,7 +228,7 @@ export default function StoreRegistrationPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Login Password</FormLabel>
+                    <FormLabel>Senha de Login</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
@@ -245,7 +241,7 @@ export default function StoreRegistrationPage() {
 
           <div className="flex justify-end">
             <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
-              <Save className="mr-2 h-4 w-4" /> Register Store
+              <Save className="mr-2 h-4 w-4" /> Cadastrar Loja
             </Button>
           </div>
         </form>
@@ -253,4 +249,3 @@ export default function StoreRegistrationPage() {
     </div>
   );
 }
-

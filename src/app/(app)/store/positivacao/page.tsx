@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor } from '@/types';
 import { Star, ThumbsUp, Medal, TrendingUp, CheckCircle, Gift } from 'lucide-react';
 import Image from 'next/image';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function StorePositivacaoPage() {
@@ -35,10 +35,11 @@ export default function StorePositivacaoPage() {
   const positivacoesCount = currentStore.positivationsDetails.length;
 
   let currentAchievedTier: AwardTier | undefined = undefined;
+  // Iterate from highest tier to lowest to find the current one
   for (let i = MOCK_AWARD_TIERS.length - 1; i >= 0; i--) {
     if (positivacoesCount >= MOCK_AWARD_TIERS[i].positivacoesRequired) {
       currentAchievedTier = MOCK_AWARD_TIERS[i];
-      break;
+      break; 
     }
   }
   
@@ -48,13 +49,14 @@ export default function StorePositivacaoPage() {
     if (currentTierIndex < MOCK_AWARD_TIERS.length - 1) {
       nextTier = MOCK_AWARD_TIERS[currentTierIndex + 1];
     }
-  } else {
+  } else if (MOCK_AWARD_TIERS.length > 0) {
     nextTier = MOCK_AWARD_TIERS[0]; // First tier if none achieved
   }
 
+
   const progressToNextTier = nextTier 
     ? (positivacoesCount / nextTier.positivacoesRequired) * 100 
-    : 100; // Max tier reached or no tiers defined
+    : (currentAchievedTier ? 100 : 0); // Max tier reached or no tiers/no progress
 
   const positivationsMap = new Map<string, PositivationDetail>();
   currentStore.positivationsDetails.forEach(detail => {
@@ -105,16 +107,24 @@ export default function StorePositivacaoPage() {
               {nextTier ? (
                 <>
                   <div className="text-xl font-bold">{positivacoesCount} / {nextTier.positivacoesRequired} selos</div>
-                  <Progress value={progressToNextTier} className="mt-2 h-3" />
+                  <Progress value={progressToNextTier > 100 ? 100 : progressToNextTier} className="mt-2 h-3" />
                   <p className="text-xs text-muted-foreground mt-1">
                     Faltam {Math.max(0, nextTier.positivacoesRequired - positivacoesCount)} selos para a faixa {nextTier.name}!
                   </p>
                 </>
               ) : (
-                <>
-                  <div className="text-xl font-bold">Parabéns!</div>
-                  <p className="text-xs text-muted-foreground mt-1">Você atingiu a faixa máxima de premiação!</p>
-                </>
+                currentAchievedTier ? (
+                    <>
+                    <div className="text-xl font-bold">Parabéns!</div>
+                    <p className="text-xs text-muted-foreground mt-1">Você atingiu a faixa máxima de premiação!</p>
+                    </>
+                ) : (
+                    <>
+                    <div className="text-xl font-bold">0 / {MOCK_AWARD_TIERS.length > 0 ? MOCK_AWARD_TIERS[0].positivacoesRequired : '-'} selos</div>
+                     <Progress value={0} className="mt-2 h-3" />
+                    <p className="text-xs text-muted-foreground mt-1">Comece a coletar selos!</p>
+                    </>
+                )
               )}
             </CardContent>
           </Card>
@@ -156,9 +166,9 @@ export default function StorePositivacaoPage() {
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="bg-background border-border shadow-xl p-3">
                         <p className="font-semibold text-lg text-primary">{vendor.name}</p>
-                        {isPositivated ? (
+                        {isPositivated && positivation ? (
                           <>
-                            <p className="text-sm text-secondary">
+                            <p className="text-sm text-green-600">
                               <ThumbsUp className="inline-block h-4 w-4 mr-1" /> Positivado!
                             </p>
                             <p className="text-xs text-muted-foreground">

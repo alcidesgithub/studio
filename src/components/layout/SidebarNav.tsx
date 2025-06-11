@@ -11,36 +11,37 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Home, LogOut, Users, Award, Gift, Store, ShoppingBag, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase, Dice6 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ROLES_TRANSLATIONS } from '@/lib/constants';
 
 const navItemsByRole = {
   admin: [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/event', label: 'Event Info', icon: MapPin },
-    { group: 'Management' },
-    { href: '/admin/event-management', label: 'Event Management', icon: Edit3 },
-    { href: '/admin/users', label: 'User Management', icon: UserCog },
-    { href: '/admin/awards', label: 'Award Tiers', icon: Trophy },
-    { href: '/admin/sweepstakes', label: 'Simple Sweepstakes', icon: Gift },
-    { href: '/admin/sweepstakes-by-tier', label: 'Tiered Sweepstakes', icon: Dice6 },
-    { href: '/admin/store-registration', label: 'Register Store', icon: ClipboardPlus },
-    { href: '/admin/vendor-management', label: 'Vendor Management', icon: Briefcase },
+    { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
+    { href: '/event', label: 'Info Evento', icon: MapPin },
+    { group: 'Gerenciamento' },
+    { href: '/admin/event-management', label: 'Gerenciar Evento', icon: Edit3 },
+    { href: '/admin/users', label: 'Gerenciar Usuários', icon: UserCog },
+    { href: '/admin/awards', label: 'Faixas de Prêmios', icon: Trophy },
+    { href: '/admin/sweepstakes', label: 'Sorteio Simples', icon: Gift },
+    { href: '/admin/sweepstakes-by-tier', label: 'Sorteio por Faixa', icon: Dice6 },
+    { href: '/admin/store-registration', label: 'Cadastrar Loja', icon: ClipboardPlus },
+    { href: '/admin/vendor-management', label: 'Gerenciar Fornecedor', icon: Briefcase },
   ],
   manager: [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/event', label: 'Event Info', icon: MapPin },
-    { href: '/admin/sweepstakes', label: 'Run Sweepstakes', icon: Gift },
-    { href: '/admin/sweepstakes-by-tier', label: 'Tiered Sweepstakes', icon: Dice6 },
-    { href: '/admin/vendor-management', label: 'Vendor Management', icon: Briefcase },
+    { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
+    { href: '/event', label: 'Info Evento', icon: MapPin },
+    { href: '/admin/sweepstakes', label: 'Realizar Sorteios', icon: Gift },
+    { href: '/admin/sweepstakes-by-tier', label: 'Sorteio por Faixa', icon: Dice6 },
+    { href: '/admin/vendor-management', label: 'Gerenciar Fornecedor', icon: Briefcase },
   ],
   vendor: [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/event', label: 'Event Info', icon: MapPin },
-    { href: '/vendor/positivacao', label: 'Positivar Store', icon: ThumbsUp },
+    { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
+    { href: '/event', label: 'Info Evento', icon: MapPin },
+    { href: '/vendor/positivacao', label: 'Positivar Loja', icon: ThumbsUp },
   ],
   store: [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/event', label: 'Event Info', icon: MapPin },
-    { href: '/store/positivacao', label: 'My Scorecard', icon: Star },
+    { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
+    { href: '/event', label: 'Info Evento', icon: MapPin },
+    { href: '/store/positivacao', label: 'Minha Cartela', icon: Star },
   ],
 };
 
@@ -111,13 +112,13 @@ export function SidebarNav() {
             </Avatar>
             <div className="group-data-[collapsible=icon]:hidden">
               <p className="text-sm font-medium text-sidebar-foreground">{user.name}</p>
-              <p className="text-xs text-sidebar-foreground/70 capitalize">{user.role}</p>
+              <p className="text-xs text-sidebar-foreground/70 capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</p>
             </div>
           </div>
         )}
         <Button variant="outline" size="sm" className="w-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={logout}>
           <LogOut className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
-          <span className="ml-2 group-data-[collapsible=icon]:hidden">Logout</span>
+          <span className="ml-2 group-data-[collapsible=icon]:hidden">Sair</span>
         </Button>
       </div>
     </>

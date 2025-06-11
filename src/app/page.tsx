@@ -2,14 +2,15 @@ import { EventMap } from '@/components/event/EventMap';
 import { MOCK_EVENT, MOCK_VENDORS } from '@/lib/constants';
 import { CalendarDays, Clock, MapPin as MapPinIcon, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: `${MOCK_EVENT.name} - Landing Page`,
-  description: `Join us for the ${MOCK_EVENT.name}. Event details, location, and participating vendors.`,
+  title: `${MOCK_EVENT.name} - Página Inicial`,
+  description: `Participe do ${MOCK_EVENT.name}. Detalhes do evento, localização e fornecedores participantes.`,
 };
 
 export default function LandingPage() {
@@ -35,7 +36,7 @@ export default function LandingPage() {
             <div className="flex flex-col items-center md:items-start">
               <CalendarDays className="h-12 w-12 text-accent mb-3" />
               <h3 className="text-xl font-semibold mb-1">Data</h3>
-              <p className="text-lg text-muted-foreground">{format(eventDate, 'dd/MM/yyyy')}</p>
+              <p className="text-lg text-muted-foreground">{format(eventDate, 'dd/MM/yyyy', { locale: ptBR })}</p>
             </div>
             <div className="flex flex-col items-center md:items-start">
               <Clock className="h-12 w-12 text-accent mb-3" />
@@ -79,6 +80,9 @@ export default function LandingPage() {
                 />
               </div>
             ))}
+            {MOCK_VENDORS.length === 0 && (
+                 <p className="col-span-full text-center text-muted-foreground py-4">Nenhum fornecedor participante cadastrado.</p>
+            )}
           </div>
         </section>
       </main>

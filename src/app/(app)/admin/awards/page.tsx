@@ -16,29 +16,23 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-// import type { Metadata } from 'next'; // Metadata cannot be used in client components
-
-// export const metadata: Metadata = {
-//   title: 'Award Tier Management - Hiperfarma Business Meeting Manager',
-// };
 
 const awardTierSchema = z.object({
-  name: z.string().min(3, { message: "Tier name must be at least 3 characters." }),
-  rewardName: z.string().min(3, { message: "Reward name must be at least 3 characters." }),
-  quantityAvailable: z.coerce.number().int().positive({ message: "Quantity must be a positive number." }),
-  positivacoesRequired: z.coerce.number().int().positive({ message: "Required positivacoes must be a positive number." }),
+  name: z.string().min(3, { message: "Nome da faixa deve ter pelo menos 3 caracteres." }),
+  rewardName: z.string().min(3, { message: "Nome do prêmio deve ter pelo menos 3 caracteres." }),
+  quantityAvailable: z.coerce.number().int().positive({ message: "Quantidade deve ser um número positivo." }),
+  positivacoesRequired: z.coerce.number().int().positive({ message: "Positivações necessárias devem ser um número positivo." }),
 });
 
 type AwardTierFormValues = z.infer<typeof awardTierSchema>;
 
-// This would ideally come from a backend or state management
 let currentMockTiers: AwardTier[] = [...MOCK_AWARD_TIERS];
 
 
 export default function AdminAwardsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<AwardTier | null>(null);
-  const [tiers, setTiers] = useState<AwardTier[]>(currentMockTiers); // Local state for tiers
+  const [tiers, setTiers] = useState<AwardTier[]>(currentMockTiers); 
   const { toast } = useToast();
 
   const form = useForm<AwardTierFormValues>({
@@ -74,35 +68,32 @@ export default function AdminAwardsPage() {
   };
   
   const handleDelete = (tierId: string) => {
-    // Mock deletion
     currentMockTiers = currentMockTiers.filter(t => t.id !== tierId);
     setTiers(currentMockTiers);
     toast({
-      title: "Tier Deleted",
-      description: "The award tier has been (mock) deleted.",
+      title: "Faixa Excluída",
+      description: "A faixa de premiação foi (simuladamente) excluída.",
       variant: "destructive"
     });
   };
 
   const onSubmit = (data: AwardTierFormValues) => {
     if (editingTier) {
-      // Mock update
       currentMockTiers = currentMockTiers.map(t => 
         t.id === editingTier.id ? { ...editingTier, ...data } : t
       );
       setTiers(currentMockTiers);
       toast({
-        title: "Tier Updated!",
-        description: `Award tier "${data.name}" has been (mock) updated.`,
+        title: "Faixa Atualizada!",
+        description: `A faixa de premiação "${data.name}" foi (simuladamente) atualizada.`,
       });
     } else {
-      // Mock creation
       const newTier: AwardTier = { id: `tier_${Date.now()}`, ...data };
       currentMockTiers = [...currentMockTiers, newTier];
       setTiers(currentMockTiers);
       toast({
-        title: "Tier Created!",
-        description: `Award tier "${data.name}" has been (mock) created.`,
+        title: "Faixa Criada!",
+        description: `A faixa de premiação "${data.name}" foi (simuladamente) criada.`,
       });
     }
     form.reset();
@@ -114,23 +105,23 @@ export default function AdminAwardsPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Award Tier Management"
-        description="Define and manage award tiers for store performance."
+        title="Gerenciamento de Faixas de Premiação"
+        description="Defina e gerencie as faixas de premiação para performance das lojas."
         icon={Trophy}
         actions={
           <Button onClick={handleAddNew}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Tier
+            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Faixa
           </Button>
         }
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild /> {/* Trigger is handled by the Add/Edit buttons */}
+        <DialogTrigger asChild /> 
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>{editingTier ? 'Edit Award Tier' : 'Add New Award Tier'}</DialogTitle>
+            <DialogTitle>{editingTier ? 'Editar Faixa de Premiação' : 'Adicionar Nova Faixa de Premiação'}</DialogTitle>
             <DialogDescription>
-              {editingTier ? 'Update the details for this award tier.' : 'Fill in the details for the new award tier.'}
+              {editingTier ? 'Atualize os detalhes desta faixa de premiação.' : 'Preencha os detalhes para a nova faixa de premiação.'}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -140,9 +131,9 @@ export default function AdminAwardsPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tier Name</FormLabel>
+                    <FormLabel>Nome da Faixa</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Bronze, Silver, Gold" {...field} />
+                      <Input placeholder="Ex: Bronze, Prata, Ouro" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -153,9 +144,9 @@ export default function AdminAwardsPage() {
                 name="rewardName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Reward Name / Description</FormLabel>
+                    <FormLabel>Nome / Descrição do Prêmio</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., R$100 Gift Card, Tablet XYZ" {...field} />
+                      <Input placeholder="Ex: Cartão Presente R$100, Tablet XYZ" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -166,9 +157,9 @@ export default function AdminAwardsPage() {
                 name="quantityAvailable"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Quantity Available</FormLabel>
+                    <FormLabel>Quantidade Disponível</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 10" {...field} />
+                      <Input type="number" placeholder="Ex: 10" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -179,9 +170,9 @@ export default function AdminAwardsPage() {
                 name="positivacoesRequired"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Positivações Required</FormLabel>
+                    <FormLabel>Positivações Necessárias</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 5" {...field} />
+                      <Input type="number" placeholder="Ex: 5" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -189,10 +180,10 @@ export default function AdminAwardsPage() {
               />
               <DialogFooter className="pt-4">
                  <DialogClose asChild>
-                   <Button type="button" variant="outline" onClick={() => { setEditingTier(null); form.reset();}}>Cancel</Button>
+                   <Button type="button" variant="outline" onClick={() => { setEditingTier(null); form.reset();}}>Cancelar</Button>
                 </DialogClose>
                 <Button type="submit" disabled={form.formState.isSubmitting}>
-                   <Save className="mr-2 h-4 w-4" /> {editingTier ? 'Save Changes' : 'Create Tier'}
+                   <Save className="mr-2 h-4 w-4" /> {editingTier ? 'Salvar Alterações' : 'Criar Faixa'}
                 </Button>
               </DialogFooter>
             </form>
@@ -202,22 +193,22 @@ export default function AdminAwardsPage() {
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Configured Award Tiers</CardTitle>
-          <CardDescription>List of current award tiers and their criteria.</CardDescription>
+          <CardTitle>Faixas de Premiação Configurada</CardTitle>
+          <CardDescription>Lista das faixas de premiação atuais e seus critérios.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tier Name</TableHead>
-                <TableHead>Reward Name</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
+                <TableHead>Nome da Faixa</TableHead>
+                <TableHead>Prêmio</TableHead>
+                <TableHead className="text-right">Quantidade</TableHead>
                 <TableHead className="text-right">Positivações Req.</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tiers.map((tier) => (
+              {tiers.sort((a,b) => a.positivacoesRequired - b.positivacoesRequired).map((tier) => (
                 <TableRow key={tier.id}>
                   <TableCell className="font-medium">{tier.name}</TableCell>
                   <TableCell>{tier.rewardName}</TableCell>
@@ -226,11 +217,11 @@ export default function AdminAwardsPage() {
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEdit(tier)}>
                       <Edit className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
+                      <span className="sr-only">Editar</span>
                     </Button>
                     <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDelete(tier.id)}>
                       <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete</span>
+                      <span className="sr-only">Excluir</span>
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -238,11 +229,10 @@ export default function AdminAwardsPage() {
             </TableBody>
           </Table>
            {tiers.length === 0 && (
-            <p className="py-4 text-center text-muted-foreground">No award tiers configured yet.</p>
+            <p className="py-4 text-center text-muted-foreground">Nenhuma faixa de premiação configurada ainda.</p>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
-

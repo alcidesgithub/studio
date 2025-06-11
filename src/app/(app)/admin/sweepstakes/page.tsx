@@ -1,5 +1,5 @@
 
-"use client"; // For onClick handlers
+"use client"; 
 
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -11,15 +11,12 @@ import { Gift, ListChecks, Download, PlayCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-// Mock function to simulate CSV export
 const exportToCSV = (data: any[], filename: string) => {
   if (typeof window === "undefined") return;
-  // Simple CSV header generation from keys of the first object
   const header = Object.keys(data[0]).join(",");
   const csvRows = data.map(row => 
     Object.values(row).map(value => {
       const stringValue = String(value);
-      // Escape commas and quotes
       if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
         return `"${stringValue.replace(/"/g, '""')}"`;
       }
@@ -45,18 +42,16 @@ export default function AdminSweepstakesPage() {
 
   const handleRunSweepstakes = async () => {
     setIsLoading(true);
-    // Simulate API call and random drawing
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Simple mock: pick up to 3 random winners from eligible stores
-    const eligibleStores = [...MOCK_SWEEPSTAKE_ENTRIES]; // Make a mutable copy
+    const eligibleStores = [...MOCK_SWEEPSTAKE_ENTRIES]; 
     const winners: SweepstakeResult[] = [];
-    const prizes = ["Grand Prize: Smart TV 55\"", "Second Prize: Tablet Pro", "Third Prize: Premium Gift Basket"];
+    const prizes = ["Grande Prêmio: Smart TV 55\"", "Segundo Prêmio: Tablet Pro", "Terceiro Prêmio: Cesta de Presentes Premium"];
 
     if (eligibleStores.length === 0) {
         toast({
-            title: "No Eligible Stores",
-            description: "There are no stores currently qualifying for the sweepstakes.",
+            title: "Nenhuma Loja Elegível",
+            description: "Não há lojas qualificadas para o sorteio no momento.",
             variant: "default"
         });
         setIsLoading(false);
@@ -64,47 +59,47 @@ export default function AdminSweepstakesPage() {
     }
 
     for (let i = 0; i < Math.min(prizes.length, MOCK_SWEEPSTAKE_ENTRIES.length); i++) {
-      if(eligibleStores.length === 0) break; // No more stores to pick from
+      if(eligibleStores.length === 0) break; 
       const randomIndex = Math.floor(Math.random() * eligibleStores.length);
-      const winner = eligibleStores.splice(randomIndex, 1)[0]; // Remove winner from list
+      const winner = eligibleStores.splice(randomIndex, 1)[0]; 
       winners.push({ ...winner, prize: prizes[i] });
     }
     
     setResults(winners);
     setIsLoading(false);
     toast({
-      title: "Sweepstakes Complete!",
-      description: `${winners.length} winners selected. Check the results below.`,
+      title: "Sorteio Concluído!",
+      description: `${winners.length} vencedores selecionados. Verifique os resultados abaixo.`,
     });
   };
 
   const handleExportResults = () => {
     if (results.length === 0) {
-      toast({ title: "No results to export", description: "Run a sweepstake first to generate results.", variant: "default"});
+      toast({ title: "Nenhum resultado para exportar", description: "Realize um sorteio primeiro para gerar resultados.", variant: "default"});
       return;
     }
     const dataToExport = results.map(r => ({
-        storeName: r.storeName,
-        prize: r.prize,
-        qualificationRate: `${(r.qualificationRate * 100).toFixed(0)}%`
+        NomeLoja: r.storeName,
+        Premio: r.prize,
+        TaxaQualificacao: `${(r.qualificationRate * 100).toFixed(0)}%`
     }));
-    exportToCSV(dataToExport, "hiperfarma_sweepstake_results");
-    toast({ title: "Results Exported", description: "Sweepstake results have been exported to a CSV file." });
+    exportToCSV(dataToExport, "resultados_sorteio_hiperfarma");
+    toast({ title: "Resultados Exportados", description: "Os resultados do sorteio foram exportados para um arquivo CSV." });
   };
 
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Sweepstakes Management"
-        description="Perform random drawings for qualifying stores and export the results."
+        title="Gerenciamento de Sorteios"
+        description="Realize sorteios aleatórios para lojas qualificadas e exporte os resultados."
         icon={Gift}
         actions={
           <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={handleRunSweepstakes} disabled={isLoading || MOCK_SWEEPSTAKE_ENTRIES.length === 0}>
-              <PlayCircle className="mr-2 h-4 w-4" /> {isLoading ? "Running..." : "Run Sweepstakes"}
+              <PlayCircle className="mr-2 h-4 w-4" /> {isLoading ? "Sorteando..." : "Realizar Sorteio"}
             </Button>
             <Button onClick={handleExportResults} variant="outline" disabled={results.length === 0}>
-              <Download className="mr-2 h-4 w-4" /> Export Results (CSV)
+              <Download className="mr-2 h-4 w-4" /> Exportar Resultados (CSV)
             </Button>
           </div>
         }
@@ -113,16 +108,16 @@ export default function AdminSweepstakesPage() {
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ListChecks /> Qualifying Stores</CardTitle>
-            <CardDescription>Stores eligible for the sweepstakes based on their success rate.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><ListChecks /> Lojas Qualificadas</CardTitle>
+            <CardDescription>Lojas elegíveis para o sorteio com base na taxa de sucesso.</CardDescription>
           </CardHeader>
           <CardContent>
             {MOCK_SWEEPSTAKE_ENTRIES.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Store Name</TableHead>
-                    <TableHead className="text-right">Success Rate</TableHead>
+                    <TableHead>Nome da Loja</TableHead>
+                    <TableHead className="text-right">Taxa de Sucesso</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -135,29 +130,29 @@ export default function AdminSweepstakesPage() {
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-muted-foreground text-center py-4">No stores currently qualify for sweepstakes.</p>
+              <p className="text-muted-foreground text-center py-4">Nenhuma loja se qualifica para o sorteio no momento.</p>
             )}
           </CardContent>
            <CardFooter className="text-xs text-muted-foreground">
             {MOCK_SWEEPSTAKE_ENTRIES.length > 0 ? 
-              `A total of ${MOCK_SWEEPSTAKE_ENTRIES.length} stores are currently eligible.` :
-              "Register stores and track their performance to make them eligible."
+              `Um total de ${MOCK_SWEEPSTAKE_ENTRIES.length} lojas estão atualmente elegíveis.` :
+              "Cadastre lojas e acompanhe seu desempenho para torná-las elegíveis."
             }
           </CardFooter>
         </Card>
 
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Sweepstakes Results</CardTitle>
-            <CardDescription>Winners from the latest drawing will appear here.</CardDescription>
+            <CardTitle>Resultados do Sorteio</CardTitle>
+            <CardDescription>Os vencedores do último sorteio aparecerão aqui.</CardDescription>
           </CardHeader>
           <CardContent>
             {results.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Store Name</TableHead>
-                    <TableHead>Prize Won</TableHead>
+                    <TableHead>Nome da Loja</TableHead>
+                    <TableHead>Prêmio Ganho</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -171,12 +166,12 @@ export default function AdminSweepstakesPage() {
               </Table>
             ) : (
               <p className="text-muted-foreground text-center py-4">
-                {isLoading ? "Running sweepstakes, please wait..." : "No sweepstakes run yet, or no winners from the last run."}
+                {isLoading ? "Realizando sorteio, por favor aguarde..." : "Nenhum sorteio realizado ainda, ou nenhum vencedor no último sorteio."}
               </p>
             )}
           </CardContent>
           <CardFooter className="text-xs text-muted-foreground">
-            Sweepstakes results are logged for auditing purposes (mock implementation).
+            Os resultados dos sorteios são registrados para fins de auditoria (implementação de simulação).
           </CardFooter>
         </Card>
       </div>

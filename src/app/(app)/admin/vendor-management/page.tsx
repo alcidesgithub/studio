@@ -12,28 +12,26 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Briefcase, Save, UserPlus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { MOCK_VENDORS, STATES } from '@/lib/constants'; // Assuming STATES is moved to constants
+import { MOCK_VENDORS, STATES } from '@/lib/constants'; 
 import type { Vendor } from '@/types';
 
-// Schema for Vendor Registration
 const vendorSchema = z.object({
-  name: z.string().min(3, "Company name must be at least 3 characters."),
-  cnpj: z.string().length(14, "CNPJ must be 14 digits."),
-  address: z.string().min(5, "Address is required."),
-  city: z.string().min(2, "City is required."),
-  neighborhood: z.string().min(2, "Neighborhood is required."),
-  state: z.string().min(2, "State is required."),
-  logoUrl: z.string().url("Must be a valid URL for the logo."),
+  name: z.string().min(3, "Nome da empresa deve ter pelo menos 3 caracteres."),
+  cnpj: z.string().length(14, "CNPJ deve ter 14 dígitos."),
+  address: z.string().min(5, "Endereço é obrigatório."),
+  city: z.string().min(2, "Cidade é obrigatória."),
+  neighborhood: z.string().min(2, "Bairro é obrigatório."),
+  state: z.string().min(2, "Estado é obrigatório."),
+  logoUrl: z.string().url("Deve ser uma URL válida para o logo."),
 });
 type VendorFormValues = z.infer<typeof vendorSchema>;
 
-// Schema for Salesperson Registration
 const salespersonSchema = z.object({
-  name: z.string().min(3, "Salesperson name is required."),
-  phone: z.string().min(10, "Phone number is required."),
-  email: z.string().email("Invalid email address."),
-  password: z.string().min(6, "Password must be at least 6 characters."),
-  vendorId: z.string({ required_error: "Must link to a vendor." }),
+  name: z.string().min(3, "Nome do vendedor é obrigatório."),
+  phone: z.string().min(10, "Telefone é obrigatório."),
+  email: z.string().email("Endereço de email inválido."),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres."),
+  vendorId: z.string({ required_error: "Deve ser vinculado a um fornecedor." }),
 });
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
@@ -65,23 +63,20 @@ export default function VendorManagementPage() {
   });
 
   const onVendorSubmit = (data: VendorFormValues) => {
-    console.log("New Vendor Data:", data);
-    // In a real app, you'd send this to your backend
-    // MOCK_VENDORS.push({ id: `vendor_${Date.now()}`, ...data, dataAiHint: "company logo" });
+    console.log("Dados do Novo Fornecedor:", data);
     toast({
-      title: "Vendor Registered!",
-      description: `${data.name} has been (mock) registered.`,
+      title: "Fornecedor Cadastrado!",
+      description: `${data.name} foi (simuladamente) cadastrado.`,
     });
     vendorForm.reset();
   };
 
   const onSalespersonSubmit = (data: SalespersonFormValues) => {
-    console.log("New Salesperson Data:", data);
+    console.log("Dados do Novo Vendedor:", data);
     const linkedVendor = MOCK_VENDORS.find(v => v.id === data.vendorId);
-    // MOCK_SALESPEOPLE.push({ id: `sp_${Date.now()}`, ...data });
     toast({
-      title: "Salesperson Registered!",
-      description: `${data.name} has been (mock) registered for ${linkedVendor?.name || 'selected vendor'}.`,
+      title: "Vendedor Cadastrado!",
+      description: `${data.name} foi (simuladamente) cadastrado para ${linkedVendor?.name || 'fornecedor selecionado'}.`,
     });
     salespersonForm.reset();
   };
@@ -89,15 +84,15 @@ export default function VendorManagementPage() {
   return (
     <div className="animate-fadeIn space-y-8">
       <PageHeader
-        title="Vendor & Salesperson Management"
-        description="Register new vendors and their salespeople."
+        title="Gerenciamento de Fornecedores e Vendedores"
+        description="Cadastre novos fornecedores e seus vendedores."
         icon={Briefcase}
       />
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Register New Vendor</CardTitle>
-          <CardDescription>Fill in the details for the new vendor company.</CardDescription>
+          <CardTitle>Cadastrar Novo Fornecedor</CardTitle>
+          <CardDescription>Preencha os detalhes da nova empresa fornecedora.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...vendorForm}>
@@ -108,8 +103,8 @@ export default function VendorManagementPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company Name</FormLabel>
-                      <FormControl><Input placeholder="e.g., Pharma Solutions Inc." {...field} /></FormControl>
+                      <FormLabel>Nome da Empresa</FormLabel>
+                      <FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -119,7 +114,7 @@ export default function VendorManagementPage() {
                   name="cnpj"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CNPJ (14 digits, no punctuation)</FormLabel>
+                      <FormLabel>CNPJ (14 dígitos, sem pontuação)</FormLabel>
                       <FormControl><Input placeholder="00000000000000" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -130,8 +125,8 @@ export default function VendorManagementPage() {
                   name="address"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>Address</FormLabel>
-                      <FormControl><Input placeholder="e.g., Rua das Indústrias, 789" {...field} /></FormControl>
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl><Input placeholder="Ex: Rua das Indústrias, 789" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -141,8 +136,8 @@ export default function VendorManagementPage() {
                   name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl><Input placeholder="e.g., São Paulo" {...field} /></FormControl>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl><Input placeholder="Ex: São Paulo" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -152,8 +147,8 @@ export default function VendorManagementPage() {
                   name="neighborhood"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Neighborhood</FormLabel>
-                      <FormControl><Input placeholder="e.g., Pinheiros" {...field} /></FormControl>
+                      <FormLabel>Bairro</FormLabel>
+                      <FormControl><Input placeholder="Ex: Pinheiros" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -163,9 +158,9 @@ export default function VendorManagementPage() {
                   name="state"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>State</FormLabel>
+                      <FormLabel>Estado</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger></FormControl>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl>
                         <SelectContent>
                           {STATES.map((s) => (
                             <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
@@ -181,7 +176,7 @@ export default function VendorManagementPage() {
                   name="logoUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Logo URL</FormLabel>
+                      <FormLabel>URL do Logo</FormLabel>
                       <FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -190,7 +185,7 @@ export default function VendorManagementPage() {
               </div>
               <div className="flex justify-end">
                 <Button type="submit" size="lg" disabled={vendorForm.formState.isSubmitting}>
-                  <Save className="mr-2 h-4 w-4" /> Register Vendor
+                  <Save className="mr-2 h-4 w-4" /> Cadastrar Fornecedor
                 </Button>
               </div>
             </form>
@@ -200,8 +195,8 @@ export default function VendorManagementPage() {
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Register New Salesperson</CardTitle>
-          <CardDescription>Add a salesperson and link them to an existing vendor.</CardDescription>
+          <CardTitle>Cadastrar Novo Vendedor</CardTitle>
+          <CardDescription>Adicione um vendedor e vincule-o a um fornecedor existente.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...salespersonForm}>
@@ -212,13 +207,14 @@ export default function VendorManagementPage() {
                   name="vendorId"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>Link to Vendor</FormLabel>
+                      <FormLabel>Vincular ao Fornecedor</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select a vendor" /></SelectTrigger></FormControl>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione um fornecedor" /></SelectTrigger></FormControl>
                         <SelectContent>
                           {MOCK_VENDORS.map((vendor: Vendor) => (
                             <SelectItem key={vendor.id} value={vendor.id}>{vendor.name}</SelectItem>
                           ))}
+                           {MOCK_VENDORS.length === 0 && <SelectItem value="disabled" disabled>Nenhum fornecedor cadastrado</SelectItem>}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -230,8 +226,8 @@ export default function VendorManagementPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Salesperson's Name</FormLabel>
-                      <FormControl><Input placeholder="e.g., Ana Beatriz" {...field} /></FormControl>
+                      <FormLabel>Nome do Vendedor(a)</FormLabel>
+                      <FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -241,7 +237,7 @@ export default function VendorManagementPage() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone</FormLabel>
+                      <FormLabel>Telefone</FormLabel>
                       <FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -252,8 +248,8 @@ export default function VendorManagementPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Login Email</FormLabel>
-                      <FormControl><Input type="email" placeholder="sales.login@example.com" {...field} /></FormControl>
+                      <FormLabel>Email de Login</FormLabel>
+                      <FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -263,7 +259,7 @@ export default function VendorManagementPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Login Password</FormLabel>
+                      <FormLabel>Senha de Login</FormLabel>
                       <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -272,7 +268,7 @@ export default function VendorManagementPage() {
               </div>
               <div className="flex justify-end">
                 <Button type="submit" size="lg" disabled={salespersonForm.formState.isSubmitting}>
-                  <UserPlus className="mr-2 h-4 w-4" /> Register Salesperson
+                  <UserPlus className="mr-2 h-4 w-4" /> Cadastrar Vendedor
                 </Button>
               </div>
             </form>

@@ -16,23 +16,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
-import type { Metadata } from 'next'; // Will be commented out as this is a client component
-
-// Cannot set metadata in client component directly
-// export const metadata: Metadata = {
-//   title: 'Event Management - Hiperfarma Business Meeting Manager',
-// };
 
 const eventFormSchema = z.object({
-  name: z.string().min(5, { message: "Event name must be at least 5 characters." }),
-  date: z.date({ required_error: "Event date is required." }),
-  time: z.string().min(1, { message: "Event time is required." }),
-  location: z.string().min(5, { message: "Location must be at least 5 characters." }),
-  address: z.string().min(10, { message: "Address must be at least 10 characters." }),
-  mapEmbedUrl: z.string().url({ message: "Please enter a valid URL for the map embed." }),
+  name: z.string().min(5, { message: "Nome do evento deve ter pelo menos 5 caracteres." }),
+  date: z.date({ required_error: "Data do evento é obrigatória." }),
+  time: z.string().min(1, { message: "Horário do evento é obrigatório." }),
+  location: z.string().min(5, { message: "Localização deve ter pelo menos 5 caracteres." }),
+  address: z.string().min(10, { message: "Endereço deve ter pelo menos 10 caracteres." }),
+  mapEmbedUrl: z.string().url({ message: "Por favor, insira uma URL válida para o mapa." }),
 });
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -53,31 +48,29 @@ export default function AdminEventManagementPage() {
   });
 
   const onSubmit = (data: EventFormValues) => {
-    // In a real app, you would send this data to your backend to update the event.
-    // For this mock, we'll just log it and show a toast.
-    console.log("Event data submitted:", {
+    console.log("Dados do evento submetidos:", {
       ...data,
-      date: format(data.date, 'yyyy-MM-dd'), // Format date back to string if needed
+      date: format(data.date, 'yyyy-MM-dd'), 
     });
     toast({
-      title: "Event Settings Saved!",
-      description: "The event details have been (mock) updated successfully.",
+      title: "Configurações do Evento Salvas!",
+      description: "Os detalhes do evento foram (simuladamente) atualizados com sucesso.",
     });
   };
 
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Event Management"
-        description="Edit the core details of the business meeting event."
+        title="Gerenciamento do Evento"
+        description="Edite os detalhes principais do evento de negócios."
         icon={Edit3}
       />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle>Event Details</CardTitle>
-              <CardDescription>Update the information that appears on the public landing page.</CardDescription>
+              <CardTitle>Detalhes do Evento</CardTitle>
+              <CardDescription>Atualize as informações que aparecem na página pública do evento.</CardDescription>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-6">
               <FormField
@@ -85,9 +78,9 @@ export default function AdminEventManagementPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Event Name</FormLabel>
+                    <FormLabel>Nome do Evento</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Hiperfarma Annual Meeting" {...field} />
+                      <Input placeholder="Ex: Encontro Anual Hiperfarma" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -98,7 +91,7 @@ export default function AdminEventManagementPage() {
                 name="date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Event Date</FormLabel>
+                    <FormLabel>Data do Evento</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -110,7 +103,7 @@ export default function AdminEventManagementPage() {
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
@@ -120,6 +113,7 @@ export default function AdminEventManagementPage() {
                           selected={field.value}
                           onSelect={field.onChange}
                           initialFocus
+                          locale={ptBR}
                         />
                       </PopoverContent>
                     </Popover>
@@ -132,9 +126,9 @@ export default function AdminEventManagementPage() {
                 name="time"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Event Time</FormLabel>
+                    <FormLabel>Horário do Evento</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., 09:00 AM - 06:00 PM" {...field} />
+                      <Input placeholder="Ex: 09:00 - 18:00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -145,9 +139,9 @@ export default function AdminEventManagementPage() {
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Location Name</FormLabel>
+                    <FormLabel>Nome do Local</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Expo Center Norte" {...field} />
+                      <Input placeholder="Ex: Expo Center Norte" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -158,9 +152,9 @@ export default function AdminEventManagementPage() {
                 name="address"
                 render={({ field }) => (
                   <FormItem className="md:col-span-2">
-                    <FormLabel>Full Address</FormLabel>
+                    <FormLabel>Endereço Completo</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., R. José Bernardo Pinto, 333 - Vila Guilherme, São Paulo - SP" {...field} />
+                      <Input placeholder="Ex: R. José Bernardo Pinto, 333 - Vila Guilherme, São Paulo - SP" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -171,9 +165,9 @@ export default function AdminEventManagementPage() {
                 name="mapEmbedUrl"
                 render={({ field }) => (
                   <FormItem className="md:col-span-2">
-                    <FormLabel>Google Maps Embed URL</FormLabel>
+                    <FormLabel>URL de Incorporação do Google Maps</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Paste the iframe src URL from Google Maps" {...field} className="min-h-[100px]" />
+                      <Textarea placeholder="Cole a URL src do iframe do Google Maps aqui" {...field} className="min-h-[100px]" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -184,8 +178,8 @@ export default function AdminEventManagementPage() {
 
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Users /> Participating Vendors</CardTitle>
-              <CardDescription>This list is managed via vendor registration (currently mock data).</CardDescription>
+              <CardTitle className="flex items-center gap-2"><Users /> Fornecedores Participantes</CardTitle>
+              <CardDescription>Esta lista é gerenciada via cadastro de fornecedores (atualmente dados de demonstração).</CardDescription>
             </CardHeader>
             <CardContent>
               {MOCK_VENDORS.length > 0 ? (
@@ -193,7 +187,7 @@ export default function AdminEventManagementPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[80px]">Logo</TableHead>
-                      <TableHead>Vendor Name</TableHead>
+                      <TableHead>Nome do Fornecedor</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -202,7 +196,7 @@ export default function AdminEventManagementPage() {
                         <TableCell>
                           <Image
                             src={vendor.logoUrl}
-                            alt={`${vendor.name} logo`}
+                            alt={`Logo ${vendor.name}`}
                             width={60}
                             height={30}
                             className="object-contain rounded"
@@ -215,14 +209,14 @@ export default function AdminEventManagementPage() {
                   </TableBody>
                 </Table>
               ) : (
-                <p className="text-muted-foreground">No vendors currently registered.</p>
+                <p className="text-muted-foreground">Nenhum fornecedor cadastrado atualmente.</p>
               )}
             </CardContent>
           </Card>
 
           <div className="flex justify-end">
             <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
-              <Save className="mr-2 h-4 w-4" /> Save Changes
+              <Save className="mr-2 h-4 w-4" /> Salvar Alterações
             </Button>
           </div>
         </form>

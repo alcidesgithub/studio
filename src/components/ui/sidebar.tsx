@@ -267,7 +267,7 @@ const SidebarTrigger = React.forwardRef<
       {...props}
     >
       <PanelLeft />
-      <span className="sr-only">Toggle Sidebar</span>
+      <span className="sr-only">Alternar Barra Lateral</span>
     </Button>
   )
 })
@@ -283,10 +283,10 @@ const SidebarRail = React.forwardRef<
     <button
       ref={ref}
       data-sidebar="rail"
-      aria-label="Toggle Sidebar"
+      aria-label="Alternar Barra Lateral"
       tabIndex={-1}
       onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      title="Alternar Barra Lateral"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
         "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
@@ -521,41 +521,36 @@ const sidebarMenuButtonVariants = cva(
 )
 
 export interface SidebarMenuButtonProps
-  extends React.ComponentPropsWithoutRef<'a'>, // Base on anchor attributes
+  extends React.AnchorHTMLAttributes<HTMLAnchorElement>, // Prioritize anchor for Link
+    Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, keyof React.AnchorHTMLAttributes<HTMLAnchorElement>>, // Add button props not in anchor
     VariantProps<typeof sidebarMenuButtonVariants> {
   isActive?: boolean;
-  onItemClick?: (event: React.MouseEvent<HTMLElement, MouseEvent>) => void; // Custom click from SidebarNav
-  // href is part of ComponentPropsWithoutRef<'a'>
-  // onClick is part of ComponentPropsWithoutRef<'a'> (will be from Link)
-  // type is NOT part of anchor attributes, should not be passed if rendering 'a'
-  // asChild prop is received from parent (Link or TooltipTrigger)
-  asChild?: boolean;
+  onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
+  asChild?: boolean; // Prop from parent (Link or TooltipTrigger)
 }
 
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLAnchorElement | HTMLButtonElement, // Can be anchor or button
-  SidebarMenuButtonProps // Use the refined props
+  HTMLAnchorElement | HTMLButtonElement,
+  SidebarMenuButtonProps
 >(
   (
-    props, // All props are in 'props'
+    {
+      className,
+      variant,
+      size,
+      isActive = false,
+      children,
+      href,
+      onItemClick, // Custom click from SidebarNav
+      onClick: inheritedOnClick, // Standard onClick from Link or direct usage
+      asChild: receivedAsChild, // The asChild prop passed to THIS component
+      type: inheritedType, // type prop from parent or direct usage
+      ...rest
+    },
     ref
   ) => {
-    const {
-      isActive = false,
-      variant = "default",
-      size = "default",
-      className,
-      children,
-      href, // Will be passed by Link asChild
-      onItemClick, // Custom handler from SidebarNav
-      onClick: inheritedOnClick, // Standard onClick, will be from Link (navigation) or TooltipTrigger
-      asChild: receivedAsChild, // Prop passed by Link or TooltipTrigger
-      type, // Potential 'type' prop from TooltipTrigger
-      ...rest // All other props
-    } = props;
-
-    const isAnchor = typeof href === "string" && href.length > 0;
+    const isLink = typeof href === 'string' && href.length > 0;
 
     const combinedOnClick = React.useCallback(
       (event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
@@ -563,45 +558,51 @@ const SidebarMenuButton = React.forwardRef<
           inheritedOnClick(event as any); // Call Link/TooltipTrigger's onClick
         }
         if (onItemClick) {
-          onItemClick(event); // Call SidebarNav's custom onClick
+          onItemClick(event as any); // Call SidebarNav's custom onClick
         }
       },
       [inheritedOnClick, onItemClick]
     );
-    
-    // Base props to be applied, excluding those handled specifically or invalid for the target element
-    const baseProps:any = {
-      ...rest, // Spread remaining props. 'asChild' and 'type' are destructured.
+
+    const commonProps = {
+      ...rest, // Spread other props first
       ref,
       "data-sidebar": "menu-button",
       "data-size": size,
       "data-active": isActive,
       className: cn(sidebarMenuButtonVariants({ variant, size, className })),
-      onClick: combinedOnClick,
+      onClick: combinedOnClick, // Use the composed onClick handler
     };
 
-    if (isAnchor) {
-      // If it's an anchor (due to Link asChild passing href), render 'a'.
-      // Explicitly do not pass 'type' to 'a' tag.
-      const { type: _removedTypeFromRest, ...anchorProps } = baseProps;
-      return (
-        <a {...anchorProps} href={href}>
-          {children}
-        </a>
-      );
-    } else if (receivedAsChild) {
-      // If no href, but received asChild (e.g., from TooltipTrigger asChild), render Slot.
-      // Slot will pass props to its direct child.
-      // Ensure 'type' is not passed to Slot if Slot's child is a DOM element that doesn't accept it.
-      // However, Slot typically passes all props. This scenario relies on Slot's child handling props correctly.
-      const { type: _removedTypeFromRest, ...slotProps } = baseProps;
+    if (receivedAsChild) {
+      // If this component itself is used as a child slot (e.g. by Link or TooltipTrigger)
+      // then render Slot and pass all props, including href and potentially type.
+      // The child of this Slot (the actual icon and span) will get these.
+      // However, this means `SidebarMenuButton` itself won't render an `a` or `button`.
+      // The parent (`Link` or `TooltipTrigger`) is responsible for rendering the interactive element.
+      // In this scenario, commonProps will be applied to the Slot.
+      // Note: `type` might be problematic if Slot's child doesn't accept it.
+      // This path is taken when Link asChild wraps SidebarMenuButton, or TooltipTrigger asChild wraps SidebarMenuButton.
+      const { type, ...slotProps } = commonProps; // remove type if it's not applicable for Slot's child
       return <Slot {...slotProps}>{children}</Slot>;
     }
 
-    // Default: render a button (no href, and not receivedAsChild from parent)
-    // Here, 'type' (buttonSpecificType) is valid.
+
+    if (isLink) {
+      // Render 'a' tag if href is present AND not receivedAsChild.
+      // Explicitly remove 'type' if present in commonProps, as 'a' doesn't support it.
+      const { type, ...anchorProps } = commonProps;
+      return (
+        <a href={href} {...anchorProps}>
+          {children}
+        </a>
+      );
+    }
+    
+    // Default: render a button (no href, and not receivedAsChild)
+    // Here, 'type' (inheritedType or default 'button') is valid.
     return (
-      <button type={type || "button"} {...baseProps}>
+      <button type={inheritedType || "button"} {...commonProps}>
         {children}
       </button>
     );
@@ -778,4 +779,3 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
-

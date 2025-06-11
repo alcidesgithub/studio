@@ -37,7 +37,7 @@ export default function AppLayout({
     // but as a fallback:
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4">
-        <p className="mb-4">Redirecting to login...</p>
+        <p className="mb-4">Redirecionando para o login...</p>
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -49,9 +49,9 @@ export default function AppLayout({
   if (pathname.startsWith('/admin') && !['admin', 'manager'].includes(user.role)) {
      return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="mb-4">You do not have permission to view this page.</p>
-          <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
+          <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>
+          <p className="mb-4">Você não tem permissão para visualizar esta página.</p>
+          <Button onClick={() => router.push('/dashboard')}>Ir para o Painel</Button>
         </div>
       );
   }

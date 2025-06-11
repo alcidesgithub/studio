@@ -14,13 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import type { UserRole } from '@/types';
-import { MOCK_USERS, ROLES } from '@/lib/constants'; // ROLES for dropdown
+import { MOCK_USERS, ROLES, ROLES_TRANSLATIONS } from '@/lib/constants'; // ROLES for dropdown
 import { LogIn, Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(1, { message: "Password is required." }), // Simplified for mock
-  role: z.custom<UserRole>(val => ROLES.includes(val as UserRole), {message: "Invalid role selected."}),
+  email: z.string().email({ message: "Endereço de email inválido." }),
+  password: z.string().min(1, { message: "Senha é obrigatória." }), // Simplified for mock
+  role: z.custom<UserRole>(val => ROLES.includes(val as UserRole), {message: "Perfil de usuário inválido selecionado."}),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -34,27 +34,27 @@ export function LoginForm() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: MOCK_USERS[0].email, // Pre-fill with admin for convenience
-      password: "password", // Mock password
+      email: MOCK_USERS[0].email, 
+      password: "password", 
       role: MOCK_USERS[0].role,
     },
   });
 
   const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
     setIsLoading(true);
-    const user = await login(data.email, data.role); // Pass role for mock
+    const user = await login(data.email, data.role); 
     setIsLoading(false);
 
     if (user) {
       toast({
-        title: "Login Successful",
-        description: `Welcome back, ${user.name}!`,
+        title: "Login Bem-sucedido",
+        description: `Bem-vindo(a) de volta, ${user.name}!`,
       });
       router.push('/dashboard');
     } else {
       toast({
-        title: "Login Failed",
-        description: "Invalid credentials or role. Please try again.",
+        title: "Falha no Login",
+        description: "Credenciais ou perfil inválidos. Por favor, tente novamente.",
         variant: "destructive",
       });
     }
@@ -66,8 +66,8 @@ export function LoginForm() {
         <div className="mx-auto bg-primary text-primary-foreground rounded-full p-3 w-fit mb-4">
           <LogIn className="h-8 w-8" />
         </div>
-        <CardTitle className="font-headline text-3xl">Hiperfarma Login</CardTitle>
-        <CardDescription>Enter your credentials to access the Business Meeting Manager.</CardDescription>
+        <CardTitle className="font-headline text-3xl">Login Hiperfarma</CardTitle>
+        <CardDescription>Insira suas credenciais para acessar o Gerenciador de Encontros de Negócios.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -79,7 +79,7 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="your.email@example.com" {...field} />
+                    <Input placeholder="seu.email@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -90,7 +90,7 @@ export function LoginForm() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Senha</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
@@ -103,16 +103,16 @@ export function LoginForm() {
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role (for mock login)</FormLabel>
+                  <FormLabel>Perfil (para login de demonstração)</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue placeholder="Selecione um perfil" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {ROLES.map(role => (
-                        <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                        <SelectItem key={role} value={role} className="capitalize">{ROLES_TRANSLATIONS[role]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -126,7 +126,7 @@ export function LoginForm() {
               disabled={isLoading}
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-              Login
+              Entrar
             </Button>
           </form>
         </Form>

@@ -21,8 +21,8 @@ export default function VendorPositivacaoPage() {
     // and would check if already positivated for this event by this vendor.
     if (positivatedStores.has(storeId)) {
       toast({
-        title: "Already Promoted",
-        description: `You have already promoted ${storeName} for this event.`,
+        title: "Já Positivado",
+        description: `Você já positivou ${storeName} para este evento.`,
         variant: "default",
       });
       return;
@@ -30,8 +30,8 @@ export default function VendorPositivacaoPage() {
 
     setPositivatedStores(prev => new Set(prev).add(storeId));
     toast({
-      title: "Store Promoted!",
-      description: `Successfully promoted ${storeName}.`,
+      title: "Loja Positivada!",
+      description: `Loja ${storeName} positivada com sucesso.`,
     });
   };
 
@@ -44,8 +44,8 @@ export default function VendorPositivacaoPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Promote Stores"
-        description={`Engage with stores for ${MOCK_EVENT.name}. You can promote each store once.`}
+        title="Positivar Lojas"
+        description={`Interaja com as lojas no ${MOCK_EVENT.name}. Você pode positivar cada loja uma vez.`}
         icon={ThumbsUp}
       />
 
@@ -53,20 +53,28 @@ export default function VendorPositivacaoPage() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input 
           type="text"
-          placeholder="Search for a store..."
+          placeholder="Buscar por uma loja..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10" // Add padding to the left for the icon
         />
       </div>
 
-      {filteredStores.length === 0 && (
+      {filteredStores.length === 0 && MOCK_STORES.length > 0 && (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
-            No stores found matching your search or no participating stores available.
+            Nenhuma loja encontrada com o termo pesquisado.
           </CardContent>
         </Card>
       )}
+      {MOCK_STORES.length === 0 && (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            Nenhuma loja participante disponível para positivação.
+          </CardContent>
+        </Card>
+      )}
+
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredStores.map((store: Store) => (
@@ -76,12 +84,11 @@ export default function VendorPositivacaoPage() {
                 <StoreIcon className="h-6 w-6 text-primary" />
                 {store.name}
               </CardTitle>
-              {/* Displaying number of positivations from store's perspective, not just this vendor's */}
-              <CardDescription>Current Positivações: {store.positivationsDetails.length}</CardDescription>
+              <CardDescription>Positivações Atuais: {store.positivationsDetails.length}</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
               <p className="text-sm text-muted-foreground mb-2">
-                Engage with this store to acknowledge their participation and efforts.
+                Interaja com esta loja para reconhecer sua participação e esforços.
               </p>
             </CardContent>
             <CardFooter>
@@ -92,11 +99,11 @@ export default function VendorPositivacaoPage() {
               >
                 {positivatedStores.has(store.id) ? (
                   <>
-                    <CheckCircle className="mr-2 h-4 w-4" /> Promoted
+                    <CheckCircle className="mr-2 h-4 w-4" /> Positivada
                   </>
                 ) : (
                   <>
-                    <ThumbsUp className="mr-2 h-4 w-4" /> Promote Store
+                    <ThumbsUp className="mr-2 h-4 w-4" /> Positivar Loja
                   </>
                 )}
               </Button>
