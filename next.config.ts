@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -16,6 +17,14 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      { // Allow any HTTPS source
+        protocol: 'https',
+        hostname: '**', 
+      },
+      { // Allow any HTTP source (less secure, use with caution)
+        protocol: 'http',
+        hostname: '**',
+      }
     ],
   },
 };
