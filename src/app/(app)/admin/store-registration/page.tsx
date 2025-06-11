@@ -118,7 +118,7 @@ export default function StoreRegistrationPage() {
                 control={form.control}
                 name="address"
                 render={({ field }) => (
-                  <FormItem className="md:col-span-2">
+                  <FormItem>
                     <FormLabel>Endereço</FormLabel>
                     <FormControl>
                       <Input placeholder="Ex: Rua Principal, 123" {...field} />
