@@ -538,18 +538,18 @@ interface SidebarMenuButtonSharedProps extends VariantProps<typeof sidebarMenuBu
   isActive?: boolean;
   children?: React.ReactNode;
   className?: string;
-  asChild?: boolean; // Explicitly declare asChild as a prop it can receive and consume
+  asChild?: boolean; // Prop that might be passed by a parent like Link or TooltipTrigger
 }
 
 // Props when it's a button (href is undefined)
 type SidebarMenuButtonAsButtonProps = SidebarMenuButtonSharedProps &
-  Omit<React.ComponentPropsWithoutRef<'button'>, 'href'> & {
+  Omit<React.ComponentPropsWithoutRef<'button'>, 'href' | 'asChild'> & { // Omit asChild from button's own props
     href?: undefined;
   };
 
 // Props when it's an anchor (href is string)
 type SidebarMenuButtonAsLinkProps = SidebarMenuButtonSharedProps &
-  Omit<React.ComponentPropsWithoutRef<'a'>, 'href'> & {
+  Omit<React.ComponentPropsWithoutRef<'a'>, 'href' | 'asChild'> & { // Omit asChild from anchor's own props
     href: string;
   };
 
@@ -563,34 +563,43 @@ const SidebarMenuButton = React.forwardRef<
 >(
   (
     {
-      // Destructure all known/shared props, including asChild and href
       isActive = false,
       variant = "default",
       size = "default",
       className,
       children,
-      asChild, // Destructured: will be true if Link passes it, otherwise undefined. It's consumed here.
-      href,    // Destructured: will be string from Link, or undefined.
-      ...rest  // `rest` now contains only other valid HTML attributes (e.g., onClick, aria-*)
+      asChild: forwardedAsChild, // Destructure the 'asChild' prop passed from parent (e.g., Link, TooltipTrigger)
+      href,
+      ...rest
     },
     ref
   ) => {
+    // Determine the component type based on 'href'.
+    // 'forwardedAsChild' is destructured and NOT used to determine Comp.
+    // This SidebarMenuButton will render its own element, not a Slot.
     const Comp = href ? "a" : "button";
 
-    // `asChild` is consumed by destructuring, so it's not in `rest`.
-    // `href` is explicitly passed to `Comp` if it's an anchor.
+    const commonProps = {
+      ref: ref as any,
+      "data-sidebar": "menu-button",
+      "data-size": size,
+      "data-active": isActive,
+      className: cn(sidebarMenuButtonVariants({ variant, size, className })),
+      ...rest,
+    };
+
+    if (Comp === "a") {
+      return (
+        <a {...commonProps} href={href}>
+          {children}
+        </a>
+      );
+    }
+
     return (
-      <Comp
-        ref={ref as any}
-        data-sidebar="menu-button"
-        data-size={size}
-        data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
-        href={href} // Only pass href if Comp is 'a' (href has a value)
-        {...rest}   // Spread the remaining attributes (e.g., onClick from Link, ARIA from Tooltip)
-      >
+      <button {...commonProps} type="button">
         {children}
-      </Comp>
+      </button>
     );
   }
 );
@@ -767,3 +776,5 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent, // Export Tooltip components
   useSidebar,
 }
+
+    
