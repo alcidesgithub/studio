@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Sidebar, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger, useSidebar
+  Sidebar, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger, useSidebar, TooltipProvider, Tooltip, TooltipTrigger, TooltipContent
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -45,12 +45,16 @@ const navItemsByRole = {
 export function SidebarNav() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, state: sidebarState, isMobile } = useSidebar(); // Get sidebar state and isMobile
 
   const navItems = user?.role ? navItemsByRole[user.role] : [];
 
-  const handleLinkClick = () => {
-    setOpenMobile(false); // Close mobile sidebar on link click
+  const handleLinkClick = (e: React.MouseEvent) => {
+    // In some cases, Next.js Link's navigation might be prevented if e.preventDefault() is called.
+    // We only want to close the mobile sidebar.
+    if (isMobile) {
+      setOpenMobile(false);
+    }
   };
 
   return (
@@ -72,21 +76,27 @@ export function SidebarNav() {
               </SidebarGroupLabel>
             ) : (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href!} asChild>
-                  <SidebarMenuButton
-                    // No 'asChild' here, so SidebarMenuButton renders its own element (e.g., button)
-                    // Link's 'asChild' will pass href to this rendered element.
-                    variant="default"
-                    size="default"
-                    isActive={pathname === item.href}
-                    tooltip={item.label}
-                    onClick={handleLinkClick}
-                    className="justify-start"
-                  >
-                    {item.icon && <item.icon className="h-5 w-5" />}
-                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href={item.href!} asChild>
+                        <SidebarMenuButton
+                          variant="default"
+                          size="default"
+                          isActive={pathname === item.href}
+                          onClick={handleLinkClick}
+                          className="justify-start"
+                        >
+                          {item.icon && <item.icon className="h-5 w-5" />}
+                          <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center" hidden={sidebarState !== "collapsed" || isMobile}>
+                      {item.label}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </SidebarMenuItem>
             )
           ))}

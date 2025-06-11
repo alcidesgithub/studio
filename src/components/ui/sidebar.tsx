@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -131,25 +132,24 @@ const SidebarProvider = React.forwardRef<
 
     return (
       <SidebarContext.Provider value={contextValue}>
-        <TooltipProvider delayDuration={0}>
-          <div
-            style={
-              {
-                "--sidebar-width": SIDEBAR_WIDTH,
-                "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-                ...style,
-              } as React.CSSProperties
-            }
-            className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
-              className
-            )}
-            ref={ref}
-            {...props}
-          >
-            {children}
-          </div>
-        </TooltipProvider>
+        {/* TooltipProvider moved to SidebarNav for more specific control if needed, or can be here */}
+        <div
+          style={
+            {
+              "--sidebar-width": SIDEBAR_WIDTH,
+              "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+              ...style,
+            } as React.CSSProperties
+          }
+          className={cn(
+            "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+            className
+          )}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </div>
       </SidebarContext.Provider>
     )
   }
@@ -533,64 +533,53 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
+type SidebarMenuButtonProps = 
+  (React.ComponentPropsWithoutRef<"button"> & { href?: undefined }) |
+  (React.ComponentPropsWithoutRef<"a"> & { href: string });
+
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement,
-  React.ComponentProps<"button"> & {
-    asChild?: boolean
-    isActive?: boolean
-    tooltip?: string | React.ComponentProps<typeof TooltipContent>
+  HTMLAnchorElement | HTMLButtonElement,
+  SidebarMenuButtonProps & {
+    isActive?: boolean;
+    // Removed tooltip prop, will be handled externally
   } & VariantProps<typeof sidebarMenuButtonVariants>
 >(
   (
     {
-      asChild = false,
       isActive = false,
       variant = "default",
       size = "default",
-      tooltip,
       className,
+      children,
+      // `asChild` prop from Link (or other parent) is caught by `...props` if not destructured earlier.
+      // `href` will also be in `...props` if passed by Link.
       ...props
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    // Destructure `asChild` from `props` to consume it and prevent it from reaching the DOM element.
+    const { asChild: consumedAsChild, ...remainingProps } = props;
 
-    const button = (
+    const isLink = !!remainingProps.href;
+    const Comp = isLink ? "a" : "button";
+
+    return (
       <Comp
-        ref={ref}
+        ref={ref as any} // Use `as any` for the ref due to conditional component type
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
-      />
-    )
-
-    if (!tooltip) {
-      return button
-    }
-
-    if (typeof tooltip === "string") {
-      tooltip = {
-        children: tooltip,
-      }
-    }
-
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent
-          side="right"
-          align="center"
-          hidden={state !== "collapsed" || isMobile}
-          {...tooltip}
-        />
-      </Tooltip>
+        {...remainingProps} // Spread the remainingProps which include href, Link's onClick, etc.
+                           // `consumedAsChild` is NOT spread here.
+      >
+        {children}
+      </Comp>
     )
   }
 )
 SidebarMenuButton.displayName = "SidebarMenuButton"
+
 
 const SidebarMenuAction = React.forwardRef<
   HTMLButtonElement,
@@ -759,5 +748,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
+  TooltipProvider, Tooltip, TooltipTrigger, TooltipContent, // Export Tooltip components
   useSidebar,
 }
