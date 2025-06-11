@@ -71,8 +71,6 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    // This is the internal state of the sidebar.
-    // We use openProp and setOpenProp for control from outside the component.
     const [_open, _setOpen] = React.useState(defaultOpen)
     const open = openProp ?? _open
     const setOpen = React.useCallback(
@@ -83,21 +81,17 @@ const SidebarProvider = React.forwardRef<
         } else {
           _setOpen(openState)
         }
-
-        // This sets the cookie to keep the sidebar state.
         document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
       },
       [setOpenProp, open]
     )
 
-    // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
       return isMobile
         ? setOpenMobile((open) => !open)
         : setOpen((open) => !open)
     }, [isMobile, setOpen, setOpenMobile])
 
-    // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (
@@ -108,13 +102,10 @@ const SidebarProvider = React.forwardRef<
           toggleSidebar()
         }
       }
-
       window.addEventListener("keydown", handleKeyDown)
       return () => window.removeEventListener("keydown", handleKeyDown)
     }, [toggleSidebar])
 
-    // We add a state so that we can do data-state="expanded" or "collapsed".
-    // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed"
 
     const contextValue = React.useMemo<SidebarContext>(
@@ -132,7 +123,6 @@ const SidebarProvider = React.forwardRef<
 
     return (
       <SidebarContext.Provider value={contextValue}>
-        {/* TooltipProvider moved to SidebarNav for more specific control if needed, or can be here */}
         <div
           style={
             {
@@ -221,7 +211,6 @@ const Sidebar = React.forwardRef<
         data-variant={variant}
         data-side={side}
       >
-        {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
             "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
@@ -238,7 +227,6 @@ const Sidebar = React.forwardRef<
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
-            // Adjust the padding for floating and inset variants.
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l",
@@ -461,7 +449,6 @@ const SidebarGroupAction = React.forwardRef<
       data-sidebar="group-action"
       className={cn(
         "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-        // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 after:md:hidden",
         "group-data-[collapsible=icon]:hidden",
         className
@@ -533,32 +520,21 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-interface SidebarMenuButtonSharedProps extends VariantProps<typeof sidebarMenuButtonVariants> {
+export interface SidebarMenuButtonProps
+  // Allow all attributes of an anchor or button element
+  extends React.DetailedHTMLProps<React.AnchorHTMLAttributes<HTMLAnchorElement> & React.ButtonHTMLAttributes<HTMLButtonElement>, HTMLAnchorElement | HTMLButtonElement>,
+    VariantProps<typeof sidebarMenuButtonVariants> {
   isActive?: boolean;
-  children?: React.ReactNode;
-  className?: string;
   asChild?: boolean; // Prop received from a parent like Link or TooltipTrigger
-  onItemClick?: (event: React.MouseEvent<HTMLElement, MouseEvent>) => void; // Custom click handler
+  onItemClick?: (event: React.MouseEvent<HTMLElement, MouseEvent>) => void; // Custom click handler from SidebarNav
+  // href is already part of React.AnchorHTMLAttributes
+  // onClick is already part of React.ButtonHTMLAttributes and React.AnchorHTMLAttributes
 }
-
-// Props for when SidebarMenuButton renders a <button>
-type SidebarMenuButtonAsButtonProps = SidebarMenuButtonSharedProps &
-  Omit<React.ComponentPropsWithoutRef<'button'>, 'href' | 'asChild' | 'onClick'> & {
-    href?: undefined;
-  };
-
-// Props for when SidebarMenuButton renders an <a>
-type SidebarMenuButtonAsLinkProps = SidebarMenuButtonSharedProps &
-  Omit<React.ComponentPropsWithoutRef<'a'>, 'href' | 'asChild' | 'onClick'> & {
-    href: string;
-  };
-
-type SidebarMenuButtonCombinedProps = SidebarMenuButtonAsButtonProps | SidebarMenuButtonAsLinkProps;
 
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement | HTMLAnchorElement,
-  SidebarMenuButtonCombinedProps
+  HTMLAnchorElement | HTMLButtonElement,
+  SidebarMenuButtonProps
 >(
   (
     {
@@ -567,48 +543,64 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       className,
       children,
-      asChild: forwardedAsChild, // Consumed, not spread
+      asChild: receivedAsChild, // This is the asChild prop PASSED TO SidebarMenuButton
       href,
-      onItemClick, // Custom click from SidebarNav
-      onClick: inheritedOnClick, // onClick from Link (as part of ...rest or directly passed by Link asChild)
-      ...rest
+      onItemClick, // Custom handler from SidebarNav
+      onClick: inheritedOnClick, // Handler from Link, or direct usage
+      type: buttonType, // Capture button type if passed
+      ...rest // All other props
     },
     ref
   ) => {
-    const Comp = href ? "a" : "button";
+    const isAnchor = typeof href === 'string';
 
-    const handleClick = React.useCallback(
-      (event: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
-        // Call the onClick passed by Link (for navigation)
+    const actualOnClick = React.useCallback(
+      (event: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
         if (inheritedOnClick) {
-          inheritedOnClick(event as React.MouseEvent<HTMLButtonElement, MouseEvent>); // Cast needed due to union type
+          inheritedOnClick(event as any); // Type assertion needed due to union
         }
-        // Call the custom click handler (e.g., for closing mobile sidebar)
         if (onItemClick) {
           onItemClick(event);
         }
       },
       [inheritedOnClick, onItemClick]
     );
-    
-    const commonProps: React.ButtonHTMLAttributes<HTMLButtonElement> | React.AnchorHTMLAttributes<HTMLAnchorElement> = {
-      ...rest,
-      ref: ref as any,
+
+    const commonProps: any = {
+      ...rest, // `receivedAsChild` is destructured, so it's not in `rest`.
+      ref,
       "data-sidebar": "menu-button",
       "data-size": size,
       "data-active": isActive,
       className: cn(sidebarMenuButtonVariants({ variant, size, className })),
-      onClick: handleClick, // Use the composed handler
+      onClick: actualOnClick,
     };
 
-    if (Comp === "a") {
-      if (href) {
-        (commonProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href = href;
-      }
-      return <a {...commonProps as React.AnchorHTMLAttributes<HTMLAnchorElement>}>{children}</a>;
+    if (isAnchor) {
+      // If it's an anchor, Link asChild is controlling it.
+      // Link passes href, onClick for navigation.
+      // We render 'a' and apply all merged props.
+      // The 'receivedAsChild' prop from Link is consumed and should not be on the 'a' tag.
+      return (
+        <a {...commonProps} href={href}>
+          {children}
+        </a>
+      );
+    }
+    
+    // If NOT an anchor (no href)
+    // If 'receivedAsChild' is true (e.g. <TooltipTrigger asChild><SidebarMenuButton/></TooltipTrigger>)
+    // then SidebarMenuButton itself should render as a Slot.
+    if (receivedAsChild) {
+      return <Slot {...commonProps}>{children}</Slot>;
     }
 
-    return <button {...commonProps as React.ButtonHTMLAttributes<HTMLButtonElement>} type="button">{children}</button>;
+    // Default: render a button
+    return (
+      <button type={buttonType || "button"} {...commonProps}>
+        {children}
+      </button>
+    );
   }
 );
 SidebarMenuButton.displayName = "SidebarMenuButton"
@@ -629,7 +621,6 @@ const SidebarMenuAction = React.forwardRef<
       data-sidebar="menu-action"
       className={cn(
         "absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
-        // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 after:md:hidden",
         "peer-data-[size=sm]/menu-button:top-1",
         "peer-data-[size=default]/menu-button:top-1.5",
@@ -672,7 +663,6 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Random width between 50 to 90%.
   const width = React.useMemo(() => {
     return `${Math.floor(Math.random() * 40) + 50}%`
   }, [])
@@ -781,8 +771,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  TooltipProvider, Tooltip, TooltipTrigger, TooltipContent, // Export Tooltip components
+  TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
-
-    
