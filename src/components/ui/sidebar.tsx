@@ -542,91 +542,85 @@ const sidebarMenuButtonVariants = cva(
 )
 
 export interface SidebarMenuButtonProps
-  // Allow all HTML attributes for <a> and <button>
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> {
+  extends React.HTMLAttributes<HTMLElement> { // Base HTML attributes
   onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
   isActive?: boolean;
   variant?: VariantProps<typeof sidebarMenuButtonVariants>["variant"];
   size?: VariantProps<typeof sidebarMenuButtonVariants>["size"];
-  href?: string; // Explicitly accept href
-  asChild?: boolean; // Explicitly accept asChild to ensure it's destructured
-  // className is part of HTMLAttributes
-  // children is part of HTMLAttributes
-  // onClick is part of HTMLAttributes
-  // type is part of ButtonHTMLAttributes
+  href?: string; // For rendering as 'a'
+  type?: string; // For rendering as 'button'
+  asChild?: boolean; // This prop is received from parent (e.g., Link)
+  // children and className are part of React.HTMLAttributes
 }
 
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement & HTMLAnchorElement,
+  HTMLButtonElement & HTMLAnchorElement, // Can be either
   SidebarMenuButtonProps
 >(
   (
     {
-      // Destructure all known and potentially problematic props first
-      className: intrinsicClassName,
+      // Explicitly destructure all known/used props, including `asChild`
+      className: propClassName,
       variant,
       size,
       isActive,
       onItemClick,
       children,
-      href: hrefFromProps,       // href from parent (e.g., Link) or direct prop
-      onClick: onClickFromProps, // onClick from parent (e.g., Link) or direct prop
-      type: typeFromProps,       // type from parent (e.g., Link) or direct prop
-      asChild: _receivedAsChild, // Explicitly destructure asChild to remove it from ...rest
-      ...rest                 // Capture all other props
+      href: propHref,      // Might come directly or from Link
+      asChild: _ignoreAsChild, // Destructure to remove it from `...rest`
+      onClick: propOnClick,  // Might come from Link (navigation) or direct usage
+      type: propType,        // Might come from Link or direct usage
+      ...rest              // Collects any other valid HTML attributes
     },
     ref
   ) => {
-    const finalHref = hrefFromProps;
-    const Comp = typeof finalHref === "string" && finalHref.length > 0 ? "a" : "button";
+    // Determine the component type based on the presence of an href
+    const Comp = propHref ? "a" : "button";
 
+    // Combine onClick handlers:
+    // 1. propOnClick (could be Link's navigation handler)
+    // 2. onItemClick (SidebarMenuButton's specific handler)
     const combinedOnClick = (event: React.MouseEvent<HTMLElement>) => {
-      // If onClickFromProps exists (e.g., passed by Link for navigation), call it.
-      if (typeof onClickFromProps === "function") {
-        onClickFromProps(event);
+      if (typeof propOnClick === "function") {
+        propOnClick(event);
       }
-      // If onItemClick exists (SidebarMenuButton's own handler) and is different, call it.
-      if (typeof onItemClick === "function" && onItemClick !== onClickFromProps) {
+      if (typeof onItemClick === "function" && onItemClick !== propOnClick) {
         onItemClick(event);
       }
     };
 
-    const combinedClassName = cn(
-      sidebarMenuButtonVariants({ variant, size, isActive, className: intrinsicClassName })
-      // If Link passes a className, it would be part of `intrinsicClassName` if `Link` is the direct parent
-      // or within `...rest` if there's another layer. Given `asChild` usage, `intrinsicClassName`
-      // from `Link` should be handled correctly by `cn`.
+    // Apply variants and merge classNames
+    const finalClassName = cn(
+      sidebarMenuButtonVariants({ variant, size, isActive, className: propClassName })
     );
 
-    // `rest` should now be clean of `asChild`, `href`, `onClick`, `type`, `className`, `children`,
-    // `variant`, `size`, `isActive`, `onItemClick`.
-    // It should only contain other valid HTML attributes passed down.
-    const domProps: React.AllHTMLAttributes<HTMLElement> & { ref: React.ForwardedRef<any> } = {
-      ...rest, // Spread the remaining, hopefully clean, props
+    // Prepare props for the DOM element, ensuring `asChild` is not included.
+    // `...rest` already excludes `asChild` because it was destructured above.
+    const domElementProps: React.AllHTMLAttributes<HTMLElement> & { ref: React.ForwardedRef<any> } = {
+      ...rest, // Spread only the truly "rest" HTML attributes
       ref,
-      className: combinedClassName,
+      className: finalClassName,
       "data-active": isActive,
     };
 
-    // Only add onClick to domProps if combinedOnClick actually does something,
-    // or if Comp is a button (which usually expects an onClick).
-    if (typeof onClickFromProps === "function" || typeof onItemClick === "function") {
-        domProps.onClick = combinedOnClick;
+    // Conditionally add onClick if there's any handler defined
+    if (typeof propOnClick === "function" || typeof onItemClick === "function") {
+      domElementProps.onClick = combinedOnClick;
     }
 
-
+    // Set href for 'a' tag or type for 'button' tag
     if (Comp === "a") {
-      (domProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href = finalHref;
+      (domElementProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href = propHref;
     } else {
-      // For a button, ensure type is set, default to "button" if not provided.
-      (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = typeFromProps || "button";
+      // For a button, ensure 'type' is set, defaulting to "button" if not provided.
+      (domElementProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = propType || "button";
     }
-    
-    // _receivedAsChild is captured and not spread into domProps.
-    // The key is that `asChild` is not in `...rest`.
 
-    return <Comp {...domProps}>{children}</Comp>;
+    // `_ignoreAsChild` was destructured and is NOT part of `...rest`,
+    // so it will not be spread onto the <Comp />.
+
+    return <Comp {...domElementProps}>{children}</Comp>;
   }
 );
 SidebarMenuButton.displayName = "SidebarMenuButton"
@@ -800,4 +794,3 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
-
