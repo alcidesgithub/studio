@@ -41,13 +41,12 @@ const salespersonSchema = z.object({
   phone: z.string().min(10, "Telefone é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres."),
-  // vendorId is not part of the form, it will be passed programmatically
 });
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
 const formatCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
-  if (cleaned.length !== 14) return cnpj;
+  if (cleaned.length !== 14) return cnpj; // Return as is if not 14 digits after cleaning
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
 
@@ -64,7 +63,6 @@ export default function ManageVendorsPage() {
   const [editingSalesperson, setEditingSalesperson] = useState<Salesperson | null>(null);
   const [currentVendorIdForSalesperson, setCurrentVendorIdForSalesperson] = useState<string | null>(null);
   const [salespersonToDelete, setSalespersonToDelete] = useState<Salesperson | null>(null);
-
 
   useEffect(() => {
     setVendors(loadVendors());
@@ -115,10 +113,12 @@ export default function ManageVendorsPage() {
   const handleDeleteVendor = () => {
     if (!vendorToDelete) return;
 
+    // Remove associated salespeople first
     const updatedSalespeople = salespeople.filter(sp => sp.vendorId !== vendorToDelete.id);
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
 
+    // Then remove the vendor
     const updatedVendors = vendors.filter(v => v.id !== vendorToDelete.id);
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
@@ -128,7 +128,7 @@ export default function ManageVendorsPage() {
       description: `O fornecedor "${vendorToDelete.name}" e seus vendedores vinculados foram removidos.`,
       variant: "destructive"
     });
-    setVendorToDelete(null);
+    setVendorToDelete(null); // Close confirmation dialog
   };
 
   const onVendorSubmit = (data: VendorFormValues) => {
@@ -141,23 +141,29 @@ export default function ManageVendorsPage() {
       );
       toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.` });
     } else {
+      const newVendorId = `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
       const newVendor: Vendor = {
-        id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+        id: newVendorId,
         ...data,
         cnpj: rawCnpj,
         dataAiHint: data.dataAiHint || 'company logo',
       };
       updatedVendors = [...vendors, newVendor];
-      toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado.` });
+      setEditingVendor(newVendor); // Keep dialog open with new vendor data for salesperson addition
+      toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.` });
     }
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
-    vendorForm.reset();
-    setIsVendorDialogOpen(false);
-    setEditingVendor(null);
+    
+    if (!editingVendor) { // If it was a new vendor, don't close dialog, allow adding salespeople
+        // The dialog stays open because setEditingVendor was called.
+    } else { // If editing an existing vendor, close dialog
+        vendorForm.reset();
+        setIsVendorDialogOpen(false);
+        setEditingVendor(null);
+    }
   };
 
-  // Salesperson handlers
   const handleAddNewSalesperson = (vendorId: string) => {
     setCurrentVendorIdForSalesperson(vendorId);
     setEditingSalesperson(null);
@@ -194,7 +200,6 @@ export default function ManageVendorsPage() {
     setSalespersonToDelete(null); // Close confirmation dialog
   };
 
-
   const onSalespersonSubmit = (data: SalespersonFormValues) => {
     if (!currentVendorIdForSalesperson) {
         toast({ title: "Erro", description: "ID do Fornecedor não encontrado.", variant: "destructive" });
@@ -222,15 +227,14 @@ export default function ManageVendorsPage() {
     salespersonForm.reset();
     setIsSalespersonDialogOpen(false);
     setEditingSalesperson(null);
-    setCurrentVendorIdForSalesperson(null);
+    // currentVendorIdForSalesperson remains as the vendor dialog is still open
   };
 
-  const salespeopleForCurrentVendor = useMemo(() => {
+  const salespeopleForCurrentEditingVendor = useMemo(() => {
     if (!editingVendor) return [];
     return salespeople.filter(sp => sp.vendorId === editingVendor.id);
   }, [salespeople, editingVendor]);
 
-  // Attempting to fix parsing error by ensuring clean state before return.
   return (
     <div className="animate-fadeIn space-y-8">
       <PageHeader
@@ -244,10 +248,12 @@ export default function ManageVendorsPage() {
         }
       />
 
-      {/* Vendor Dialog */}
       <Dialog open={isVendorDialogOpen} onOpenChange={(isOpen) => {
           setIsVendorDialogOpen(isOpen);
-          if (!isOpen) setEditingVendor(null);
+          if (!isOpen) {
+            setEditingVendor(null); // Reset editing state when dialog closes
+            vendorForm.reset();
+          }
       }}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
@@ -270,7 +276,7 @@ export default function ManageVendorsPage() {
                 </CardContent>
               </Card>
 
-              {editingVendor && (
+              {editingVendor && ( // Show salespeople section only when editing an existing vendor
                 <Card className="mt-6">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
@@ -282,7 +288,7 @@ export default function ManageVendorsPage() {
                     </Button>
                   </CardHeader>
                   <CardContent>
-                    {salespeopleForCurrentVendor.length > 0 ? (
+                    {salespeopleForCurrentEditingVendor.length > 0 ? (
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -293,13 +299,13 @@ export default function ManageVendorsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {salespeopleForCurrentVendor.map(sp => (
+                          {salespeopleForCurrentEditingVendor.map(sp => (
                             <TableRow key={sp.id}>
                               <TableCell>{sp.name}</TableCell>
                               <TableCell>{sp.email}</TableCell>
                               <TableCell>{sp.phone}</TableCell>
                               <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteSalesperson(sp)}>
                                         <Trash2 className="h-4 w-4" />
@@ -318,7 +324,7 @@ export default function ManageVendorsPage() {
               )}
 
               <DialogFooter className="pt-4">
-                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setIsVendorDialogOpen(false); setEditingVendor(null); vendorForm.reset();}}>Fechar</Button></DialogClose>
                 <Button type="submit" disabled={vendorForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingVendor ? 'Salvar Alterações no Fornecedor' : 'Cadastrar Fornecedor'}</Button>
               </DialogFooter>
             </form>
@@ -326,12 +332,12 @@ export default function ManageVendorsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Salesperson Dialog (Nested) */}
       <Dialog open={isSalespersonDialogOpen} onOpenChange={(isOpen) => {
           setIsSalespersonDialogOpen(isOpen);
           if (!isOpen) {
               setEditingSalesperson(null);
-              setCurrentVendorIdForSalesperson(null);
+              // Do not reset currentVendorIdForSalesperson as the main vendor dialog might still be open
+              salespersonForm.reset();
           }
       }}>
         <DialogContent className="sm:max-w-md">
@@ -356,7 +362,6 @@ export default function ManageVendorsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* AlertDialog for Vendor Deletion */}
       <AlertDialog open={!!vendorToDelete} onOpenChange={(open) => !open && setVendorToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -367,12 +372,11 @@ export default function ManageVendorsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setVendorToDelete(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteVendor} className="bg-destructive hover:bg-destructive/90">Excluir Fornecedor</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteVendor} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir Fornecedor</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* AlertDialog for Salesperson Deletion */}
       <AlertDialog open={!!salespersonToDelete} onOpenChange={(open) => !open && setSalespersonToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -383,13 +387,12 @@ export default function ManageVendorsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setSalespersonToDelete(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteSalesperson} className="bg-destructive hover:bg-destructive/90">Excluir Vendedor</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteSalesperson} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir Vendedor</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-
-      <Card className="shadow-lg">
+      <Card className="shadow-lg mt-8">
         <CardHeader>
           <CardTitle>Fornecedores Cadastrados</CardTitle>
           <CardDescription>Lista de todos os fornecedores no sistema.</CardDescription>
@@ -438,6 +441,5 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
-    
 
     
