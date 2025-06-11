@@ -547,7 +547,8 @@ export interface SidebarMenuButtonProps
     VariantProps<typeof sidebarMenuButtonVariants> {
   onItemClick?: (event: React.MouseEvent<HTMLElement>) => void;
   isActive?: boolean;
-  // asChild prop is not explicitly defined here, so it will be captured by ...otherProps if passed by a parent.
+  // Note: asChild is not part of this component's own props interface.
+  // It's expected to be received via ...otherParentProps if passed by a parent.
 }
 
 
@@ -561,62 +562,57 @@ const SidebarMenuButton = React.forwardRef<
       variant,
       size,
       isActive,
-      onItemClick, // Explicit prop of SidebarMenuButton for its own click logic
+      onItemClick,
       children,
-      ...otherProps // Captures href, onClick (from Link), ref (from Link), and potentially asChild (from Link)
+      ...otherParentProps // Captures href, onClick from Link, and potentially asChild from Link or TooltipTrigger
     },
     ref
   ) => {
-    // Destructure known props passed by Link (or other asChild parents) from otherProps.
-    // Explicitly pull out 'asChild' to ensure it's not passed to the DOM element.
+    // Destructure props that might come from Link (like href, its own onClick)
+    // and critically, the asChild prop from any parent.
     const { 
       href, 
-      onClick: inheritedOnClick, // onClick from Link (for navigation) or TooltipTrigger
-      type: inheritedType,
-      asChild: receivedAsChild, // This is the asChild prop from the parent (e.g., Link)
-      ...remainingOtherProps // Any other props not explicitly handled
-    } = otherProps as any; // Use 'as any' for flexibility in destructuring potentially undeclared props like asChild.
+      onClick: parentOnClick, 
+      type: parentType,
+      asChild: receivedAsChild, // This captures the asChild from Link or TooltipTrigger
+      ...remainingProps // These are the true "other" props, guaranteed not to be asChild, href, parentOnClick, or parentType
+    } = otherParentProps as any; 
 
     const Comp = typeof href === 'string' && href.length > 0 ? 'a' : 'button';
 
     const combinedOnClick = (event: React.MouseEvent<HTMLElement>) => {
-      // Execute the onClick passed by the parent (e.g., Link's navigation)
-      if (typeof inheritedOnClick === 'function') {
-        (inheritedOnClick as React.MouseEventHandler<HTMLElement>)(event);
+      if (typeof parentOnClick === 'function') {
+        (parentOnClick as React.MouseEventHandler<HTMLElement>)(event);
       }
-      // Execute SidebarMenuButton's own onItemClick handler
       if (typeof onItemClick === 'function') {
         onItemClick(event);
       }
     };
     
-    // Construct the final props for the DOM element, ensuring 'asChild' is not included.
-    const finalDomProps: Record<string, any> = {
-      ...remainingOtherProps, // Start with props that are definitely not 'asChild', 'href', 'onClick', 'type' from parent
+    // Props to be applied to the DOM element.
+    // Start with remainingProps, which should be clean of asChild and specific Link props.
+    const domProps: React.AllHTMLAttributes<HTMLElement> = {
+      ...remainingProps, // Spread only the truly "other" props
       ref,
       className: cn(sidebarMenuButtonVariants({ variant, size, isActive, className })),
       onClick: combinedOnClick,
     };
     
     if (isActive) {
-      finalDomProps['data-active'] = 'true';
+      domProps['data-active'] = 'true';
     }
 
     if (Comp === 'a') {
-      finalDomProps.href = href;
-      // Ensure 'type' is not passed to 'a' tags, as it's invalid.
-      // 'inheritedType' might come from a <button> parent if Link was wrapping a button.
-      // But since Comp is 'a', we don't want 'type'.
+      (domProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href = href;
     } else { // Comp is 'button'
-      finalDomProps.type = inheritedType || 'button';
-      // Ensure 'href' is not passed to 'button' tags.
+      (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = parentType || 'button';
     }
     
-    // The `receivedAsChild` variable now holds the asChild prop value passed by the parent.
-    // It is NOT included in `finalDomProps` and thus not spread onto `Comp`.
-    // This component itself does not use `Slot` for its root, it renders `<a>` or `<button>`.
+    // `receivedAsChild` is now isolated. Since SidebarMenuButton itself renders a concrete
+    // DOM element (not a Slot as its root), `receivedAsChild` is not used further here.
+    // The key is that `asChild` (as `receivedAsChild`) is NOT in `domProps`.
     return (
-      <Comp {...finalDomProps}>
+      <Comp {...domProps}>
         {children}
       </Comp>
     );
@@ -793,5 +789,7 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
+
+    
 
     
