@@ -560,72 +560,48 @@ const SidebarMenuButton = React.forwardRef<
       variant,
       size,
       isActive,
-      asChild: receivedAsChild = false, // Renamed to avoid conflict
+      // The 'asChild' prop is received from parent (e.g., Link, TooltipTrigger)
+      // SidebarMenuButton will render a DOM element ('a' or 'button') itself,
+      // so this 'asChild' prop (and any from restProps) must not be passed to the DOM element.
+      asChild, 
       href,
       onItemClick,
       onClick: inheritedOnClick,
       children,
-      type: inheritedType, // Destructure type
-      ...rest
+      type: inheritedType,
+      ...restProps // Other props from parent (could include asChild from a grandparent)
     },
     ref
   ) => {
-    const isLink = typeof href === 'string' && href.length > 0;
-    const Comp = receivedAsChild ? Slot : (isLink ? 'a' : 'button');
+    const isLinkBehavior = typeof href === 'string' && href.length > 0;
+    // SidebarMenuButton always renders a DOM element, not Slot.
+    const Comp = isLinkBehavior ? 'a' : 'button';
 
     const combinedOnClick = (event: React.MouseEvent<HTMLElement>) => {
       if (inheritedOnClick) (inheritedOnClick as React.MouseEventHandler<HTMLElement>)(event);
       if (onItemClick) onItemClick(event);
     };
+    
+    // Explicitly remove `asChild` from restProps if it exists, as Comp is a DOM element.
+    // The `asChild` variable (destructured from this component's props) is also not used to determine `Comp` type for Slot.
+    const { asChild: _asChildFromRest, ...finalRestProps } = restProps;
 
-    // Prepare props for the component (Slot, a, or button)
-    let finalProps: any = {
-      ...rest,
-      ref,
-      className: cn(sidebarMenuButtonVariants({ variant, size, isActive, className })), // isActive passed to cva
-      onClick: combinedOnClick,
-      "data-active": isActive ? 'true' : undefined, // Ensure data-active is explicitly set
+    const compFinalProps:any = {
+        ...finalRestProps, // Spread props that are NOT 'asChild'
+        ref,
+        className: cn(sidebarMenuButtonVariants({ variant, size, isActive, className })),
+        onClick: combinedOnClick,
+        "data-active": isActive ? 'true' : undefined,
     };
 
-    if (isLink) {
-      finalProps.href = href;
-      // For 'a' tag, don't pass 'type' unless it's explicitly set for some reason
-      // and ensure `asChild` is not passed to the DOM element if Comp is not Slot
-      if (Comp !== Slot) {
-        // We only want to delete `asChild` if it was part of `rest`
-        // but since we named our received prop `receivedAsChild`, `rest.asChild` would be undefined
-        // unless `asChild` was passed *in addition* to the `asChild` prop we destructured.
-        // This logic is safer: explicitly build props for DOM elements.
-        const domProps: any = { ...rest, ref, className: finalProps.className, onClick: combinedOnClick, "data-active": finalProps["data-active"], href };
-        finalProps = domProps;
-      }
+    if (Comp === 'a') {
+        compFinalProps.href = href;
     } else if (Comp === 'button') {
-      finalProps.type = inheritedType || 'button';
-      if (Comp !== Slot) {
-        const domProps: any = { ...rest, ref, className: finalProps.className, onClick: combinedOnClick, "data-active": finalProps["data-active"], type: finalProps.type };
-        finalProps = domProps;
-      }
+        // Only set type if it's explicitly a button; Link component might handle its own 'type' if it were different
+        compFinalProps.type = inheritedType || 'button';
     }
 
-
-    if (Comp === Slot) {
-      // If Comp is Slot, ensure `asChild` is not passed in `finalProps` if it came from `rest`
-      // but it should be fine as `receivedAsChild` is handled.
-      // Slot itself does not take `asChild` prop in this manner.
-      // The `asChild` prop on `SidebarMenuButton` is used to determine if `Comp` is `Slot`.
-    }
-
-
-    // Ensure `asChild` prop is not passed to DOM elements.
-    // The `receivedAsChild` is for `SidebarMenuButton` internal logic.
-    // If `...rest` happens to contain an `asChild` (e.g. from a grandparent further up),
-    // it needs to be stripped before rendering a DOM element.
-    if (Comp !== Slot && finalProps.asChild !== undefined) {
-      delete finalProps.asChild;
-    }
-
-
-    return <Comp {...finalProps}>{children}</Comp>;
+    return <Comp {...compFinalProps}>{children}</Comp>;
   }
 );
 SidebarMenuButton.displayName = "SidebarMenuButton"
