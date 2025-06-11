@@ -548,12 +548,9 @@ export interface SidebarMenuButtonProps
   variant?: VariantProps<typeof sidebarMenuButtonVariants>["variant"];
   size?: VariantProps<typeof sidebarMenuButtonVariants>["size"];
   
-  // Props that might be injected by <Link asChild> or passed directly
   href?: string;
-  // `onClick` can be Link's navigation handler or a direct handler
-  onClick?: (event: React.MouseEvent<HTMLElement>) => void; 
-  type?: string; 
-  asChild?: boolean; // Prop received from <Link asChild>
+  type?: string;
+  asChild?: boolean; // Explicitly define asChild as a prop it can receive
 }
 
 
@@ -563,29 +560,27 @@ const SidebarMenuButton = React.forwardRef<
 >(
   (
     {
-      className: intrinsicClassName, // className passed directly on <SidebarMenuButton>
+      className: intrinsicClassName,
       variant,
       size,
       isActive,
-      onItemClick, // SidebarMenuButton's own click handler
+      onItemClick,
       children,
-      href: hrefFromProps, // Could be from Link or direct
-      onClick: onClickFromProps, // Could be from Link or direct
-      type: typeFromProps, // Could be from Link or direct
-      asChild: _forwardedAsChild, // Explicitly destructure and ignore asChild
-      ...restOfAllProps // Collects any other standard HTML attributes
+      href, 
+      onClick, // This will be from Link (navigation) or direct
+      type,
+      asChild: _discardAsChild, // Destructure asChild and alias it to signify it's not used for DOM rendering
+      ...restProps // Collect all other props
     },
     ref
   ) => {
-    const Comp = hrefFromProps ? "a" : "button";
+    const Comp = href ? "a" : "button";
 
     const combinedOnClick = (event: React.MouseEvent<HTMLElement>) => {
-      if (typeof onClickFromProps === "function") {
-        onClickFromProps(event); // Link's navigation or direct onClick
+      if (typeof onClick === "function") { // From Link or direct
+        onClick(event);
       }
-      // Ensure onItemClick is called only if it's different from onClickFromProps,
-      // or if onClickFromProps is undefined.
-      if (typeof onItemClick === "function" && onItemClick !== onClickFromProps) {
+      if (typeof onItemClick === "function" && onItemClick !== onClick) {
         onItemClick(event);
       }
     };
@@ -593,25 +588,24 @@ const SidebarMenuButton = React.forwardRef<
     const finalClassName = cn(
       sidebarMenuButtonVariants({ variant, size, isActive, className: intrinsicClassName })
     );
-
-    // Props to be spread onto the DOM element.
-    // `_forwardedAsChild` is destructured, so it's NOT in `restOfAllProps`.
-    // `hrefFromProps`, `onClickFromProps`, `typeFromProps` are also destructured and handled.
-    const domProps: React.AllHTMLAttributes<HTMLElement> & { ref: React.ForwardedRef<any> } = {
-      ...restOfAllProps, // Spread only the truly "rest" (standard HTML) attributes
-      ref,
-      className: finalClassName,
-      "data-active": isActive,
+    
+    // `restProps` should not contain `asChild` because it was destructured above.
+    // It also won't contain `href`, `onClick`, `type`, `children`, `variant`, `size`, `isActive`, `onItemClick`, `className`.
+    const domProps: any = {
+        ...restProps, 
+        ref,
+        className: finalClassName,
+        "data-active": isActive,
     };
 
     if (Comp === "a") {
-      (domProps as React.AnchorHTMLAttributes<HTMLAnchorElement>).href = hrefFromProps;
+        domProps.href = href;
     } else {
-      (domProps as React.ButtonHTMLAttributes<HTMLButtonElement>).type = typeFromProps || "button";
+        domProps.type = type || "button";
     }
     
     // Only add onClick to domProps if there's a handler to assign
-    if (typeof onClickFromProps === "function" || typeof onItemClick === "function") {
+    if (typeof onClick === "function" || typeof onItemClick === "function") {
         domProps.onClick = combinedOnClick;
     }
 
@@ -789,4 +783,3 @@ export {
   TooltipProvider, Tooltip, TooltipTrigger, TooltipContent,
   useSidebar,
 }
-
