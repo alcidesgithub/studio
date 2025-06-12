@@ -211,6 +211,7 @@ const Sidebar = React.forwardRef<
               } as React.CSSProperties
             }
             side={side}
+            aria-labelledby="mobile-sidebar-title" // Added aria-labelledby
           >
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>

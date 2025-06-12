@@ -76,7 +76,12 @@ export function SidebarNav() {
   return (
     <>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <Link href={getLogoLink()} className="flex items-center gap-2" onClick={handleLinkClick}>
+        <Link 
+          href={getLogoLink()} 
+          className="flex items-center gap-2" 
+          onClick={handleLinkClick}
+          id="mobile-sidebar-title" // Added ID for aria-labelledby
+        >
           <Building className="h-8 w-8 text-primary" />
           <Image
             src="https://i.imgur.com/qlwlELF.png"
