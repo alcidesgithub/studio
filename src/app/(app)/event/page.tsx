@@ -3,20 +3,23 @@
 
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// import { MOCK_EVENT } from '@/lib/constants'; // No longer use MOCK_EVENT
-import { loadEvent } from '@/lib/localStorageUtils';
-import type { Event } from '@/types';
+import { loadEvent, loadVendors } from '@/lib/localStorageUtils';
+import type { Event, Vendor } from '@/types';
 import { EventMap } from '@/components/event/EventMap';
-import { CalendarDays, Clock, MapPin as MapPinIcon, Building } from 'lucide-react';
+import { CalendarDays, Clock, MapPin as MapPinIcon, Building, Users } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
+
 
 export default function EventInfoPage() {
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
 
   useEffect(() => {
     setCurrentEvent(loadEvent());
+    setVendors(loadVendors().sort((a,b) => a.name.localeCompare(b.name)));
   }, []);
 
   if (!currentEvent) {
@@ -78,6 +81,37 @@ export default function EventInfoPage() {
           <EventMap embedUrl={currentEvent.mapEmbedUrl} address={currentEvent.address} />
         </div>
       </div>
+
+      <Card className="shadow-lg mt-12">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-2xl font-headline">
+            <Users className="h-7 w-7 text-primary" /> Fornecedores Participantes
+          </CardTitle>
+          <CardDescription>Conheça os fornecedores que estarão presentes no evento.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {vendors.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 place-items-center">
+              {vendors.map((vendor) => (
+                <div key={vendor.id} className="p-4 bg-card rounded-lg shadow-md hover:shadow-lg transition-shadow w-full h-32 flex flex-col items-center justify-center text-center">
+                  <div className="relative w-full h-20 mb-1">
+                    <Image
+                      src={vendor.logoUrl}
+                      alt={`Logo ${vendor.name}`}
+                      layout="fill"
+                      objectFit="contain"
+                      className="rounded"
+                    />
+                  </div>
+                  <p className="text-xs font-medium text-muted-foreground mt-1 truncate w-full">{vendor.name}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-4">Nenhum fornecedor participante cadastrado para este evento ainda.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

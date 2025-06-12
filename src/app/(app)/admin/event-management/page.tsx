@@ -10,11 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-// import { MOCK_EVENT, MOCK_VENDORS } from '@/lib/constants'; // No longer directly use MOCK_EVENT
-import { loadEvent, saveEvent, loadVendors } from '@/lib/localStorageUtils';
-import type { Event, Vendor } from '@/types';
-import { Edit3, CalendarIcon, Save, Users } from 'lucide-react';
+import { loadEvent, saveEvent } from '@/lib/localStorageUtils';
+import type { Event } from '@/types';
+import { Edit3, CalendarIcon, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -22,7 +20,6 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 const eventFormSchema = z.object({
@@ -39,7 +36,6 @@ type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function AdminEventManagementPage() {
   const { toast } = useToast();
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -49,7 +45,6 @@ export default function AdminEventManagementPage() {
   useEffect(() => {
     const loadedEvent = loadEvent();
     setCurrentEvent(loadedEvent);
-    setVendors(loadVendors());
 
     // Set form default values once event is loaded
     const eventDate = loadedEvent.date && isValid(parseISO(loadedEvent.date)) ? parseISO(loadedEvent.date) : new Date();
@@ -196,43 +191,6 @@ export default function AdminEventManagementPage() {
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Users /> Fornecedores Participantes</CardTitle>
-              <CardDescription>Esta lista é gerenciada via cadastro de fornecedores (lendo do armazenamento local).</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {vendors.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[80px]">Logo</TableHead>
-                      <TableHead>Nome do Fornecedor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {vendors.map((vendor) => (
-                      <TableRow key={vendor.id}>
-                        <TableCell>
-                          <Image
-                            src={vendor.logoUrl}
-                            alt={`Logo ${vendor.name}`}
-                            width={60}
-                            height={30}
-                            className="object-contain rounded"
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{vendor.name}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-muted-foreground">Nenhum fornecedor cadastrado atualmente.</p>
-              )}
             </CardContent>
           </Card>
 
