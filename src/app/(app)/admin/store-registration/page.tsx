@@ -12,17 +12,20 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ClipboardPlus, Save, Edit, Trash2, PlusCircle } from 'lucide-react';
+import { ClipboardPlus, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
-import { loadStores, saveStores, loadUsers, saveUsers } from '@/lib/localStorageUtils'; // Added loadUsers, saveUsers
-import type { Store, User } from '@/types'; // Added User
+import { loadStores, saveStores, loadUsers, saveUsers } from '@/lib/localStorageUtils'; 
+import type { Store, User } from '@/types'; 
 
 const storeRegistrationSchema = z.object({
   code: z.string().min(1, "Código da loja é obrigatório."),
   razaoSocial: z.string().min(3, "Razão Social deve ter pelo menos 3 caracteres."),
-  cnpj: z.string().min(14, "CNPJ deve ter 14 dígitos.").max(18, "CNPJ deve ter 14 a 18 caracteres (com formatação)."),
+  cnpj: z.string().refine(value => {
+    const cleaned = (value || "").replace(/\D/g, '');
+    return cleaned.length === 14;
+  }, { message: "CNPJ deve ter 14 dígitos (após remover formatação)." }),
   address: z.string().min(5, "Endereço é obrigatório."),
   city: z.string().min(2, "Cidade é obrigatória."),
   neighborhood: z.string().min(2, "Bairro é obrigatório."),
@@ -31,10 +34,27 @@ const storeRegistrationSchema = z.object({
   ownerName: z.string().min(3, "Nome do proprietário é obrigatório."),
   responsibleName: z.string().min(3, "Nome do responsável é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(), // Made optional for editing existing users where password might not be changed
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(), 
 });
 
 type StoreRegistrationFormValues = z.infer<typeof storeRegistrationSchema>;
+
+// For CSV parsing, allow more flexibility initially
+type StoreCSVData = {
+  code?: string;
+  razaoSocial?: string;
+  cnpj?: string;
+  address?: string;
+  city?: string;
+  neighborhood?: string;
+  state?: string;
+  phone?: string;
+  ownerName?: string;
+  responsibleName?: string;
+  email?: string;
+  password?: string;
+};
+
 
 const formatCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
@@ -42,17 +62,81 @@ const formatCNPJ = (cnpj: string = '') => {
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
 
+const cleanCNPJ = (cnpj: string = '') => {
+    return cnpj.replace(/\D/g, '');
+};
+
 const getDisplayState = (stateValue?: string) => {
   if (!stateValue) return 'N/A';
   const stateObj = STATES.find(s => s.value === stateValue);
-  return stateObj ? stateObj.label.split(' (')[0] : stateValue; // Get only the name part
+  return stateObj ? stateObj.label.split(' (')[0] : stateValue; 
 };
+
+// Helper function to parse CSV content for Stores
+function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: string[] } {
+    const allLines = csvText.trim().split(/\r\n|\n/);
+    if (allLines.length < 2) {
+        return { data: [], errors: ["Arquivo CSV vazio ou sem dados."] };
+    }
+
+    const headerLine = allLines[0].toLowerCase();
+    const headers = headerLine.split(',').map(h => h.trim());
+    const expectedHeaders = ["code", "razaosocial", "cnpj", "address", "city", "neighborhood", "state", "phone", "ownername", "responsiblename", "email", "password"];
+    const headerMap: Record<string, keyof StoreCSVData> = {
+        "code": "code", "razaosocial": "razaoSocial", "cnpj": "cnpj", "address": "address", 
+        "city": "city", "neighborhood": "neighborhood", "state": "state", "phone": "phone",
+        "ownername": "ownerName", "responsiblename": "responsibleName", "email": "email", "password": "password"
+    };
+    
+    const missingHeaders = Object.keys(headerMap).filter(eh => !headers.includes(eh));
+    if (missingHeaders.length > 0) {
+        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${Object.keys(headerMap).join(', ')}`] };
+    }
+
+    const storesData: StoreCSVData[] = [];
+    const errors: string[] = [];
+
+    for (let i = 1; i < allLines.length; i++) {
+        const line = allLines[i];
+        if (!line.trim()) continue; 
+
+        const values = line.split(',').map(v => v.trim());
+        const storeRow: StoreCSVData = {};
+        let hasErrorInRow = false;
+
+        headers.forEach((header, index) => {
+            const mappedKey = headerMap[header];
+            if (mappedKey) {
+                (storeRow as any)[mappedKey] = values[index];
+            }
+        });
+        
+        if (!storeRow.code || !storeRow.razaoSocial || !storeRow.cnpj || !storeRow.email) {
+            errors.push(`Linha ${i + 1}: Dados essenciais (código, razão social, cnpj, email) faltando.`);
+            hasErrorInRow = true;
+        }
+
+
+        if (!hasErrorInRow) {
+            storesData.push(storeRow);
+        }
+    }
+    return { data: storesData, errors };
+}
+
 
 export default function ManageStoresPage() {
   const { toast } = useToast();
   const [stores, setStores] = useState<Store[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
+
+  const [isImportStoreDialogOpen, setIsImportStoreDialogOpen] = useState(false);
+  const [csvStoreFile, setCsvStoreFile] = useState<File | null>(null);
+  const [csvStoreFileName, setCsvStoreFileName] = useState<string>("");
+  const [importStoreLoading, setImportStoreLoading] = useState(false);
+  const [importStoreErrors, setImportStoreErrors] = useState<string[]>([]);
+
 
   useEffect(() => {
     setStores(loadStores());
@@ -109,14 +193,12 @@ export default function ManageStoresPage() {
       ownerName: store.ownerName || '',
       responsibleName: store.responsibleName || '',
       email: store.email || '',
-      password: '', // Password should not be pre-filled for editing
+      password: '', 
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = (storeId: string) => {
-    // Consider also deleting the associated user if desired, or handle orphaned users.
-    // For now, only deleting the store.
     const storeToDelete = stores.find(s => s.id === storeId);
     if (storeToDelete && storeToDelete.email) {
         const currentUsers = loadUsers();
@@ -126,7 +208,7 @@ export default function ManageStoresPage() {
             toast({
                 title: "Usuário da Loja Removido",
                 description: `O usuário associado ao email ${storeToDelete.email} foi removido.`,
-                variant: "info"
+                variant: "default"
             });
         }
     }
@@ -146,7 +228,7 @@ export default function ManageStoresPage() {
     const storeDataToSave = {
       code: data.code,
       name: data.razaoSocial,
-      cnpj: data.cnpj.replace(/\D/g, ''),
+      cnpj: cleanCNPJ(data.cnpj),
       address: data.address,
       city: data.city,
       neighborhood: data.neighborhood,
@@ -155,17 +237,12 @@ export default function ManageStoresPage() {
       ownerName: data.ownerName,
       responsibleName: data.responsibleName,
       email: data.email,
-      // Password is handled for the User object, not stored directly on Store
     };
 
     if (editingStore) {
       updatedStores = stores.map(s =>
         s.id === editingStore.id
-          ? {
-              ...s, 
-              ...storeDataToSave,
-            }
-          : s
+          ? { ...s, ...storeDataToSave } : s
       );
       toast({
         title: "Loja Atualizada!",
@@ -188,28 +265,21 @@ export default function ManageStoresPage() {
     setStores(updatedStores);
     saveStores(updatedStores);
 
-    // Sync with User list
     const currentUsers = loadUsers();
     const userIndex = currentUsers.findIndex(u => u.email === data.email);
 
-    if (userIndex > -1) { // User with this email exists
-      currentUsers[userIndex].name = data.responsibleName; // Or another name field as preferred
-      currentUsers[userIndex].role = 'store'; // Ensure role is store
+    if (userIndex > -1) { 
+      currentUsers[userIndex].name = data.responsibleName;
+      currentUsers[userIndex].role = 'store';
       currentUsers[userIndex].storeName = data.razaoSocial;
-      // Password update for existing users is tricky without a "change password" flow.
-      // If password field is filled during edit, it implies a change.
-      // For simplicity, we'll only set password on new user creation for now.
-      // If editingStore && data.password (and password has a value), you might update it.
-      // However, the `useAuth` mock login doesn't use password.
-    } else { // No user with this email, create one
-      if (data.password) { // Only create if password is provided
+    } else { 
+      if (data.password) { 
         const newUserForStore: User = {
           id: `user_store_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
           email: data.email,
           role: 'store',
-          name: data.responsibleName, // Using responsibleName for the User's name
+          name: data.responsibleName, 
           storeName: data.razaoSocial,
-          // In a real app, password would be hashed here before saving.
         };
         currentUsers.push(newUserForStore);
          toast({
@@ -218,9 +288,9 @@ export default function ManageStoresPage() {
         });
       } else if (!editingStore) {
          toast({
-          title: "Senha Necessária",
-          description: `Senha não fornecida. Usuário para ${data.email} não foi criado.`,
-          variant: "destructive"
+          title: "Senha Necessária para Novo Login",
+          description: `Senha não fornecida. Usuário (login) para ${data.email} não foi criado.`,
+          variant: "default"
         });
       }
     }
@@ -231,6 +301,181 @@ export default function ManageStoresPage() {
     setEditingStore(null);
   };
 
+  const handleStoreFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setCsvStoreFile(file);
+      setCsvStoreFileName(file.name);
+      setImportStoreErrors([]); 
+    } else {
+      setCsvStoreFile(null);
+      setCsvStoreFileName("");
+    }
+  };
+
+  const handleDownloadSampleStoreCSV = () => {
+    const csvHeader = "code,razaoSocial,cnpj,address,city,neighborhood,state,phone,ownerName,responsibleName,email,password\n";
+    const csvExampleRow1 = `"LJ998","Farmácia Exemplo Sul Ltda.","11222333000188","Rua Modelo Sul, 789","Curitiba","Portão","PR","(41) 99999-0001","Carlos Exemplo","Ana Modelo","loja.exsul@example.com","senha123"\n`;
+    const csvExampleRow2 = `"LJ999","Drogaria Boa Saúde Oeste S.A.","44555666000199","Avenida Teste Oeste, 1011","Joinville","Centro","SC","(47) 98888-0002","Fernanda Teste","Ricardo Boa","loja.bsoeste@example.com","outrasenha"\n`;
+    const csvContent = csvHeader + csvExampleRow1 + csvExampleRow2;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) { 
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "exemplo_lojas.csv");
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleProcessStoreImport = async () => {
+    if (!csvStoreFile) {
+      toast({ title: "Nenhum arquivo selecionado", description: "Por favor, selecione um arquivo CSV.", variant: "destructive" });
+      return;
+    }
+    setImportStoreLoading(true);
+    setImportStoreErrors([]);
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      const { data: parsedStores, errors: parsingErrors } = parseCSVToStores(text);
+
+      if (parsingErrors.length > 0) {
+        setImportStoreErrors(parsingErrors);
+        setImportStoreLoading(false);
+        toast({ title: "Erro ao Ler CSV", description: "Verifique os erros listados e o formato do arquivo.", variant: "destructive" });
+        return;
+      }
+
+      const currentLocalStores = loadStores();
+      const currentLocalUsers = loadUsers();
+      const newStoresToSave: Store[] = [];
+      const newUsersToSave: User[] = [];
+      const validationErrors: string[] = [];
+      let importedCount = 0;
+
+      for (let i = 0; i < parsedStores.length; i++) {
+        const ps = parsedStores[i];
+        try {
+          const cleanedCsvCnpj = cleanCNPJ(ps.cnpj || "");
+          const storeInputData = {
+            code: ps.code || "",
+            razaoSocial: ps.razaoSocial || "",
+            cnpj: cleanedCsvCnpj, // Pass cleaned CNPJ for Zod validation
+            address: ps.address || "",
+            city: ps.city || "",
+            neighborhood: ps.neighborhood || "",
+            state: ps.state || "",
+            phone: ps.phone || "",
+            ownerName: ps.ownerName || "",
+            responsibleName: ps.responsibleName || "",
+            email: ps.email || "",
+            password: ps.password, // Optional
+          };
+          
+          const validationResult = storeRegistrationSchema.safeParse(storeInputData);
+
+          if (!validationResult.success) {
+            const fieldErrors = validationResult.error.errors.map(err => `Linha ${i + 2} (Loja ${ps.code || 'sem código'}): ${err.path.join('.')} - ${err.message}`).join('; ');
+            validationErrors.push(fieldErrors);
+            continue;
+          }
+          
+          const validatedData = validationResult.data;
+
+          if (currentLocalStores.some(s => s.code === validatedData.code) || newStoresToSave.some(s => s.code === validatedData.code)) {
+            validationErrors.push(`Linha ${i + 2}: Código de loja ${validatedData.code} já existe e foi ignorado.`);
+            continue;
+          }
+          if (currentLocalStores.some(s => s.cnpj === validatedData.cnpj) || newStoresToSave.some(s => s.cnpj === validatedData.cnpj)) {
+            validationErrors.push(`Linha ${i + 2}: CNPJ ${formatCNPJ(validatedData.cnpj)} já existe e foi ignorado.`);
+            continue;
+          }
+          if (currentLocalUsers.some(u => u.email === validatedData.email && u.role === 'store') || newUsersToSave.some(u => u.email === validatedData.email && u.role === 'store')) {
+             validationErrors.push(`Linha ${i + 2}: Email ${validatedData.email} já cadastrado para outra loja e foi ignorado.`);
+            continue;
+          }
+
+          const newStore: Store = {
+            id: `store_csv_${Date.now()}_${i}`,
+            code: validatedData.code,
+            name: validatedData.razaoSocial,
+            cnpj: validatedData.cnpj, // Already cleaned by Zod
+            address: validatedData.address,
+            city: validatedData.city,
+            neighborhood: validatedData.neighborhood,
+            state: validatedData.state,
+            phone: validatedData.phone,
+            ownerName: validatedData.ownerName,
+            responsibleName: validatedData.responsibleName,
+            email: validatedData.email,
+            participating: true,
+            goalProgress: 0,
+            positivationsDetails: [],
+          };
+          newStoresToSave.push(newStore);
+
+          // User creation if email and password are provided and user doesn't exist
+          const existingUser = currentLocalUsers.find(u => u.email === validatedData.email);
+          if (!existingUser && validatedData.password) {
+            const newUserForStore: User = {
+              id: `user_store_csv_${Date.now()}_${i}`,
+              email: validatedData.email,
+              role: 'store',
+              name: validatedData.responsibleName,
+              storeName: validatedData.razaoSocial,
+            };
+            newUsersToSave.push(newUserForStore);
+          }
+          importedCount++;
+        } catch (error) { // Catch any unexpected error during processing a row
+            validationErrors.push(`Linha ${i + 2} (Loja ${ps.code || 'sem nome'}): Erro inesperado - ${(error as Error).message}`);
+        }
+      }
+
+      if (newStoresToSave.length > 0) {
+        const updatedStoreList = [...currentLocalStores, ...newStoresToSave];
+        saveStores(updatedStoreList);
+        setStores(updatedStoreList); // Update UI
+      }
+      if (newUsersToSave.length > 0) {
+        const updatedUserList = [...currentLocalUsers, ...newUsersToSave];
+        saveUsers(updatedUserList); 
+        // No direct UI update needed here for users, but it's saved.
+      }
+      
+      setImportStoreErrors(validationErrors);
+      setImportStoreLoading(false);
+
+      if (importedCount > 0 && validationErrors.length === 0) {
+        toast({ title: "Importação Concluída!", description: `${importedCount} lojas importadas com sucesso.` });
+        setIsImportStoreDialogOpen(false);
+        setCsvStoreFile(null);
+        setCsvStoreFileName("");
+      } else if (importedCount > 0 && validationErrors.length > 0) {
+        toast({ title: "Importação Parcial", description: `${importedCount} lojas importadas. Alguns registros tiveram erros.`, variant: "default" });
+      } else if (importedCount === 0 && validationErrors.length > 0) {
+        toast({ title: "Falha na Importação", description: "Nenhuma loja importada devido a erros. Verifique os detalhes.", variant: "destructive" });
+      } else if (importedCount === 0 && validationErrors.length === 0 && parsedStores.length > 0) {
+         toast({ title: "Nenhuma Nova Loja", description: "Nenhuma nova loja para importar (possivelmente todas já existem).", variant: "default" });
+      } else {
+         toast({ title: "Nenhum dado para importar", description: "O arquivo CSV parece não conter dados de lojas válidos.", variant: "default" });
+      }
+    };
+
+    reader.onerror = () => {
+      toast({ title: "Erro ao ler arquivo", description: "Não foi possível ler o arquivo selecionado.", variant: "destructive" });
+      setImportStoreLoading(false);
+    };
+    reader.readAsText(csvStoreFile);
+  };
+
+
   return (
     <div className="animate-fadeIn">
       <PageHeader
@@ -238,12 +483,18 @@ export default function ManageStoresPage() {
         description="Adicione, edite ou remova lojas participantes."
         icon={ClipboardPlus}
         actions={
-          <Button onClick={handleAddNew}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Loja
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsImportStoreDialogOpen(true)} variant="outline">
+              <UploadCloud className="mr-2 h-4 w-4" /> Importar Lojas (CSV)
+            </Button>
+            <Button onClick={handleAddNew}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Loja
+            </Button>
+          </div>
         }
       />
 
+      {/* Store Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
@@ -309,6 +560,66 @@ export default function ManageStoresPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Store Import Dialog */}
+      <Dialog open={isImportStoreDialogOpen} onOpenChange={(isOpen) => {
+        setIsImportStoreDialogOpen(isOpen);
+        if (!isOpen) {
+          setCsvStoreFile(null);
+          setCsvStoreFileName("");
+          setImportStoreErrors([]);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar Lojas (CSV)</DialogTitle>
+            <DialogDescription>
+              Selecione um arquivo CSV para importar lojas em massa.
+              A primeira linha (cabeçalho) deve conter:
+              <code className="block bg-muted p-2 rounded-md my-2 text-xs">code,razaoSocial,cnpj,address,city,neighborhood,state,phone,ownerName,responsibleName,email,password</code>
+              O campo 'password' é usado para criar um novo login para a loja se o email não existir.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label htmlFor="csv-store-upload" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Arquivo CSV</label>
+              <Input 
+                id="csv-store-upload"
+                type="file" 
+                accept=".csv" 
+                onChange={handleStoreFileSelect} 
+                className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+              />
+            </div>
+            {csvStoreFileName && (
+              <div className="text-sm text-muted-foreground flex items-center">
+                <FileText className="h-4 w-4 mr-2" /> Arquivo selecionado: {csvStoreFileName}
+              </div>
+            )}
+            <Button type="button" variant="link" size="sm" onClick={handleDownloadSampleStoreCSV} className="p-0 h-auto text-primary">
+              <Download className="mr-1 h-3 w-3" /> Baixar CSV de Exemplo para Lojas
+            </Button>
+            {importStoreErrors.length > 0 && (
+              <div className="mt-4 max-h-40 overflow-y-auto rounded-md border border-destructive/50 bg-destructive/10 p-3">
+                <h4 className="font-semibold text-destructive mb-2">Erros na Importação de Lojas:</h4>
+                <ul className="list-disc list-inside text-xs text-destructive space-y-1">
+                  {importStoreErrors.map((error, index) => <li key={index}>{error}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleProcessStoreImport} disabled={!csvStoreFile || importStoreLoading}>
+              {importStoreLoading ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+              {importStoreLoading ? 'Importando...' : 'Importar Arquivo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <Card className="shadow-lg mt-8">
         <CardHeader>
           <CardTitle>Lojas Cadastradas</CardTitle>
@@ -356,5 +667,6 @@ export default function ManageStoresPage() {
     </div>
   );
 }
+    
 
     
