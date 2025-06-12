@@ -64,48 +64,52 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
 
     const headerLine = allLines[0].toLowerCase();
     const headers = headerLine.split(',').map(h => h.trim());
-    const expectedHeaders = ["name", "cnpj", "address", "city", "neighborhood", "state", "logoUrl"];
+    const expectedHeaders = ["name", "cnpj", "address", "city", "neighborhood", "state", "logourl"];
+    const headerMap: Record<string, keyof VendorFormValues> = {
+        "name": "name", "cnpj": "cnpj", "address": "address", 
+        "city": "city", "neighborhood": "neighborhood", "state": "state", "logourl": "logoUrl"
+    };
     
-    const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
+    const missingHeaders = Object.keys(headerMap).filter(eh => !headers.includes(eh));
     if (missingHeaders.length > 0) {
-        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${expectedHeaders.join(', ')}`] };
+        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${Object.keys(headerMap).join(', ')}`] };
     }
 
-    const vendors: Partial<VendorFormValues>[] = [];
+    const vendorsData: Partial<VendorFormValues>[] = [];
     const errors: string[] = [];
 
     for (let i = 1; i < allLines.length; i++) {
         const line = allLines[i];
-        if (!line.trim()) continue; // Skip empty lines
+        if (!line.trim()) continue; 
 
         const values = line.split(',').map(v => v.trim());
-        const vendorData: Partial<VendorFormValues> = {};
+        const vendorRow: Partial<VendorFormValues> = {};
         let hasErrorInRow = false;
 
         headers.forEach((header, index) => {
-            if (expectedHeaders.includes(header)) {
-                (vendorData as any)[header] = values[index];
+            const mappedKey = headerMap[header];
+            if (mappedKey) {
+                (vendorRow as any)[mappedKey] = values[index];
             }
         });
-
-        // Basic validation for CNPJ format from CSV (before full Zod validation)
-        if (vendorData.cnpj) {
-            vendorData.cnpj = formatCNPJ(vendorData.cnpj); // Format for consistency, Zod will re-validate raw
+        
+        if (vendorRow.cnpj) {
+            vendorRow.cnpj = formatCNPJ(vendorRow.cnpj); 
         } else {
             errors.push(`Linha ${i + 1}: CNPJ não fornecido.`);
             hasErrorInRow = true;
         }
-         if (!vendorData.name) {
+         if (!vendorRow.name) {
             errors.push(`Linha ${i + 1}: Nome do fornecedor não fornecido.`);
             hasErrorInRow = true;
         }
 
 
         if (!hasErrorInRow) {
-            vendors.push(vendorData);
+            vendorsData.push(vendorRow);
         }
     }
-    return { data: vendors, errors };
+    return { data: vendorsData, errors };
 }
 
 
@@ -302,7 +306,7 @@ export default function ManageVendorsPage() {
     if (file) {
       setCsvFile(file);
       setCsvFileName(file.name);
-      setImportErrors([]); // Clear previous errors
+      setImportErrors([]); 
     } else {
       setCsvFile(null);
       setCsvFileName("");
@@ -336,10 +340,10 @@ export default function ManageVendorsPage() {
       for (let i = 0; i < parsedVendors.length; i++) {
         const pv = parsedVendors[i];
         try {
-          // Validate each parsed vendor against the schema
+          
           const validatedData = vendorSchema.parse({
             name: pv.name || '',
-            cnpj: pv.cnpj || '', // formatCNPJ was already applied in parseCSV
+            cnpj: pv.cnpj || '', 
             address: pv.address || '',
             city: pv.city || '',
             neighborhood: pv.neighborhood || '',
@@ -356,7 +360,7 @@ export default function ManageVendorsPage() {
           newVendorsToSave.push({
             id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}_${i}`,
             ...validatedData,
-            cnpj: rawCsvCnpj, // Store cleaned CNPJ
+            cnpj: rawCsvCnpj, 
           });
           importedCount++;
         } catch (error) {
@@ -530,7 +534,7 @@ export default function ManageVendorsPage() {
             <DialogDescription>
               Selecione um arquivo CSV para importar fornecedores em massa.
               O arquivo deve conter as seguintes colunas na primeira linha (cabeçalho):
-              <code className="block bg-muted p-2 rounded-md my-2 text-xs">name,cnpj,address,city,neighborhood,state,logoUrl</code>
+              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">name,cnpj,address,city,neighborhood,state,logoUrl</code>
               Certifique-se que o CNPJ esteja formatado corretamente ou apenas com números.
             </DialogDescription>
           </DialogHeader>
@@ -594,15 +598,26 @@ export default function ManageVendorsPage() {
         <CardHeader><CardTitle>Fornecedores Cadastrados</CardTitle><CardDescription>Lista de todos os fornecedores no sistema.</CardDescription></CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead className="w-[80px]">Logo</TableHead><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Cidade</TableHead><TableHead>Vendedores</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[80px]">Logo</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>CNPJ</TableHead>
+                <TableHead>Cidade</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Vendedores</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
-              {vendors.length === 0 && (<TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>)}
+              {vendors.length === 0 && (<TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>)}
               {vendors.map((vendor) => (
                 <TableRow key={vendor.id}>
                   <TableCell><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" /></TableCell>
                   <TableCell className="font-medium">{vendor.name}</TableCell>
                   <TableCell>{formatCNPJ(vendor.cnpj)}</TableCell>
                   <TableCell>{vendor.city}</TableCell>
+                  <TableCell>{vendor.state}</TableCell>
                   <TableCell>{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
@@ -618,3 +633,4 @@ export default function ManageVendorsPage() {
   );
 }
     
+
