@@ -50,7 +50,12 @@ export default function AdminTieredSweepstakesPage() {
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
 
   useEffect(() => {
-    setAwardTiers(loadAwardTiers().sort((a,b) => a.positivacoesRequired.PR - b.positivacoesRequired.PR));
+    setAwardTiers(loadAwardTiers().sort((a,b) => {
+        // Handle potential undefined values for PR before sorting
+        const aPR = a.positivacoesRequired?.PR ?? Infinity;
+        const bPR = b.positivacoesRequired?.PR ?? Infinity;
+        return aPR - bPR;
+    }));
     setStores(loadStores());
     setCurrentEvent(loadEvent());
     setDrawnWinners(loadDrawnWinners());
@@ -71,6 +76,7 @@ export default function AdminTieredSweepstakesPage() {
       const remainingQuantity = tier.quantityAvailable - winnersForThisTier.length;
 
       const eligibleStoresForTier = stores.filter(store => {
+        if (!store.state) return false; // Ensure store has a state for requirement lookup
         const requiredPositivations = getRequiredPositivationsForStore(tier, store.state);
         const meetsPositivationRequirement = (store.positivationsDetails?.length || 0) >= requiredPositivations;
         
@@ -145,7 +151,7 @@ export default function AdminTieredSweepstakesPage() {
         icon={Dice6}
         actions={
           <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0}>
-            <Download className="mr-2 h-4 w-4" /> Exportar Log de Vencedores (CSV)
+            <Download className="mr-2 h-4 w-4 text-secondary" /> Exportar Log de Vencedores (CSV)
           </Button>
         }
       />
@@ -158,7 +164,7 @@ export default function AdminTieredSweepstakesPage() {
         {awardTiersWithStats.map((tier) => (
           <Card key={tier.id} className="shadow-lg flex flex-col">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Trophy className="text-accent h-6 w-6" /> Faixa {tier.name}</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Trophy className="text-secondary h-6 w-6" /> Faixa {tier.name}</CardTitle>
               <CardDescription>
                 Tipo de Prêmio: <span className="font-semibold">{tier.rewardName}</span> <br />
                 Requer (PR/SC): <span className="font-semibold">{tier.positivacoesRequired.PR} / {tier.positivacoesRequired.SC}</span> selos. <br />
@@ -167,7 +173,7 @@ export default function AdminTieredSweepstakesPage() {
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
               <div>
-                <h4 className="font-semibold text-sm mb-1 flex items-center gap-1"><ListChecks /> Lojas Elegíveis ({tier.eligibleStores.length}):</h4>
+                <h4 className="font-semibold text-sm mb-1 flex items-center gap-1"><ListChecks className="h-5 w-5 text-secondary" /> Lojas Elegíveis ({tier.eligibleStores.length}):</h4>
                 {tier.eligibleStores.length > 0 ? (
                   <ul className="list-disc list-inside text-xs text-muted-foreground max-h-24 overflow-y-auto bg-muted/30 p-2 rounded-md">
                     {tier.eligibleStores.map(store =>
@@ -208,9 +214,9 @@ export default function AdminTieredSweepstakesPage() {
                           className="w-28 ml-2"
                         >
                           {isLoadingDraw === tier.id ? (
-                            <PlayCircle className="mr-2 h-4 w-4 animate-spin" />
+                            <PlayCircle className="mr-2 h-4 w-4 animate-spin text-secondary" />
                           ) : (
-                            <PlayCircle className="mr-2 h-4 w-4" />
+                            <PlayCircle className="mr-2 h-4 w-4 text-secondary" />
                           )}
                           {isLoadingDraw === tier.id ? "Sorteando..." : "Sortear"}
                         </Button>
