@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ClipboardPlus, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download } from 'lucide-react';
+import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -481,7 +481,7 @@ export default function ManageStoresPage() {
       <PageHeader
         title="Lojas"
         description="Adicione, edite ou remova lojas participantes."
-        icon={ClipboardPlus}
+        icon={StoreIcon}
         actions={
           <div className="flex gap-2">
             <Button onClick={() => setIsImportStoreDialogOpen(true)} variant="outline">
@@ -670,4 +670,5 @@ export default function ManageStoresPage() {
     
 
     
+
 
