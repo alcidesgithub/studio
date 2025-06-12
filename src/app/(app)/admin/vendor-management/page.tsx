@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"; // Removed AlertDialogTrigger from here
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,8 +17,8 @@ import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users } from 'luci
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
-import { loadVendors, saveVendors, loadSalespeople, saveSalespeople } from '@/lib/localStorageUtils';
-import type { Vendor, Salesperson } from '@/types';
+import { loadVendors, saveVendors, loadSalespeople, saveSalespeople, loadUsers, saveUsers } from '@/lib/localStorageUtils'; // Added loadUsers, saveUsers
+import type { Vendor, Salesperson, User } from '@/types'; // Added User
 import Image from 'next/image';
 
 const vendorSchema = z.object({
@@ -40,13 +40,13 @@ const salespersonSchema = z.object({
   name: z.string().min(3, "Nome do vendedor é obrigatório."),
   phone: z.string().min(10, "Telefone é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres."),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(), // Made optional for editing
 });
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
 const formatCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
-  if (cleaned.length !== 14) return cnpj; // Return as is if not 14 digits after cleaning
+  if (cleaned.length !== 14) return cnpj;
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
 
@@ -113,10 +113,25 @@ export default function ManageVendorsPage() {
   const handleDeleteVendor = () => {
     if (!vendorToDelete) return;
 
+    const currentUsers = loadUsers();
+    let usersModified = false;
+
     // Remove associated salespeople first
+    const salespeopleOfVendor = salespeople.filter(sp => sp.vendorId === vendorToDelete.id);
     const updatedSalespeople = salespeople.filter(sp => sp.vendorId !== vendorToDelete.id);
+    
+    // Remove users associated with these salespeople
+    const emailsOfSalespeopleToDelete = salespeopleOfVendor.map(sp => sp.email);
+    const usersToKeep = currentUsers.filter(u => !(emailsOfSalespeopleToDelete.includes(u.email) && u.role === 'vendor'));
+
+    if (usersToKeep.length < currentUsers.length) {
+        usersModified = true;
+    }
+    
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
+    if(usersModified) saveUsers(usersToKeep);
+
 
     // Then remove the vendor
     const updatedVendors = vendors.filter(v => v.id !== vendorToDelete.id);
@@ -125,10 +140,10 @@ export default function ManageVendorsPage() {
 
     toast({
       title: "Fornecedor Excluído!",
-      description: `O fornecedor "${vendorToDelete.name}" e seus vendedores vinculados foram removidos.`,
+      description: `O fornecedor "${vendorToDelete.name}" e seus vendedores (e logins) vinculados foram removidos.`,
       variant: "destructive"
     });
-    setVendorToDelete(null); // Close confirmation dialog
+    setVendorToDelete(null); 
   };
 
   const onVendorSubmit = (data: VendorFormValues) => {
@@ -149,15 +164,15 @@ export default function ManageVendorsPage() {
         dataAiHint: data.dataAiHint || 'company logo',
       };
       updatedVendors = [...vendors, newVendor];
-      setEditingVendor(newVendor); // Keep dialog open with new vendor data for salesperson addition
+      setEditingVendor(newVendor); 
       toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.` });
     }
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
     
-    if (!editingVendor) { // If it was a new vendor, don't close dialog, allow adding salespeople
-        // The dialog stays open because setEditingVendor was called.
-    } else { // If editing an existing vendor, close dialog
+    if (!editingVendor) { 
+        // Dialog stays open
+    } else { 
         vendorForm.reset();
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
@@ -178,7 +193,7 @@ export default function ManageVendorsPage() {
       name: salesperson.name,
       phone: salesperson.phone,
       email: salesperson.email,
-      password: '', // Do not pre-fill password for editing
+      password: '', // Password is not pre-filled for editing
     });
     setIsSalespersonDialogOpen(true);
   };
@@ -189,6 +204,19 @@ export default function ManageVendorsPage() {
 
   const handleDeleteSalesperson = () => {
     if (!salespersonToDelete) return;
+
+    // Remove associated user
+    const currentUsers = loadUsers();
+    const usersToKeep = currentUsers.filter(u => !(u.email === salespersonToDelete.email && u.role === 'vendor'));
+    if (usersToKeep.length < currentUsers.length) {
+        saveUsers(usersToKeep);
+        toast({
+            title: "Login do Vendedor Removido",
+            description: `O login para ${salespersonToDelete.email} foi removido.`,
+            variant: "info"
+        });
+    }
+
     const updatedSalespeople = salespeople.filter(sp => sp.id !== salespersonToDelete.id);
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
@@ -197,7 +225,7 @@ export default function ManageVendorsPage() {
         description: `O vendedor "${salespersonToDelete.name}" foi removido.`,
         variant: "destructive"
     });
-    setSalespersonToDelete(null); // Close confirmation dialog
+    setSalespersonToDelete(null); 
   };
 
   const onSalespersonSubmit = (data: SalespersonFormValues) => {
@@ -207,12 +235,16 @@ export default function ManageVendorsPage() {
     }
     let updatedSalespeople;
     const vendorForSalesperson = vendors.find(v => v.id === currentVendorIdForSalesperson);
+    if (!vendorForSalesperson) {
+        toast({ title: "Erro", description: "Fornecedor não encontrado para este vendedor.", variant: "destructive" });
+        return;
+    }
 
     if (editingSalesperson) {
         updatedSalespeople = salespeople.map(sp =>
             sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson } : sp
         );
-        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado para ${vendorForSalesperson?.name}.` });
+        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado para ${vendorForSalesperson.name}.` });
     } else {
         const newSalesperson: Salesperson = {
             id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
@@ -220,14 +252,49 @@ export default function ManageVendorsPage() {
             vendorId: currentVendorIdForSalesperson
         };
         updatedSalespeople = [...salespeople, newSalesperson];
-        toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson?.name}.` });
+        toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson.name}.` });
     }
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
+
+    // Sync with User list for login
+    const currentUsers = loadUsers();
+    const userIndex = currentUsers.findIndex(u => u.email === data.email);
+
+    if (userIndex > -1) { // User with this email exists
+      currentUsers[userIndex].name = data.name; 
+      currentUsers[userIndex].role = 'vendor'; 
+      currentUsers[userIndex].storeName = vendorForSalesperson.name;
+      // Password not updated here for existing users to prevent accidental changes.
+      // A separate "change password" feature would be needed for that.
+      // This mock login doesn't use the password field from User object anyway.
+    } else { // No user with this email, create one
+      if (data.password) { // Only create if password is provided
+        const newUserForSalesperson: User = {
+          id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
+          email: data.email,
+          role: 'vendor',
+          name: data.name, 
+          storeName: vendorForSalesperson.name, 
+        };
+        currentUsers.push(newUserForSalesperson);
+         toast({
+          title: "Login do Vendedor Criado!",
+          description: `Um login foi criado para ${data.email}.`,
+        });
+      } else if (!editingSalesperson) { // Password required for new salespeople if not editing
+         toast({
+          title: "Senha Necessária",
+          description: `Senha não fornecida. Usuário (login) para ${data.email} não foi criado.`,
+          variant: "destructive"
+        });
+      }
+    }
+    saveUsers(currentUsers);
+
     salespersonForm.reset();
     setIsSalespersonDialogOpen(false);
     setEditingSalesperson(null);
-    // currentVendorIdForSalesperson remains as the vendor dialog is still open
   };
 
   const salespeopleForCurrentEditingVendor = useMemo(() => {
@@ -251,7 +318,7 @@ export default function ManageVendorsPage() {
       <Dialog open={isVendorDialogOpen} onOpenChange={(isOpen) => {
           setIsVendorDialogOpen(isOpen);
           if (!isOpen) {
-            setEditingVendor(null); // Reset editing state when dialog closes
+            setEditingVendor(null); 
             vendorForm.reset();
           }
       }}>
@@ -276,7 +343,7 @@ export default function ManageVendorsPage() {
                 </CardContent>
               </Card>
 
-              {editingVendor && ( // Show salespeople section only when editing an existing vendor
+              {editingVendor && ( 
                 <Card className="mt-6">
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
@@ -293,7 +360,7 @@ export default function ManageVendorsPage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Nome</TableHead>
-                            <TableHead>Email</TableHead>
+                            <TableHead>Email (Login)</TableHead>
                             <TableHead>Telefone</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
                           </TableRow>
@@ -334,7 +401,6 @@ export default function ManageVendorsPage() {
           setIsSalespersonDialogOpen(isOpen);
           if (!isOpen) {
               setEditingSalesperson(null);
-              // Do not reset currentVendorIdForSalesperson as the main vendor dialog might still be open
               salespersonForm.reset();
           }
       }}>
@@ -365,7 +431,7 @@ export default function ManageVendorsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão de Fornecedor</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o fornecedor "{vendorToDelete?.name}"? Esta ação também removerá todos os vendedores vinculados a ele e não poderá ser desfeita.
+              Tem certeza que deseja excluir o fornecedor "{vendorToDelete?.name}"? Esta ação também removerá todos os vendedores vinculados a ele (e seus respectivos logins) e não poderá ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -380,7 +446,7 @@ export default function ManageVendorsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão de Vendedor</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o vendedor "{salespersonToDelete?.name}"? Esta ação não poderá ser desfeita.
+              Tem certeza que deseja excluir o vendedor "{salespersonToDelete?.name}"? O login associado a este vendedor também será removido. Esta ação não poderá ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
