@@ -6,10 +6,10 @@ import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-// import { MOCK_AWARD_TIERS, MOCK_STORES, MOCK_EVENT } from '@/lib/constants'; // No longer use mocks
 import { loadAwardTiers, loadStores, loadEvent, loadDrawnWinners, saveDrawnWinners } from '@/lib/localStorageUtils';
 import type { AwardTier, Store, Event as EventType, SweepstakeWinnerRecord } from '@/types';
-import { Dice6, ListChecks, Trophy, Download, PlayCircle } from 'lucide-react'; 
+import { getRequiredPositivationsForStore } from '@/lib/utils';
+import { Dice6, ListChecks, Trophy, Download, PlayCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,7 +21,7 @@ const exportToCSV = (data: any[], filename: string) => {
     Object.values(row).map(value => {
       let stringValue = String(value);
       if (value instanceof Date) {
-        stringValue = format(value, "yyyy-MM-dd HH:mm:ss", { locale: ptBR });
+        stringValue = format(new Date(value), "yyyy-MM-dd HH:mm:ss", { locale: ptBR });
       }
       if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
         return `"${stringValue.replace(/"/g, '""')}"`;
@@ -42,22 +42,22 @@ const exportToCSV = (data: any[], filename: string) => {
 
 export default function AdminTieredSweepstakesPage() {
   const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]);
-  const [isLoadingDraw, setIsLoadingDraw] = useState<string | null>(null); 
+  const [isLoadingDraw, setIsLoadingDraw] = useState<string | null>(null);
   const { toast } = useToast();
-  
+
   const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
 
   useEffect(() => {
-    setAwardTiers(loadAwardTiers().sort((a,b) => a.positivacoesRequired - b.positivacoesRequired));
+    // Sort by PR requirements by default for display, or by name if preferred
+    setAwardTiers(loadAwardTiers().sort((a,b) => a.positivacoesRequired.PR - b.positivacoesRequired.PR));
     setStores(loadStores());
     setCurrentEvent(loadEvent());
     setDrawnWinners(loadDrawnWinners());
   }, []);
 
   useEffect(() => {
-    // Save drawn winners whenever it changes, but only if it's not the initial empty load
     if (drawnWinners.length > 0 || localStorage.getItem('hiperfarma_drawn_winners')) {
         saveDrawnWinners(drawnWinners);
     }
@@ -68,10 +68,11 @@ export default function AdminTieredSweepstakesPage() {
     return awardTiers.map(tier => {
       const winnersForThisTier = drawnWinners.filter(w => w.tierId === tier.id).sort((a,b) => new Date(a.drawnAt).getTime() - new Date(b.drawnAt).getTime());
       const remainingQuantity = tier.quantityAvailable - winnersForThisTier.length;
-      
+
       const eligibleStoresForTier = stores.filter(store => {
-        const meetsPositivationRequirement = (store.positivationsDetails?.length || 0) >= tier.positivacoesRequired;
-        const hasNotWonThisTier = !winnersForThisTier.some(w => w.storeId === store.id); 
+        const requiredPositivations = getRequiredPositivationsForStore(tier, store.state);
+        const meetsPositivationRequirement = (store.positivationsDetails?.length || 0) >= requiredPositivations;
+        const hasNotWonThisTier = !winnersForThisTier.some(w => w.storeId === store.id);
         return store.participating && meetsPositivationRequirement && hasNotWonThisTier;
       });
 
@@ -79,10 +80,10 @@ export default function AdminTieredSweepstakesPage() {
         ...tier,
         remainingQuantity,
         eligibleStores: eligibleStoresForTier,
-        winners: winnersForThisTier, 
+        winners: winnersForThisTier,
       };
     });
-  }, [drawnWinners, awardTiers, stores]); 
+  }, [drawnWinners, awardTiers, stores]);
 
   const handleDrawWinner = async (tier: typeof awardTiersWithStats[0]) => {
     if (tier.remainingQuantity <= 0 || tier.eligibleStores.length === 0) {
@@ -91,7 +92,7 @@ export default function AdminTieredSweepstakesPage() {
     }
 
     setIsLoadingDraw(tier.id);
-    await new Promise(resolve => setTimeout(resolve, 1000)); 
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const randomIndex = Math.floor(Math.random() * tier.eligibleStores.length);
     const winningStore = tier.eligibleStores[randomIndex];
@@ -101,12 +102,11 @@ export default function AdminTieredSweepstakesPage() {
       tierName: tier.name,
       prizeName: tier.rewardName,
       storeId: winningStore.id,
-      storeName: `${winningStore.code} - ${winningStore.name} (CNPJ: ${winningStore.cnpj})`,
+      storeName: `${winningStore.code} - ${winningStore.name} (CNPJ: ${winningStore.cnpj}, Estado: ${winningStore.state || 'N/A'})`,
       drawnAt: new Date(),
     };
 
     setDrawnWinners(prev => [...prev, newWinnerRecord]);
-    // saveDrawnWinners([...drawnWinners, newWinnerRecord]); // Save immediately to localStorage
     setIsLoadingDraw(null);
     toast({
       title: "Vencedor Sorteado!",
@@ -157,7 +157,7 @@ export default function AdminTieredSweepstakesPage() {
               <CardTitle className="flex items-center gap-2"><Trophy className="text-accent h-6 w-6" /> Faixa {tier.name}</CardTitle>
               <CardDescription>
                 Tipo de Prêmio: <span className="font-semibold">{tier.rewardName}</span> <br />
-                Requer: <span className="font-semibold">{tier.positivacoesRequired}</span> selos (positivações). <br />
+                Requer (PR/SC): <span className="font-semibold">{tier.positivacoesRequired.PR} / {tier.positivacoesRequired.SC}</span> selos. <br />
                 Total de Prêmios: <span className="font-semibold">{tier.quantityAvailable}</span> | Restantes: <span className="font-semibold">{tier.remainingQuantity}</span>
               </CardDescription>
             </CardHeader>
@@ -166,19 +166,19 @@ export default function AdminTieredSweepstakesPage() {
                 <h4 className="font-semibold text-sm mb-1 flex items-center gap-1"><ListChecks /> Lojas Elegíveis ({tier.eligibleStores.length}):</h4>
                 {tier.eligibleStores.length > 0 ? (
                   <ul className="list-disc list-inside text-xs text-muted-foreground max-h-24 overflow-y-auto bg-muted/30 p-2 rounded-md">
-                    {tier.eligibleStores.map(store => 
-                      <li key={store.id}>{store.code} - {store.name} (CNPJ: {store.cnpj})</li>
+                    {tier.eligibleStores.map(store =>
+                      <li key={store.id}>{store.code} - {store.name} ({store.state}, Selos: {store.positivationsDetails?.length || 0})</li>
                     )}
                   </ul>
                 ) : (
-                  <p className="text-xs text-muted-foreground p-2">Nenhuma loja elegível para o sorteio desta faixa (ou todas já ganharam, ou nenhuma atende aos critérios).</p>
+                  <p className="text-xs text-muted-foreground p-2">Nenhuma loja elegível para o sorteio desta faixa.</p>
                 )}
               </div>
-              
+
               <div className="space-y-2">
                 <h4 className="font-semibold text-sm mb-1">Slots de Prêmios para esta Faixa:</h4>
                 {Array.from({ length: tier.quantityAvailable }).map((_, prizeIndex) => {
-                  const winnerRecord = tier.winners[prizeIndex]; 
+                  const winnerRecord = tier.winners[prizeIndex];
                   const isSlotDrawn = !!winnerRecord;
                   const canDrawForThisSlot = !isSlotDrawn && tier.eligibleStores.length > 0 && tier.remainingQuantity > 0;
 
@@ -237,7 +237,7 @@ export default function AdminTieredSweepstakesPage() {
                 <TableRow>
                   <TableHead>Faixa</TableHead>
                   <TableHead>Prêmio</TableHead>
-                  <TableHead>Loja Vencedora (Código - Razão Social - CNPJ)</TableHead>
+                  <TableHead>Loja Vencedora (Código - Razão Social - CNPJ - Estado)</TableHead>
                   <TableHead className="text-right">Sorteado Em</TableHead>
                 </TableRow>
               </TableHeader>

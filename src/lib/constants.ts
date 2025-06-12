@@ -13,10 +13,10 @@ export const MOCK_EVENT: Event = {
 };
 
 export const MOCK_AWARD_TIERS: AwardTier[] = [
-  { id: 'tier_1', name: 'Bronze', rewardName: 'Cartão Presente R$100', quantityAvailable: 20, positivacoesRequired: 3 },
-  { id: 'tier_2', name: 'Prata', rewardName: 'Cartão Presente R$250', quantityAvailable: 10, positivacoesRequired: 7 },
-  { id: 'tier_3', name: 'Ouro', rewardName: 'Cartão Presente R$500 + Destaque', quantityAvailable: 5, positivacoesRequired: 10 },
-].sort((a,b) => a.positivacoesRequired - b.positivacoesRequired); // Ensure sorted for progress logic
+  { id: 'tier_1', name: 'Bronze', rewardName: 'Cartão Presente R$100', quantityAvailable: 20, positivacoesRequired: { PR: 3, SC: 4 } },
+  { id: 'tier_2', name: 'Prata', rewardName: 'Cartão Presente R$250', quantityAvailable: 10, positivacoesRequired: { PR: 7, SC: 8 } },
+  { id: 'tier_3', name: 'Ouro', rewardName: 'Cartão Presente R$500 + Destaque', quantityAvailable: 5, positivacoesRequired: { PR: 10, SC: 12 } },
+].sort((a,b) => a.positivacoesRequired.PR - b.positivacoesRequired.PR); // Sort by PR requirements for now
 
 export const MOCK_VENDORS: Vendor[] = [
   { id: 'vendor_1', name: 'Farmacoop Produtos Farmacêuticos Ltda.', cnpj: '11222333000144', address: 'Rua dos Medicamentos, 123', city: 'São Paulo', neighborhood: 'Centro', state: 'SP', logoUrl: 'https://placehold.co/120x60.png?text=Farmacoop' },
@@ -53,29 +53,29 @@ const positivationsStore4: PositivationDetail[] = [
 
 
 export const MOCK_STORES: Store[] = [
-  { 
-    id: 'store_1', code: 'LJ001', name: 'Hiperfarma Matriz Ltda.', cnpj: '01234567000188', 
-    participating: true, goalProgress: 75, positivationsDetails: positivationsStore1, 
-    currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore1.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore1.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)),
+  {
+    id: 'store_1', code: 'LJ001', name: 'Hiperfarma Matriz Ltda.', cnpj: '01234567000188',
+    participating: true, goalProgress: 75, positivationsDetails: positivationsStore1,
+    currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore1.length >= t.positivacoesRequired.PR && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore1.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired.PR)),
     address: 'Rua Principal, 123', city: 'Curitiba', neighborhood: 'Centro', state: 'PR', phone: '(41) 3333-1111',
     ownerName: 'João Silva', responsibleName: 'Maria Souza', email: 'matriz@hiperfarma.com'
   },
-  { 
-    id: 'store_2', code: 'LJ002', name: 'Hiperfarma Filial Centro Com. de Med. Ltda.', cnpj: '02345678000199', 
+  {
+    id: 'store_2', code: 'LJ002', name: 'Hiperfarma Filial Centro Com. de Med. Ltda.', cnpj: '02345678000199',
     participating: true, goalProgress: 40, positivationsDetails: [],
     address: 'Av. Comercial, 456', city: 'Londrina', neighborhood: 'Centro', state: 'PR', phone: '(43) 3333-2222',
     ownerName: 'Pedro Alves', responsibleName: 'Ana Costa', email: 'filial.centro@hiperfarma.com'
   },
-  { 
-    id: 'store_3', code: 'LJ003', name: 'Hiperfarma Shopping Norte Farmácia EIRELI', cnpj: '03456789000100', 
+  {
+    id: 'store_3', code: 'LJ003', name: 'Hiperfarma Shopping Norte Farmácia EIRELI', cnpj: '03456789000100',
     participating: false, goalProgress: 0, positivationsDetails: [],
     address: 'Rua do Shopping, 789', city: 'Joinville', neighborhood: 'América', state: 'SC', phone: '(47) 3333-3333',
     ownerName: 'Carlos Pereira', responsibleName: 'Beatriz Santos', email: 'shopping.norte@hiperfarma.com'
   },
-  { 
-    id: 'store_4', code: 'LJ004', name: 'Hiperfarma Av. Brasil Medicamentos S.A.', cnpj: '04567890000111', 
-    participating: true, goalProgress: 100, positivationsDetails: positivationsStore4, 
-    currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore4.length >= t.positivacoesRequired && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore4.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired)),
+  {
+    id: 'store_4', code: 'LJ004', name: 'Hiperfarma Av. Brasil Medicamentos S.A.', cnpj: '04567890000111',
+    participating: true, goalProgress: 100, positivationsDetails: positivationsStore4,
+    currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore4.length >= t.positivacoesRequired.SC && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore4.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired.SC)),
     address: 'Av. Brasil, 1011', city: 'Florianópolis', neighborhood: 'Centro', state: 'SC', phone: '(48) 3333-4444',
     ownerName: 'Fernanda Lima', responsibleName: 'Ricardo Oliveira', email: 'av.brasil@hiperfarma.com'
   },

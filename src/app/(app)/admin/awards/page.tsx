@@ -6,10 +6,9 @@ import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-// import { MOCK_AWARD_TIERS } from '@/lib/constants'; // No longer using MOCK directly
 import { loadAwardTiers, saveAwardTiers } from '@/lib/localStorageUtils';
 import type { AwardTier } from '@/types';
 import { Trophy, PlusCircle, Edit, Trash2, Save } from 'lucide-react';
@@ -22,7 +21,8 @@ const awardTierSchema = z.object({
   name: z.string().min(3, { message: "Nome da faixa deve ter pelo menos 3 caracteres." }),
   rewardName: z.string().min(3, { message: "Nome do prêmio deve ter pelo menos 3 caracteres." }),
   quantityAvailable: z.coerce.number().int().positive({ message: "Quantidade deve ser um número positivo." }),
-  positivacoesRequired: z.coerce.number().int().positive({ message: "Positivações necessárias devem ser um número positivo." }),
+  positivacoesRequiredPR: z.coerce.number().int().min(1, { message: "Positivações para PR devem ser pelo menos 1." }),
+  positivacoesRequiredSC: z.coerce.number().int().min(1, { message: "Positivações para SC devem ser pelo menos 1." }),
 });
 
 type AwardTierFormValues = z.infer<typeof awardTierSchema>;
@@ -43,7 +43,8 @@ export default function AdminAwardsPage() {
       name: '',
       rewardName: '',
       quantityAvailable: 1,
-      positivacoesRequired: 1,
+      positivacoesRequiredPR: 1,
+      positivacoesRequiredSC: 1,
     },
   });
 
@@ -53,7 +54,8 @@ export default function AdminAwardsPage() {
       name: '',
       rewardName: '',
       quantityAvailable: 1,
-      positivacoesRequired: 1,
+      positivacoesRequiredPR: 1,
+      positivacoesRequiredSC: 1,
     });
     setIsDialogOpen(true);
   };
@@ -64,11 +66,12 @@ export default function AdminAwardsPage() {
       name: tier.name,
       rewardName: tier.rewardName,
       quantityAvailable: tier.quantityAvailable,
-      positivacoesRequired: tier.positivacoesRequired,
+      positivacoesRequiredPR: tier.positivacoesRequired.PR,
+      positivacoesRequiredSC: tier.positivacoesRequired.SC,
     });
     setIsDialogOpen(true);
   };
-  
+
   const handleDelete = (tierId: string) => {
     const updatedTiers = tiers.filter(t => t.id !== tierId);
     setTiers(updatedTiers);
@@ -82,16 +85,26 @@ export default function AdminAwardsPage() {
 
   const onSubmit = (data: AwardTierFormValues) => {
     let updatedTiers;
+    const tierDataToSave = {
+        name: data.name,
+        rewardName: data.rewardName,
+        quantityAvailable: data.quantityAvailable,
+        positivacoesRequired: {
+            PR: data.positivacoesRequiredPR,
+            SC: data.positivacoesRequiredSC,
+        }
+    };
+
     if (editingTier) {
-      updatedTiers = tiers.map(t => 
-        t.id === editingTier.id ? { ...editingTier, ...data } : t
+      updatedTiers = tiers.map(t =>
+        t.id === editingTier.id ? { ...editingTier, ...tierDataToSave } : t
       );
       toast({
         title: "Faixa Atualizada!",
         description: `A faixa de premiação "${data.name}" foi atualizada no armazenamento local.`,
       });
     } else {
-      const newTier: AwardTier = { id: `tier_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data }; // ensure unique ID
+      const newTier: AwardTier = { id: `tier_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...tierDataToSave };
       updatedTiers = [...tiers, newTier];
       toast({
         title: "Faixa Criada!",
@@ -120,9 +133,7 @@ export default function AdminAwardsPage() {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        {/* DialogTrigger is not explicitly needed if Dialog controls open state directly */}
-        {/* <DialogTrigger asChild />  */}
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>{editingTier ? 'Editar Faixa de Premiação' : 'Adicionar Nova Faixa de Premiação'}</DialogTitle>
             <DialogDescription>
@@ -170,19 +181,34 @@ export default function AdminAwardsPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="positivacoesRequired"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Positivações Necessárias</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="Ex: 5" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="positivacoesRequiredPR"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Positivações Req. (PR)</FormLabel>
+                        <FormControl>
+                        <Input type="number" placeholder="Ex: 5" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="positivacoesRequiredSC"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Positivações Req. (SC)</FormLabel>
+                        <FormControl>
+                        <Input type="number" placeholder="Ex: 5" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
               <DialogFooter className="pt-4">
                  <DialogClose asChild>
                    <Button type="button" variant="outline" onClick={() => { setEditingTier(null); form.reset(); setIsDialogOpen(false);}}>Cancelar</Button>
@@ -199,7 +225,7 @@ export default function AdminAwardsPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>Faixas de Premiação Configurada</CardTitle>
-          <CardDescription>Lista das faixas de premiação atuais e seus critérios.</CardDescription>
+          <CardDescription>Lista das faixas de premiação atuais e seus critérios por estado.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -208,17 +234,19 @@ export default function AdminAwardsPage() {
                 <TableHead>Nome da Faixa</TableHead>
                 <TableHead>Prêmio</TableHead>
                 <TableHead className="text-right">Quantidade</TableHead>
-                <TableHead className="text-right">Positivações Req.</TableHead>
+                <TableHead className="text-right">Positivações PR</TableHead>
+                <TableHead className="text-right">Positivações SC</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tiers.sort((a,b) => a.positivacoesRequired - b.positivacoesRequired).map((tier) => (
+              {tiers.sort((a,b) => a.positivacoesRequired.PR - b.positivacoesRequired.PR).map((tier) => (
                 <TableRow key={tier.id}>
                   <TableCell className="font-medium">{tier.name}</TableCell>
                   <TableCell>{tier.rewardName}</TableCell>
                   <TableCell className="text-right">{tier.quantityAvailable}</TableCell>
-                  <TableCell className="text-right">{tier.positivacoesRequired}</TableCell>
+                  <TableCell className="text-right">{tier.positivacoesRequired.PR}</TableCell>
+                  <TableCell className="text-right">{tier.positivacoesRequired.SC}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEdit(tier)}>
                       <Edit className="h-4 w-4" />

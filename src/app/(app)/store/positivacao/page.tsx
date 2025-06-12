@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
+import { getRequiredPositivationsForStore } from '@/lib/utils';
 import { Star, Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,7 +23,8 @@ export default function StorePositivacaoPage() {
 
   useEffect(() => {
     setAllStores(loadStores());
-    setAwardTiers(loadAwardTiers().sort((a,b) => a.positivacoesRequired - b.positivacoesRequired));
+    const loadedTiers = loadAwardTiers(); // Load unsorted or sorted by a default (e.g., PR)
+    setAwardTiers(loadedTiers);
     setCurrentEvent(loadEvent());
     setAllVendors(loadVendors().sort((a,b) => a.name.localeCompare(b.name)));
   }, []);
@@ -41,35 +43,50 @@ export default function StorePositivacaoPage() {
   const positivacoesCount = useMemo(() => validPositivationsDetails.length, [validPositivationsDetails]);
 
   const currentAchievedTier = useMemo(() => {
-    if (awardTiers.length === 0) return undefined;
+    if (!currentStore || awardTiers.length === 0) return undefined;
+    const storeState = currentStore.state;
+    // Sort tiers based on the current store's state requirements to find the highest achieved
+    const sortedTiersForStore = [...awardTiers].sort((a, b) =>
+        getRequiredPositivationsForStore(a, storeState) - getRequiredPositivationsForStore(b, storeState)
+    );
+
     let achievedTier: AwardTier | undefined = undefined;
-    for (let i = awardTiers.length - 1; i >= 0; i--) {
-      if (positivacoesCount >= awardTiers[i].positivacoesRequired) {
-        achievedTier = awardTiers[i];
-        break;
-      }
+    for (let i = sortedTiersForStore.length - 1; i >= 0; i--) {
+        if (positivacoesCount >= getRequiredPositivationsForStore(sortedTiersForStore[i], storeState)) {
+            achievedTier = sortedTiersForStore[i];
+            break;
+        }
     }
     return achievedTier;
-  }, [awardTiers, positivacoesCount]);
+  }, [awardTiers, positivacoesCount, currentStore]);
 
   const nextTier = useMemo(() => {
-    if (awardTiers.length === 0) return undefined;
+    if (!currentStore || awardTiers.length === 0) return undefined;
+    const storeState = currentStore.state;
+    const sortedTiersForStore = [...awardTiers].sort((a, b) =>
+        getRequiredPositivationsForStore(a, storeState) - getRequiredPositivationsForStore(b, storeState)
+    );
+
     if (currentAchievedTier) {
-      const currentTierIndex = awardTiers.findIndex(t => t.id === currentAchievedTier!.id);
-      if (currentTierIndex < awardTiers.length - 1) {
-        return awardTiers[currentTierIndex + 1];
-      }
-      return undefined; // Max tier achieved
+        const currentTierIndex = sortedTiersForStore.findIndex(t => t.id === currentAchievedTier!.id);
+        if (currentTierIndex < sortedTiersForStore.length - 1) {
+            return sortedTiersForStore[currentTierIndex + 1];
+        }
+        return undefined; // Max tier achieved
     }
-    return awardTiers[0]; // First tier if none achieved
-  }, [awardTiers, currentAchievedTier]);
+    return sortedTiersForStore.length > 0 ? sortedTiersForStore[0] : undefined; // First tier if none achieved
+  }, [awardTiers, currentAchievedTier, currentStore]);
 
   const progressToNextTier = useMemo(() => {
-    if (!nextTier) return currentAchievedTier ? 100 : 0;
-    // Ensure positivacoesRequired is not zero to avoid division by zero
-    if (nextTier.positivacoesRequired === 0) return 100;
-    return (positivacoesCount / nextTier.positivacoesRequired) * 100;
-  }, [nextTier, positivacoesCount, currentAchievedTier]);
+    if (!currentStore || !nextTier) return currentAchievedTier ? 100 : 0;
+    const storeState = currentStore.state;
+    const requiredForNext = getRequiredPositivationsForStore(nextTier, storeState);
+
+    if (requiredForNext === 0) return 100; // Avoid division by zero if next tier requires 0
+    const progress = (positivacoesCount / requiredForNext) * 100;
+    return Math.min(progress, 100); // Cap progress at 100%
+  }, [nextTier, positivacoesCount, currentAchievedTier, currentStore]);
+
 
   const positivationsMap = useMemo(() => {
     const map = new Map<string, PositivationDetail>();
@@ -109,7 +126,7 @@ export default function StorePositivacaoPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title={`${currentStore.name} - Cartela de Positivações`}
+        title={`${currentStore.code} - ${currentStore.name} (${currentStore.state || 'N/A'}) - Cartela de Positivações`}
         description={`Sua performance e selos recebidos no ${currentEvent.name}`}
         icon={Star}
       />
@@ -148,10 +165,10 @@ export default function StorePositivacaoPage() {
           <CardContent>
             {nextTier ? (
               <>
-                <div className="text-xl font-bold">{positivacoesCount} / {nextTier.positivacoesRequired} selos</div>
-                <Progress value={progressToNextTier > 100 ? 100 : progressToNextTier} className="mt-2 h-3" />
+                <div className="text-xl font-bold">{positivacoesCount} / {getRequiredPositivationsForStore(nextTier, currentStore.state)} selos</div>
+                <Progress value={progressToNextTier} className="mt-2 h-3" />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Faltam {Math.max(0, nextTier.positivacoesRequired - positivacoesCount)} selos para a faixa {nextTier.name}!
+                  Faltam {Math.max(0, getRequiredPositivationsForStore(nextTier, currentStore.state) - positivacoesCount)} selos para a faixa {nextTier.name}!
                 </p>
               </>
             ) : (
@@ -162,7 +179,7 @@ export default function StorePositivacaoPage() {
                   </>
               ) : (
                   <>
-                  <div className="text-xl font-bold">0 / {awardTiers.length > 0 && awardTiers[0].positivacoesRequired > 0 ? awardTiers[0].positivacoesRequired : (awardTiers.length > 0 ? '-' : '-')} selos</div>
+                  <div className="text-xl font-bold">0 / {awardTiers.length > 0 && currentStore.state ? getRequiredPositivationsForStore(awardTiers[0], currentStore.state) : (awardTiers.length > 0 ? awardTiers[0].positivacoesRequired.PR : '-')} selos</div>
                     <Progress value={0} className="mt-2 h-3" />
                   <p className="text-xs text-muted-foreground mt-1">Comece a coletar selos!</p>
                   </>
@@ -256,4 +273,3 @@ export default function StorePositivacaoPage() {
     </div>
   );
 }
-

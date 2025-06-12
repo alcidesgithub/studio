@@ -34,13 +34,13 @@ export interface Store {
   name: string; // Razão Social
   cnpj: string; // CNPJ da loja
   participating: boolean;
-  currentTier?: AwardTier; 
-  goalProgress: number; 
+  currentTier?: AwardTier;
+  goalProgress: number;
   positivationsDetails: PositivationDetail[];
   address?: string;
   city?: string;
   neighborhood?: string;
-  state?: string;
+  state?: string; // e.g., "PR" or "SC"
   phone?: string;
   ownerName?: string;
   responsibleName?: string;
@@ -52,7 +52,10 @@ export interface AwardTier {
   name: string; // Nome da faixa
   rewardName: string; // Nome do prêmio
   quantityAvailable: number; // Quantidade de prêmios disponíveis
-  positivacoesRequired: number; // Meta de positivações exigida (número inteiro)
+  positivacoesRequired: {
+    PR: number; // Positivações necessárias para lojas do Paraná
+    SC: number; // Positivações necessárias para lojas de Santa Catarina
+  };
 }
 
 export interface Positivacao {
@@ -75,14 +78,14 @@ export interface SweepstakeResult extends SweepstakeEntry {
 
 export interface Vendor { // Represents the Vendor Company
   id: string;
-  name: string; 
+  name: string;
   cnpj: string;
   address: string;
   city: string;
   neighborhood: string;
-  state: string; 
+  state: string;
   logoUrl: string;
-  website?: string; 
+  website?: string;
 }
 
 export interface Salesperson { // Represents the individual salesperson User
@@ -91,7 +94,7 @@ export interface Salesperson { // Represents the individual salesperson User
   name: string;
   phone: string;
   email: string;
-  password?: string; 
+  password?: string;
 }
 
 export interface SweepstakeWinnerRecord {
@@ -100,5 +103,5 @@ export interface SweepstakeWinnerRecord {
   prizeName: string;
   storeId: string;
   storeName: string;
-  drawnAt: Date | string; 
+  drawnAt: Date | string;
 }
