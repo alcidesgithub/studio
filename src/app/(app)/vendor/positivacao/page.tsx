@@ -185,8 +185,8 @@ export default function VendorPositivacaoPage() {
                           <Image
                             src={currentVendorCompany.logoUrl}
                             alt={`Logo ${currentVendorCompany.name}`}
-                            width={20}
-                            height={20}
+                            width={60}
+                            height={30}
                             className="mr-2 object-contain"
                           />
                         ) : (
