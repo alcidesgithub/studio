@@ -12,7 +12,7 @@ interface EventMapProps {
 export function EventMap({ embedUrl, address }: EventMapProps) {
   if (!embedUrl || embedUrl.trim() === "") {
     return (
-      <Card className="rounded-lg overflow-hidden shadow-lg border">
+      <Card className="rounded-lg overflow-hidden">
         <CardContent className="h-[450px] flex flex-col items-center justify-center text-center">
           <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground font-semibold">Mapa não disponível</p>
@@ -25,7 +25,7 @@ export function EventMap({ embedUrl, address }: EventMapProps) {
   }
 
   return (
-    <div className="rounded-lg overflow-hidden shadow-lg border">
+    <div className="rounded-lg overflow-hidden">
       <iframe
         src={embedUrl}
         width="100%"
