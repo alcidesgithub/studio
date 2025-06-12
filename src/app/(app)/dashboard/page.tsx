@@ -83,24 +83,56 @@ export default function DashboardPage() {
 
     if (storesWithNoTierCount > 0 && participatingStores.length > 0) {
       // Only add 'Nenhuma Faixa' if there are stores that didn't achieve any configured tier
-      tierCounts['none'] = { name: 'Nenhuma Faixa', count: storesWithNoTierCount, reward: '-' };
+      // and there are participating stores.
+      if (Object.values(tierCounts).some(tc => tc.count > 0) || storesWithNoTierCount > 0) {
+         tierCounts['none'] = { name: 'Nenhuma Faixa', count: storesWithNoTierCount, reward: '-' };
+      }
     }
     return tierCounts;
   }, [participatingStores, awardTiers, vendors]);
 
   const chartData = useMemo(() => {
-    const data = awardTiers.map(tier => ({
-        name: tier.name,
-        lojas: storesByHighestTier[tier.id]?.count || 0,
-    }));
-    
+    const data = awardTiers
+      .map(tier => ({
+          name: tier.name,
+          lojas: storesByHighestTier[tier.id]?.count || 0,
+      }))
+      .filter(d => d.lojas > 0); // Include only tiers with stores initially for sorting if needed or specific display
+      
+    // Re-add all tiers to ensure they are present, then add 'Nenhuma Faixa' if applicable
+    const allTierNames = new Set(data.map(d => d.name));
+    awardTiers.forEach(tier => {
+        if (!allTierNames.has(tier.name)) {
+            data.push({ name: tier.name, lojas: 0 });
+            allTierNames.add(tier.name);
+        }
+    });
+
+
     if (storesByHighestTier['none']?.count > 0) {
         data.push({
             name: storesByHighestTier['none'].name,
             lojas: storesByHighestTier['none'].count,
         });
     }
-    return data;
+
+    // Filter out entries that have 0 lojas IF 'Nenhuma Faixa' exists and has stores,
+    // or if all other tiers have 0 lojas and 'Nenhuma Faixa' has stores.
+    // This aims to prevent showing all tiers with 0 if 'Nenhuma Faixa' is the only one with data.
+    const hasNenhumaFaixaData = storesByHighestTier['none']?.count > 0;
+    const allOtherTiersAreZero = awardTiers.every(tier => (storesByHighestTier[tier.id]?.count || 0) === 0);
+
+    if (hasNenhumaFaixaData && allOtherTiersAreZero) {
+        return data.filter(d => d.name === 'Nenhuma Faixa' || d.lojas > 0);
+    }
+    
+    // Sort so 'Nenhuma Faixa' appears last if present, otherwise by 'lojas' descending
+    return data.sort((a, b) => {
+        if (a.name === 'Nenhuma Faixa') return 1;
+        if (b.name === 'Nenhuma Faixa') return -1;
+        return b.lojas - a.lojas; // Example: sort by count, or keep original tier order
+    });
+
   }, [awardTiers, storesByHighestTier]);
 
 
@@ -114,8 +146,10 @@ export default function DashboardPage() {
 
   const noTiersConfigured = awardTiers.length === 0;
   const noParticipatingStores = participatingStoresCount === 0;
-  const noStoresInAnyTier = chartData.every(d => d.lojas === 0);
-  const showChart = !noTiersConfigured && !noParticipatingStores && !noStoresInAnyTier;
+  const noStoresInAnyTierBasedOnChartData = chartData.every(d => d.lojas === 0);
+  // Refined showChart condition:
+  // Show chart if there are tiers, participating stores, AND at least one category in chartData has 'lojas' > 0
+  const showChart = !noTiersConfigured && !noParticipatingStores && !noStoresInAnyTierBasedOnChartData;
 
 
   return (
@@ -199,34 +233,34 @@ export default function DashboardPage() {
                  <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja atingiu as faixas de premiação ainda.</p>
             ) : (
               <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <BarChart 
+                <BarChart
+                  layout="vertical"
                   accessibilityLayer 
                   data={chartData} 
                   margin={{ 
                     top: 5, 
-                    right: 20, 
-                    left: -5, 
-                    bottom: chartData.length > 5 ? 50 : (chartData.length > 3 ? 35 : 20) 
+                    right: 30, 
+                    left: (chartData.length > 5 ? 20 : 10) + (Math.max(...chartData.map(d => d.name.length)) > 10 ? 60 : 20), // Dynamic left margin
+                    bottom: 20
                   }}
                 >
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis
+                  <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                  <XAxis type="number" allowDecimals={false} tickMargin={8} />
+                  <YAxis
+                    type="category"
                     dataKey="name"
                     tickLine={false}
                     axisLine={false}
                     tickMargin={10}
-                    interval={0} 
-                    angle={chartData.length > 5 ? -45 : (chartData.length > 3 ? -30 : 0)}
-                    textAnchor={chartData.length > 3 ? "end" : "middle"}
-                    height={chartData.length > 5 ? 70 : (chartData.length > 3 ? 50 : 30)}
-                    tickFormatter={(value: string) => value.length > 10 ? `${value.slice(0,8)}...` : value}
+                    interval={0}
+                    width={Math.max(...chartData.map(d => d.name.length)) > 10 ? 100 : 80} // Dynamic width for Y-axis labels
+                    tickFormatter={(value: string) => value.length > 12 ? `${value.slice(0,10)}...` : value}
                   />
-                  <YAxis allowDecimals={false} tickMargin={8} width={30} />
                   <ChartTooltip
                     cursor={false}
                     content={<ChartTooltipContent indicator="dot" />}
                   />
-                  <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={chartData.length > 6 ? 30 : undefined}/>
+                  <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={chartData.length > 6 ? 20 : (chartData.length > 3 ? 25 : 30)}/>
                 </BarChart>
               </ChartContainer>
             )}
