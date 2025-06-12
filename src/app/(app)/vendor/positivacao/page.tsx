@@ -183,13 +183,14 @@ export default function VendorPositivacaoPage() {
                   ) : (
                     <>
                       {currentVendorCompany.logoUrl ? (
-                          <Image
-                            src={currentVendorCompany.logoUrl}
-                            alt={`Logo ${currentVendorCompany.name}`}
-                            width={60}
-                            height={30}
-                            className="object-contain flex-shrink-0 w-[60px] h-[30px]"
-                          />
+                          <div className="relative w-[60px] h-[30px] flex-shrink-0">
+                            <Image
+                              src={currentVendorCompany.logoUrl}
+                              alt={`Logo ${currentVendorCompany.name}`}
+                              layout="fill"
+                              objectFit="contain"
+                            />
+                          </div>
                         ) : (
                           <ThumbsUp className="flex-shrink-0" /> 
                         )}
