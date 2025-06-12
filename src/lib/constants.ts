@@ -27,20 +27,28 @@ export const MOCK_VENDORS: Vendor[] = [
   { id: 'vendor_6', name: 'MediSuprimentos Hospitalares Ltda.', cnpj: '54321098000154', address: 'Rodovia dos Suprimentos, 303', city: 'Belo Horizonte', neighborhood: 'Savassi', state: 'MG', logoUrl: 'https://placehold.co/120x60.png?text=MediSupri' },
 ].sort((a,b) => a.name.localeCompare(b.name)); // Sort vendors alphabetically
 
+export const MOCK_SALESPEOPLE: Salesperson[] = [
+    { id: 'user_vendor_cs', vendorId: 'vendor_1', name: 'Carlos Silva', phone: '(11) 98765-4321', email: 'carlos.silva@farmacoop.com', password: 'password123' },
+    { id: 'user_vendor_ap', vendorId: 'vendor_2', name: 'Ana Pereira', phone: '(41) 91234-5678', email: 'ana.pereira@saudemais.com', password: 'password123' },
+    { id: 'user_vendor_bio', vendorId: 'vendor_3', name: 'Beatriz BioMed', phone: '(48) 99999-0003', email: 'beatriz.biomed@example.com', password: 'password123' },
+    { id: 'user_vendor_nutri', vendorId: 'vendor_4', name: 'Nicolas Nutri', phone: '(51) 99999-0004', email: 'nicolas.nutri@example.com', password: 'password123' },
+];
+
+
 const today = new Date();
 const positivationsStore1: PositivationDetail[] = [
-  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, date: subDays(today, 5).toISOString() },
-  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, date: subDays(today, 4).toISOString() },
-  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, date: subDays(today, 3).toISOString() },
+  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, date: subDays(today, 5).toISOString(), salespersonId: 'user_vendor_cs', salespersonName: 'Carlos Silva' },
+  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, date: subDays(today, 4).toISOString(), salespersonId: 'user_vendor_ap', salespersonName: 'Ana Pereira' },
+  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, date: subDays(today, 3).toISOString(), salespersonId: 'user_vendor_bio', salespersonName: 'Beatriz BioMed' },
 ];
 
 const positivationsStore4: PositivationDetail[] = [
-  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, date: subDays(today, 2).toISOString() },
-  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, date: subDays(today, 2).toISOString() },
-  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, date: subDays(today, 1).toISOString() },
-  { vendorId: MOCK_VENDORS[3].id, vendorName: MOCK_VENDORS[3].name, vendorLogoUrl: MOCK_VENDORS[3].logoUrl, date: subDays(today, 1).toISOString() },
-  { vendorId: MOCK_VENDORS[4].id, vendorName: MOCK_VENDORS[4].name, vendorLogoUrl: MOCK_VENDORS[4].logoUrl, date: subDays(today, 0).toISOString() },
-  { vendorId: MOCK_VENDORS[5].id, vendorName: MOCK_VENDORS[5].name, vendorLogoUrl: MOCK_VENDORS[5].logoUrl, date: subDays(today, 0).toISOString() },
+  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, date: subDays(today, 2).toISOString(), salespersonId: 'user_vendor_cs', salespersonName: 'Carlos Silva' },
+  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, date: subDays(today, 2).toISOString(), salespersonId: 'user_vendor_ap', salespersonName: 'Ana Pereira' },
+  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, date: subDays(today, 1).toISOString(), salespersonId: 'user_vendor_bio', salespersonName: 'Beatriz BioMed' },
+  { vendorId: MOCK_VENDORS[3].id, vendorName: MOCK_VENDORS[3].name, vendorLogoUrl: MOCK_VENDORS[3].logoUrl, date: subDays(today, 1).toISOString(), salespersonId: 'user_vendor_nutri', salespersonName: 'Nicolas Nutri' },
+  { vendorId: MOCK_VENDORS[4].id, vendorName: MOCK_VENDORS[4].name, vendorLogoUrl: MOCK_VENDORS[4].logoUrl, date: subDays(today, 0).toISOString(), salespersonName: 'Vendedor CuidadoTotal' },
+  { vendorId: MOCK_VENDORS[5].id, vendorName: MOCK_VENDORS[5].name, vendorLogoUrl: MOCK_VENDORS[5].logoUrl, date: subDays(today, 0).toISOString(), salespersonName: 'Vendedor MediSupri' },
 ];
 
 
@@ -78,7 +86,12 @@ export const MOCK_USERS: User[] = [
   { id: 'user_admin', email: 'admin@hiperfarma.com', role: 'admin', name: 'Usuário Admin' },
   { id: 'user_alcides', email: 'alcides@redehiperfarma.com.br', role: 'admin', name: 'Alcides' },
   { id: 'user_manager', email: 'manager@hiperfarma.com', role: 'manager', name: 'Usuário Gerente' },
-  { id: 'user_vendor_rep', email: 'vendor@supplier.com', role: 'vendor', name: 'Rep. Farmacoop', storeName: 'Farmacoop Produtos Farmacêuticos Ltda.' }, // storeName here implies their company for display
+  // Salesperson users - their 'name' is the salesperson's name, 'storeName' is their vendor company name
+  { id: MOCK_SALESPEOPLE[0].id, email: MOCK_SALESPEOPLE[0].email, role: 'vendor', name: MOCK_SALESPEOPLE[0].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[0].vendorId)?.name },
+  { id: MOCK_SALESPEOPLE[1].id, email: MOCK_SALESPEOPLE[1].email, role: 'vendor', name: MOCK_SALESPEOPLE[1].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[1].vendorId)?.name },
+  { id: MOCK_SALESPEOPLE[2].id, email: MOCK_SALESPEOPLE[2].email, role: 'vendor', name: MOCK_SALESPEOPLE[2].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[2].vendorId)?.name },
+  { id: MOCK_SALESPEOPLE[3].id, email: MOCK_SALESPEOPLE[3].email, role: 'vendor', name: MOCK_SALESPEOPLE[3].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[3].vendorId)?.name },
+  // Store users
   { id: 'user_store_1', email: 'store1@hiperfarma.com', role: 'store', name: 'Equipe Matriz', storeName: MOCK_STORES[0].name },
   { id: 'user_store_2', email: 'store2@hiperfarma.com', role: 'store', name: 'Equipe Filial Centro', storeName: MOCK_STORES[1].name },
   { id: 'user_store_4', email: 'store4@hiperfarma.com', role: 'store', name: 'Equipe Av. Brasil', storeName: MOCK_STORES[3].name },
@@ -88,7 +101,7 @@ export const ROLES: UserRole[] = ['admin', 'manager', 'vendor', 'store'];
 export const ROLES_TRANSLATIONS: Record<UserRole, string> = {
   admin: 'Administrador',
   manager: 'Gerente',
-  vendor: 'Vendedor', // Alterado de 'Fornecedor' para 'Vendedor'
+  vendor: 'Vendedor',
   store: 'Loja',
 };
 
@@ -99,18 +112,10 @@ export const STATES = [
 ];
 
 
-export const MOCK_SALESPEOPLE: Salesperson[] = [
-    { id: 'sp_1', vendorId: 'vendor_1', name: 'Carlos Silva', phone: '(11) 98765-4321', email: 'carlos.silva@farmacoop.com', password: 'password123' },
-    { id: 'sp_2', vendorId: 'vendor_2', name: 'Ana Pereira', phone: '(41) 91234-5678', email: 'ana.pereira@saudemais.com', password: 'password123' },
-];
-
-
 export const MOCK_SWEEPSTAKE_ENTRIES: SweepstakeEntry[] = MOCK_STORES
   .filter(s => s.participating && s.positivationsDetails.length > 0)
   .map(s => ({
     storeId: s.id,
     storeName: s.name,
-    // Qualification rate could be percentage of max possible positivations, or just goalProgress
     qualificationRate: s.goalProgress / 100,
   }));
-

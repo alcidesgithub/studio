@@ -30,14 +30,14 @@ export default function VendorPositivacaoPage() {
     setAllVendors(loadVendors());
   }, []);
 
-  const currentVendor = useMemo(() => {
+  const currentVendorCompany = useMemo(() => {
     if (!user || user.role !== 'vendor' || !user.storeName) return null; 
-    return allVendors.find(v => v.name === user.storeName);
+    return allVendors.find(v => v.name === user.storeName); // user.storeName is the Vendor company name for a vendor user
   }, [user, allVendors]);
 
   const handlePositivar = (storeId: string, storeName: string) => {
-    if (!currentVendor) {
-      toast({ title: "Erro", description: "Dados do fornecedor não encontrados.", variant: "destructive" });
+    if (!currentVendorCompany || !user) {
+      toast({ title: "Erro", description: "Dados do fornecedor ou do usuário não encontrados.", variant: "destructive" });
       return;
     }
 
@@ -52,23 +52,25 @@ export default function VendorPositivacaoPage() {
     const targetStore = storesFromStorage[targetStoreIndex];
 
     const alreadyPositivatedByThisVendor = targetStore.positivationsDetails.some(
-      detail => detail.vendorId === currentVendor.id
+      detail => detail.vendorId === currentVendorCompany.id
     );
 
     if (alreadyPositivatedByThisVendor) {
       toast({
         title: "Já Positivado",
-        description: `Você (Fornecedor: ${currentVendor.name}) já positivou ${storeName} para este evento.`,
+        description: `Sua empresa (${currentVendorCompany.name}) já positivou ${storeName} para este evento.`,
         variant: "default",
       });
       return;
     }
 
     const newPositivation: PositivationDetail = {
-      vendorId: currentVendor.id,
-      vendorName: currentVendor.name,
-      vendorLogoUrl: currentVendor.logoUrl,
+      vendorId: currentVendorCompany.id,
+      vendorName: currentVendorCompany.name,
+      vendorLogoUrl: currentVendorCompany.logoUrl,
       date: new Date().toISOString(),
+      salespersonId: user.id, // ID of the logged-in salesperson (User object)
+      salespersonName: user.name, // Name of the logged-in salesperson
     };
 
     const updatedStore = {
@@ -84,7 +86,7 @@ export default function VendorPositivacaoPage() {
 
     toast({
       title: "Loja Positivada!",
-      description: `Loja ${storeName} positivada com sucesso por ${currentVendor.name}.`,
+      description: `Loja ${storeName} positivada com sucesso por ${user.name} (${currentVendorCompany.name}).`,
     });
   };
 
@@ -96,13 +98,13 @@ export default function VendorPositivacaoPage() {
     );
   }, [searchTerm, allStores]);
 
-  if (!currentEvent || !currentVendor) {
+  if (!currentEvent || !currentVendorCompany) {
     return (
       <div className="animate-fadeIn p-6">
         <PageHeader title="Positivar Lojas" icon={ThumbsUp} />
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
-            { !currentEvent ? "Carregando dados do evento..." : "Dados do fornecedor não encontrados. Faça login como fornecedor."}
+            { !currentEvent ? "Carregando dados do evento..." : "Dados da empresa fornecedora não encontrados. Faça login como vendedor."}
           </CardContent>
         </Card>
       </div>
@@ -113,8 +115,8 @@ export default function VendorPositivacaoPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title={`Positivar Lojas (${currentVendor.name})`}
-        description={`Interaja com as lojas no ${currentEvent.name}. Você pode positivar cada loja uma vez.`}
+        title={`Positivar Lojas (${currentVendorCompany.name})`}
+        description={`Interaja com as lojas no ${currentEvent.name}. Você (${user?.name}) pode positivar cada loja uma vez em nome de ${currentVendorCompany.name}.`}
         icon={ThumbsUp}
       />
 
@@ -148,10 +150,11 @@ export default function VendorPositivacaoPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredStores.map((store: Store) => {
           const isPositivatedByThisVendorForSession = sessionPositivatedStores.has(store.id);
-          const isPersistentlyPositivatedByThisVendor = store.positivationsDetails.some(
-            detail => detail.vendorId === currentVendor.id
+          // Check if *this vendor company* has already positivada this store
+          const isPersistentlyPositivatedByThisVendorCompany = store.positivationsDetails.some(
+            detail => detail.vendorId === currentVendorCompany.id 
           );
-          const isDisabled = isPositivatedByThisVendorForSession || isPersistentlyPositivatedByThisVendor;
+          const isDisabled = isPositivatedByThisVendorForSession || isPersistentlyPositivatedByThisVendorCompany;
 
           return (
             <Card key={store.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
@@ -174,14 +177,14 @@ export default function VendorPositivacaoPage() {
                 >
                   {isDisabled ? (
                     <>
-                      <CheckCircle className="mr-2 h-4 w-4" /> Positivada por você
+                      <CheckCircle className="mr-2 h-4 w-4" /> Positivada por {currentVendorCompany.name}
                     </>
                   ) : (
                     <>
-                      {currentVendor.logoUrl ? (
+                      {currentVendorCompany.logoUrl ? (
                           <Image
-                            src={currentVendor.logoUrl}
-                            alt={`Logo ${currentVendor.name}`}
+                            src={currentVendorCompany.logoUrl}
+                            alt={`Logo ${currentVendorCompany.name}`}
                             width={20}
                             height={20}
                             className="mr-2 object-contain"

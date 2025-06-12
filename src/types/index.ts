@@ -6,7 +6,7 @@ export interface User {
   email: string;
   role: UserRole;
   name: string;
-  storeName?: string; // For store users
+  storeName?: string; // For store users (vendor's company name) or store's own name
 }
 
 export interface Event {
@@ -20,12 +20,12 @@ export interface Event {
 }
 
 export interface PositivationDetail {
-  vendorId: string;
-  vendorName: string;
-  vendorLogoUrl: string;
+  vendorId: string; // ID of the Vendor company
+  vendorName: string; // Name of the Vendor company
+  vendorLogoUrl: string; // Logo of the Vendor company
   date: string; // ISO string
-  // salespersonName?: string; // Future enhancement
-  // salespersonEmail?: string; // Future enhancement
+  salespersonId?: string; // ID of the Salesperson User who performed the positivation
+  salespersonName?: string; // Name of the Salesperson User who performed the positivation
 }
 
 export interface Store {
@@ -34,11 +34,9 @@ export interface Store {
   name: string; // Razão Social
   cnpj: string; // CNPJ da loja
   participating: boolean;
-  // positivacoes: number; // This will be derived from positivationsDetails.length
-  currentTier?: AwardTier; // This might need to be re-evaluated
-  goalProgress: number; // General progress, might be different from tier progress
+  currentTier?: AwardTier; 
+  goalProgress: number; 
   positivationsDetails: PositivationDetail[];
-  // New fields from form
   address?: string;
   city?: string;
   neighborhood?: string;
@@ -47,8 +45,6 @@ export interface Store {
   ownerName?: string;
   responsibleName?: string;
   email?: string;
-  // password is part of the form, but typically not stored directly on the store object after creation for security.
-  // If needed for other purposes, consider how to handle it. For now, it's not added to the Store type.
 }
 
 export interface AwardTier {
@@ -77,33 +73,32 @@ export interface SweepstakeResult extends SweepstakeEntry {
   prize: string;
 }
 
-export interface Vendor {
+export interface Vendor { // Represents the Vendor Company
   id: string;
-  name: string; // Empresa
+  name: string; 
   cnpj: string;
   address: string;
   city: string;
   neighborhood: string;
-  state: string; // e.g., "PR" or "SC"
+  state: string; 
   logoUrl: string;
-  website?: string; // Optional link to vendor's website
+  website?: string; 
 }
 
-export interface Salesperson {
-  id: string;
-  vendorId: string;
+export interface Salesperson { // Represents the individual salesperson User
+  id: string; // This would be the User ID
+  vendorId: string; // ID of the Vendor company they work for
   name: string;
   phone: string;
   email: string;
-  password?: string; // For login (mock)
+  password?: string; 
 }
 
-// Added for sweepstakes-by-tier page state persistence
 export interface SweepstakeWinnerRecord {
   tierId: string;
   tierName: string;
   prizeName: string;
   storeId: string;
   storeName: string;
-  drawnAt: Date | string; // Allow string for JSON, convert to Date on load
+  drawnAt: Date | string; 
 }

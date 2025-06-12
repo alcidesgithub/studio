@@ -5,13 +5,10 @@ import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-// Tooltip components are no longer needed
-// import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
-import { Star, ThumbsUp, Medal, TrendingUp, Gift } from 'lucide-react'; // CheckCircle removed as it's no longer used
-// Image component is not directly used here anymore, but AvatarImage is
+import { Star, ThumbsUp, Medal, TrendingUp, Gift } from 'lucide-react'; 
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState, useMemo } from 'react';
@@ -102,7 +99,6 @@ export default function StorePositivacaoPage() {
 
 
   return (
-    // TooltipProvider removed
     <div className="animate-fadeIn">
       <PageHeader
         title={`${currentStore.name} - Cartela de Positivações`}
@@ -171,7 +167,7 @@ export default function StorePositivacaoPage() {
       <Card className="shadow-xl">
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Sua Cartela de Selos de Fornecedores</CardTitle>
-          <CardDescription>Veja quais fornecedores já te positivaram.</CardDescription>
+          <CardDescription>Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
         </CardHeader>
         <CardContent>
           {allVendors.length === 0 ? (
@@ -183,7 +179,6 @@ export default function StorePositivacaoPage() {
                 const isPositivated = !!positivation;
 
                 return (
-                  // Tooltip and TooltipTrigger removed
                   <div 
                     key={vendor.id}
                     className={`
@@ -204,8 +199,18 @@ export default function StorePositivacaoPage() {
                     </div>
                     
                     <div className="text-xs mt-2 w-full">
-                      {isPositivated && positivation && isValid(parseISO(positivation.date)) ? (
+                      {isPositivated && positivation?.salespersonName && isValid(parseISO(positivation.date)) ? (
                         <>
+                          <p className="text-secondary flex items-center justify-center">
+                            <ThumbsUp className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
+                            <span className="font-semibold">Positivado por: {positivation.salespersonName}</span>
+                          </p>
+                          <p className="text-muted-foreground mt-0.5">
+                            Em: {format(parseISO(positivation.date), "dd/MM HH:mm", { locale: ptBR })}
+                          </p>
+                        </>
+                      ) : isPositivated && positivation && isValid(parseISO(positivation.date)) ? (
+                         <>
                           <p className="text-secondary flex items-center justify-center">
                             <ThumbsUp className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
                             <span className="font-semibold">Positivado!</span>
@@ -213,14 +218,12 @@ export default function StorePositivacaoPage() {
                           <p className="text-muted-foreground mt-0.5">
                             Em: {format(parseISO(positivation.date), "dd/MM HH:mm", { locale: ptBR })}
                           </p>
-                        </>
+                         </>
                       ) : (
                         <p className="text-muted-foreground">Ainda não positivado</p>
                       )}
                     </div>
-                    {/* Old CheckCircle icon removed */}
                   </div>
-                  // TooltipContent removed
                 );
               })}
             </div>
@@ -243,7 +246,5 @@ export default function StorePositivacaoPage() {
           </CardContent>
       </Card>
     </div>
-    // TooltipProvider removed
   );
 }
-
