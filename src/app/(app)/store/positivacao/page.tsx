@@ -77,7 +77,7 @@ export default function StorePositivacaoPage() {
   if (!user || !currentEvent) {
     return (
       <div className="animate-fadeIn p-6">
-        <PageHeader title="Minha Cartela de Selos" icon={Star} />
+        <PageHeader title="Minhas Positivações" icon={Star} />
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
             Carregando dados...
@@ -90,7 +90,7 @@ export default function StorePositivacaoPage() {
   if (!currentStore) {
      return (
       <div className="animate-fadeIn p-6">
-        <PageHeader title="Minha Cartela de Selos" icon={Star} />
+        <PageHeader title="Minhas Positivações" icon={Star} />
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
             Dados da loja não encontrados para o usuário {user.name}.
@@ -105,7 +105,7 @@ export default function StorePositivacaoPage() {
     <TooltipProvider>
       <div className="animate-fadeIn">
         <PageHeader
-          title={`${currentStore.name} - Cartela de Selos`}
+          title={`${currentStore.name} - Cartela de Positivações`}
           description={`Sua performance e selos recebidos no ${currentEvent.name}`}
           icon={Star}
         />
@@ -207,7 +207,7 @@ export default function StorePositivacaoPage() {
                         {isPositivated && positivation && isValid(parseISO(positivation.date)) ? (
                           <>
                             <p className="text-sm text-secondary">
-                              <ThumbsUp className="inline-block h-4 w-4 mr-1" /> Positivado!
+                              <ThumbsUp className="inline-block h-4 w-4 mr-1 text-secondary" /> Positivado!
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Em: {format(parseISO(positivation.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -235,7 +235,7 @@ export default function StorePositivacaoPage() {
                 <CardTitle>Qualificação para Sorteios</CardTitle>
             </CardHeader>
             <CardContent>
-            <p className="text-sm">Sua loja tem <span className="font-bold text-lg text-secondary">{currentStore.positivationsDetails.length}</span> selos.</p>
+            <p className="text-sm">Sua loja tem <span className="font-bold text-lg text-secondary">{positivacoesCount}</span> selos.</p>
             <p className="text-xs text-muted-foreground mt-1">Lojas com mais selos e que atingem as faixas de premiação participam de sorteios especiais. Continue engajando!</p>
             </CardContent>
         </Card>
