@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/sidebar'; 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase, Dice6, Stamp } from 'lucide-react'; // Added Stamp
+import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase, Dice6, BadgeCheck, Stamp } from 'lucide-react'; // Added Stamp, BadgeCheck
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ROLES_TRANSLATIONS } from '@/lib/constants';
@@ -34,7 +34,7 @@ const navItemsByRole = {
   ],
   vendor: [
     { href: '/event', label: 'Info Evento', icon: MapPin },
-    { href: '/vendor/positivacao', label: 'Positivar Loja', icon: Stamp }, // Changed from ThumbsUp
+    { href: '/vendor/positivacao', label: 'Positivar Loja', icon: BadgeCheck }, 
   ],
   store: [
     { href: '/event', label: 'Info Evento', icon: MapPin },
@@ -62,7 +62,7 @@ export function SidebarNav() {
   };
 
   const getLogoLink = () => {
-    if (!user) return "/dashboard"; 
+    if (!user) return "/login"; // Changed from /dashboard for logged out state
     switch (user.role) {
       case 'store':
         return "/store/positivacao";
