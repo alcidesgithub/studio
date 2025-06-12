@@ -38,8 +38,8 @@ export default function DashboardPage() {
   const participatingStoresCount = useMemo(() => participatingStores.length, [participatingStores]);
   
   const totalPositivacoes = useMemo(() => 
-    participatingStores.reduce((sum, s) => sum + (s.positivationsDetails?.length || 0), 0), 
-  [participatingStores]);
+    participatingStores.reduce((sum, s) => sum + (s.positivationsDetails?.filter(pd => vendors.some(v => v.id === pd.vendorId)).length || 0), 0), 
+  [participatingStores, vendors]);
 
   const totalVendorsCount = useMemo(() => vendors.length, [vendors]);
   
@@ -53,13 +53,14 @@ export default function DashboardPage() {
     if (awardTiers.length === 0 && participatingStores.length === 0) return {};
     
     const tierCounts: Record<string, { name: string; count: number; reward: string }> = {};
+    // Initialize all configured tiers with 0 counts
     awardTiers.forEach(tier => {
       tierCounts[tier.id] = { name: tier.name, count: 0, reward: tier.rewardName };
     });
     let storesWithNoTierCount = 0;
 
     participatingStores.forEach(store => {
-      const positivacoesCount = store.positivationsDetails?.length || 0;
+      const positivacoesCount = store.positivationsDetails?.filter(pd => vendors.some(v => v.id === pd.vendorId)).length || 0;
       let highestAchievedTier: AwardTier | undefined = undefined;
 
       // Itera das faixas mais altas para as mais baixas (array já está ordenado por PR asc)
@@ -80,24 +81,30 @@ export default function DashboardPage() {
     });
 
     if (storesWithNoTierCount > 0 && participatingStores.length > 0) {
+      // Only add 'Nenhuma Faixa' if there are stores that didn't achieve any configured tier
       tierCounts['none'] = { name: 'Nenhuma Faixa', count: storesWithNoTierCount, reward: '-' };
     }
     return tierCounts;
-  }, [participatingStores, awardTiers]);
+  }, [participatingStores, awardTiers, vendors]);
 
   const chartData = useMemo(() => {
+    // Start with all configured tiers (awardTiers is sorted by PR)
     const data = awardTiers.map(tier => ({
         name: tier.name,
         lojas: storesByHighestTier[tier.id]?.count || 0,
     }));
-    // Adiciona "Nenhuma Faixa" ao final se houver lojas nessa categoria
+    
+    // Add "Nenhuma Faixa" to the end if it exists and has stores
     if (storesByHighestTier['none']?.count > 0) {
         data.push({
             name: storesByHighestTier['none'].name,
             lojas: storesByHighestTier['none'].count,
         });
     }
-    return data.filter(d => d.lojas > 0 || awardTiers.find(t => t.name === d.name)); // Manter todas as faixas configuradas, mesmo com 0 lojas
+    // The chart should display all configured tiers, even if they have 0 lojas.
+    // "Nenhuma Faixa" should only be shown if it has > 0 lojas.
+    // So, no additional filtering is needed here if we start from awardTiers.
+    return data;
   }, [awardTiers, storesByHighestTier]);
 
 
@@ -111,6 +118,8 @@ export default function DashboardPage() {
 
   const noTiersConfigured = awardTiers.length === 0;
   const noParticipatingStores = participatingStoresCount === 0;
+  // Show chart if tiers are configured and there are participating stores.
+  // The message "Nenhuma loja atingiu..." will be shown if chartData has no 'lojas' > 0.
   const showChart = !noTiersConfigured && !noParticipatingStores;
 
 
@@ -180,7 +189,7 @@ export default function DashboardPage() {
 
       <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full">
          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-semibold">Distribuição por Faixas de Premiação</CardTitle> {/* Increased font size slightly */}
+            <CardTitle className="text-base font-semibold">Distribuição por Faixas de Premiação</CardTitle>
             <Trophy className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardDescription className="px-6 text-xs">
@@ -194,8 +203,8 @@ export default function DashboardPage() {
             ) : !showChart || chartData.filter(d => d.lojas > 0).length === 0 ? (
                  <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja atingiu as faixas de premiação ainda.</p>
             ) : (
-              <ChartContainer config={chartConfig} className="h-[250px] w-full"> {/* Increased height */}
-                <BarChart accessibilityLayer data={chartData} margin={{ top: 5, right: 20, left: -5, bottom: 20 }}> {/* Adjusted margins */}
+              <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                <BarChart accessibilityLayer data={chartData} margin={{ top: 5, right: 20, left: -5, bottom: chartData.length > 5 ? 30 : 20 }}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
                     dataKey="name"
@@ -203,9 +212,9 @@ export default function DashboardPage() {
                     axisLine={false}
                     tickMargin={10}
                     interval={0} 
-                    angle={chartData.length > 5 ? -30 : 0} // Angle ticks if many categories
-                    textAnchor={chartData.length > 5 ? "end" : "middle"}
-                    height={chartData.length > 5 ? 50 : 30} // Adjust height for angled labels
+                    angle={chartData.length > 4 ? -30 : 0}
+                    textAnchor={chartData.length > 4 ? "end" : "middle"}
+                    height={chartData.length > 4 ? 60 : 30}
                     tickFormatter={(value) => value.length > 12 ? `${value.slice(0,10)}...` : value}
                   />
                   <YAxis allowDecimals={false} tickMargin={8} width={30} />
