@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation'; 
-import Image from 'next/image'; // Added Image import
+import Image from 'next/image'; 
 import {
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar, TooltipProvider, Tooltip, TooltipTrigger, TooltipContent
 } from '@/components/ui/sidebar'; 
@@ -33,7 +33,6 @@ const navItemsByRole = {
     { href: '/admin/vendor-management', label: 'Fornecedores', icon: Briefcase },
   ],
   vendor: [
-    { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
     { href: '/event', label: 'Info Evento', icon: MapPin },
     { href: '/vendor/positivacao', label: 'Positivar Loja', icon: ThumbsUp },
   ],
@@ -62,10 +61,22 @@ export function SidebarNav() {
     router.push('/login'); 
   };
 
+  const getLogoLink = () => {
+    if (!user) return "/dashboard"; // Default fallback
+    switch (user.role) {
+      case 'store':
+        return "/store/positivacao";
+      case 'vendor':
+        return "/vendor/positivacao";
+      default:
+        return "/dashboard";
+    }
+  };
+
   return (
     <>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <Link href={user?.role === 'store' ? "/store/positivacao" : "/dashboard"} className="flex items-center gap-2" onClick={handleLinkClick}>
+        <Link href={getLogoLink()} className="flex items-center gap-2" onClick={handleLinkClick}>
           <Building className="h-8 w-8 text-primary" />
           <Image
             src="https://i.imgur.com/qlwlELF.png"

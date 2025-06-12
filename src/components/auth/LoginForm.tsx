@@ -48,8 +48,10 @@ export function LoginForm() {
       });
       if (user.role === 'store') {
         router.push('/store/positivacao');
+      } else if (user.role === 'vendor') {
+        router.push('/vendor/positivacao');
       } else {
-        router.push('/dashboard'); // For admin, manager, vendor
+        router.push('/dashboard'); // For admin, manager
       }
     } else {
       toast({

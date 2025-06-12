@@ -49,21 +49,33 @@ export default function AppLayout({
         <div className="flex min-h-screen flex-col items-center justify-center p-4">
           <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>
           <p className="mb-4">Você não tem permissão para visualizar esta página.</p>
-          <Button onClick={() => router.push(user.role === 'store' ? '/store/positivacao' : '/dashboard')}>Ir para Página Inicial</Button>
+          <Button onClick={() => router.push(user.role === 'store' ? '/store/positivacao' : (user.role === 'vendor' ? '/vendor/positivacao' : '/dashboard'))}>Ir para Página Inicial</Button>
         </div>
       );
   }
 
   // Check role-based access for store routes
-  const allowedStorePaths = ['/event', '/store/positivacao']; // Removed '/dashboard'
+  const allowedStorePaths = ['/event', '/store/positivacao']; 
   if (user.role === 'store' && !allowedStorePaths.includes(pathname) && !pathname.startsWith('/_next/')) {
       return (
           <div className="flex min-h-screen flex-col items-center justify-center p-4">
             <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>
             <p className="mb-4">Você não tem permissão para visualizar esta página.</p>
-            <Button onClick={() => router.push('/store/positivacao')}>Ir para Minha Cartela</Button>
+            <Button onClick={() => router.push('/store/positivacao')}>Ir para Minhas Positivações</Button>
           </div>
         );
+  }
+
+  // Check role-based access for vendor routes
+  const allowedVendorPaths = ['/event', '/vendor/positivacao'];
+  if (user.role === 'vendor' && !allowedVendorPaths.includes(pathname) && !pathname.startsWith('/_next/')) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-4">
+        <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>
+        <p className="mb-4">Você não tem permissão para visualizar esta página.</p>
+        <Button onClick={() => router.push('/vendor/positivacao')}>Ir para Positivar Loja</Button>
+      </div>
+    );
   }
 
 
