@@ -23,7 +23,7 @@ import type { Vendor, Salesperson, User } from '@/types';
 import Image from 'next/image';
 
 const vendorSchema = z.object({
-  name: z.string().min(3, "Nome da empresa deve ter pelo menos 3 caracteres."),
+  name: z.string().min(3, "Razão Social da empresa deve ter pelo menos 3 caracteres."),
   cnpj: z.string().refine(value => {
     const cleaned = value.replace(/\D/g, '');
     return cleaned.length === 14;
@@ -462,7 +462,7 @@ export default function ManageVendorsPage() {
               <Card>
                 <CardHeader><CardTitle className="text-xl">Informações do Fornecedor</CardTitle></CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4">
-                  <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome da Empresa</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (<FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua das Indústrias, 789" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: São Paulo" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -539,14 +539,14 @@ export default function ManageVendorsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
-              <label htmlFor="csv-upload" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Arquivo CSV</label>
+             <div>
+               <label htmlFor="csv-upload" className="block text-sm font-medium mb-1">Arquivo CSV</label>
               <Input 
                 id="csv-upload"
                 type="file" 
                 accept=".csv" 
                 onChange={handleFileSelect} 
-                className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
               />
             </div>
             {csvFileName && (
@@ -601,7 +601,7 @@ export default function ManageVendorsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[80px]">Logo</TableHead>
-                <TableHead>Nome</TableHead>
+                <TableHead>Razão Social</TableHead>
                 <TableHead>CNPJ</TableHead>
                 <TableHead>Município</TableHead>
                 <TableHead>Estado</TableHead>
@@ -633,3 +633,4 @@ export default function ManageVendorsPage() {
   );
 }
     
+
