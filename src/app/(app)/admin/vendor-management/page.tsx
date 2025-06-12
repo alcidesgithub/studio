@@ -10,15 +10,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users } from 'lucide-react';
+import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
-import { loadVendors, saveVendors, loadSalespeople, saveSalespeople, loadUsers, saveUsers } from '@/lib/localStorageUtils'; // Added loadUsers, saveUsers
-import type { Vendor, Salesperson, User } from '@/types'; // Added User
+import { loadVendors, saveVendors, loadSalespeople, saveSalespeople, loadUsers, saveUsers } from '@/lib/localStorageUtils';
+import type { Vendor, Salesperson, User } from '@/types';
 import Image from 'next/image';
 
 const vendorSchema = z.object({
@@ -39,15 +40,74 @@ const salespersonSchema = z.object({
   name: z.string().min(3, "Nome do vendedor é obrigatório."),
   phone: z.string().min(10, "Telefone é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(), // Made optional for editing
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(),
 });
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
 const formatCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
-  if (cleaned.length !== 14) return cnpj;
+  if (cleaned.length !== 14) return cnpj; // Return original or partially formatted if not 14 digits
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
+
+const cleanCNPJ = (cnpj: string = '') => {
+    return cnpj.replace(/\D/g, '');
+};
+
+// Helper function to parse CSV content
+// Expected headers: name,cnpj,address,city,neighborhood,state,logoUrl
+function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[], errors: string[] } {
+    const allLines = csvText.trim().split(/\r\n|\n/);
+    if (allLines.length < 2) {
+        return { data: [], errors: ["Arquivo CSV vazio ou sem dados."] };
+    }
+
+    const headerLine = allLines[0].toLowerCase();
+    const headers = headerLine.split(',').map(h => h.trim());
+    const expectedHeaders = ["name", "cnpj", "address", "city", "neighborhood", "state", "logoUrl"];
+    
+    const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
+    if (missingHeaders.length > 0) {
+        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${expectedHeaders.join(', ')}`] };
+    }
+
+    const vendors: Partial<VendorFormValues>[] = [];
+    const errors: string[] = [];
+
+    for (let i = 1; i < allLines.length; i++) {
+        const line = allLines[i];
+        if (!line.trim()) continue; // Skip empty lines
+
+        const values = line.split(',').map(v => v.trim());
+        const vendorData: Partial<VendorFormValues> = {};
+        let hasErrorInRow = false;
+
+        headers.forEach((header, index) => {
+            if (expectedHeaders.includes(header)) {
+                (vendorData as any)[header] = values[index];
+            }
+        });
+
+        // Basic validation for CNPJ format from CSV (before full Zod validation)
+        if (vendorData.cnpj) {
+            vendorData.cnpj = formatCNPJ(vendorData.cnpj); // Format for consistency, Zod will re-validate raw
+        } else {
+            errors.push(`Linha ${i + 1}: CNPJ não fornecido.`);
+            hasErrorInRow = true;
+        }
+         if (!vendorData.name) {
+            errors.push(`Linha ${i + 1}: Nome do fornecedor não fornecido.`);
+            hasErrorInRow = true;
+        }
+
+
+        if (!hasErrorInRow) {
+            vendors.push(vendorData);
+        }
+    }
+    return { data: vendors, errors };
+}
+
 
 export default function ManageVendorsPage() {
   const { toast } = useToast();
@@ -62,6 +122,12 @@ export default function ManageVendorsPage() {
   const [editingSalesperson, setEditingSalesperson] = useState<Salesperson | null>(null);
   const [currentVendorIdForSalesperson, setCurrentVendorIdForSalesperson] = useState<string | null>(null);
   const [salespersonToDelete, setSalespersonToDelete] = useState<Salesperson | null>(null);
+
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvFileName, setCsvFileName] = useState<string>("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
 
   useEffect(() => {
     setVendors(loadVendors());
@@ -110,32 +176,21 @@ export default function ManageVendorsPage() {
 
   const handleDeleteVendor = () => {
     if (!vendorToDelete) return;
-
     const currentUsers = loadUsers();
     let usersModified = false;
-
-    // Remove associated salespeople first
     const salespeopleOfVendor = salespeople.filter(sp => sp.vendorId === vendorToDelete.id);
     const updatedSalespeople = salespeople.filter(sp => sp.vendorId !== vendorToDelete.id);
-    
-    // Remove users associated with these salespeople
     const emailsOfSalespeopleToDelete = salespeopleOfVendor.map(sp => sp.email);
     const usersToKeep = currentUsers.filter(u => !(emailsOfSalespeopleToDelete.includes(u.email) && u.role === 'vendor'));
-
-    if (usersToKeep.length < currentUsers.length) {
-        usersModified = true;
-    }
+    if (usersToKeep.length < currentUsers.length) usersModified = true;
     
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
     if(usersModified) saveUsers(usersToKeep);
 
-
-    // Then remove the vendor
     const updatedVendors = vendors.filter(v => v.id !== vendorToDelete.id);
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
-
     toast({
       title: "Fornecedor Excluído!",
       description: `O fornecedor "${vendorToDelete.name}" e seus vendedores (e logins) vinculados foram removidos.`,
@@ -146,7 +201,7 @@ export default function ManageVendorsPage() {
 
   const onVendorSubmit = (data: VendorFormValues) => {
     let updatedVendors;
-    const rawCnpj = data.cnpj.replace(/\D/g, '');
+    const rawCnpj = cleanCNPJ(data.cnpj);
 
     if (editingVendor) {
       updatedVendors = vendors.map(v =>
@@ -155,11 +210,7 @@ export default function ManageVendorsPage() {
       toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.` });
     } else {
       const newVendorId = `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
-      const newVendor: Vendor = {
-        id: newVendorId,
-        ...data,
-        cnpj: rawCnpj,
-      };
+      const newVendor: Vendor = { id: newVendorId, ...data, cnpj: rawCnpj };
       updatedVendors = [...vendors, newVendor];
       setEditingVendor(newVendor); 
       toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.` });
@@ -167,9 +218,8 @@ export default function ManageVendorsPage() {
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
     
-    if (!editingVendor) { 
-        // Dialog stays open
-    } else { 
+    if (!editingVendor) { /* Dialog stays open */ } 
+    else { 
         vendorForm.reset();
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
@@ -186,12 +236,7 @@ export default function ManageVendorsPage() {
   const handleEditSalesperson = (salesperson: Salesperson) => {
     setCurrentVendorIdForSalesperson(salesperson.vendorId);
     setEditingSalesperson(salesperson);
-    salespersonForm.reset({
-      name: salesperson.name,
-      phone: salesperson.phone,
-      email: salesperson.email,
-      password: '', // Password is not pre-filled for editing
-    });
+    salespersonForm.reset({ name: salesperson.name, phone: salesperson.phone, email: salesperson.email, password: '' });
     setIsSalespersonDialogOpen(true);
   };
 
@@ -201,98 +246,160 @@ export default function ManageVendorsPage() {
 
   const handleDeleteSalesperson = () => {
     if (!salespersonToDelete) return;
-
-    // Remove associated user
     const currentUsers = loadUsers();
     const usersToKeep = currentUsers.filter(u => !(u.email === salespersonToDelete.email && u.role === 'vendor'));
     if (usersToKeep.length < currentUsers.length) {
         saveUsers(usersToKeep);
-        toast({
-            title: "Login do Vendedor Removido",
-            description: `O login para ${salespersonToDelete.email} foi removido.`,
-            variant: "info"
-        });
+        toast({ title: "Login do Vendedor Removido", description: `O login para ${salespersonToDelete.email} foi removido.`, variant: "info" });
     }
-
     const updatedSalespeople = salespeople.filter(sp => sp.id !== salespersonToDelete.id);
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
-    toast({
-        title: "Vendedor Excluído!",
-        description: `O vendedor "${salespersonToDelete.name}" foi removido.`,
-        variant: "destructive"
-    });
+    toast({ title: "Vendedor Excluído!", description: `O vendedor "${salespersonToDelete.name}" foi removido.`, variant: "destructive" });
     setSalespersonToDelete(null); 
   };
 
   const onSalespersonSubmit = (data: SalespersonFormValues) => {
-    if (!currentVendorIdForSalesperson) {
-        toast({ title: "Erro", description: "ID do Fornecedor não encontrado.", variant: "destructive" });
-        return;
-    }
-    let updatedSalespeople;
+    if (!currentVendorIdForSalesperson) return;
     const vendorForSalesperson = vendors.find(v => v.id === currentVendorIdForSalesperson);
-    if (!vendorForSalesperson) {
-        toast({ title: "Erro", description: "Fornecedor não encontrado para este vendedor.", variant: "destructive" });
-        return;
-    }
+    if (!vendorForSalesperson) return;
 
+    let updatedSalespeople;
     if (editingSalesperson) {
-        updatedSalespeople = salespeople.map(sp =>
-            sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson } : sp
-        );
-        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado para ${vendorForSalesperson.name}.` });
+        updatedSalespeople = salespeople.map(sp => sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson } : sp );
+        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado.` });
     } else {
-        const newSalesperson: Salesperson = {
-            id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
-            ...data,
-            vendorId: currentVendorIdForSalesperson
-        };
+        const newSalesperson: Salesperson = { id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data, vendorId: currentVendorIdForSalesperson };
         updatedSalespeople = [...salespeople, newSalesperson];
         toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson.name}.` });
     }
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
 
-    // Sync with User list for login
     const currentUsers = loadUsers();
     const userIndex = currentUsers.findIndex(u => u.email === data.email);
-
-    if (userIndex > -1) { // User with this email exists
+    if (userIndex > -1) { 
       currentUsers[userIndex].name = data.name; 
       currentUsers[userIndex].role = 'vendor'; 
       currentUsers[userIndex].storeName = vendorForSalesperson.name;
-      // Password not updated here for existing users to prevent accidental changes.
-      // A separate "change password" feature would be needed for that.
-      // This mock login doesn't use the password field from User object anyway.
-    } else { // No user with this email, create one
-      if (data.password) { // Only create if password is provided
-        const newUserForSalesperson: User = {
-          id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
-          email: data.email,
-          role: 'vendor',
-          name: data.name, 
-          storeName: vendorForSalesperson.name, 
-        };
+    } else { 
+      if (data.password) {
+        const newUserForSalesperson: User = { id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`, email: data.email, role: 'vendor', name: data.name, storeName: vendorForSalesperson.name };
         currentUsers.push(newUserForSalesperson);
-         toast({
-          title: "Login do Vendedor Criado!",
-          description: `Um login foi criado para ${data.email}.`,
-        });
-      } else if (!editingSalesperson) { // Password required for new salespeople if not editing
-         toast({
-          title: "Senha Necessária",
-          description: `Senha não fornecida. Usuário (login) para ${data.email} não foi criado.`,
-          variant: "destructive"
-        });
+        toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`});
+      } else if (!editingSalesperson) {
+        toast({ title: "Senha Necessária", description: `Usuário (login) para ${data.email} não foi criado.`, variant: "destructive"});
       }
     }
     saveUsers(currentUsers);
-
     salespersonForm.reset();
     setIsSalespersonDialogOpen(false);
     setEditingSalesperson(null);
   };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setCsvFile(file);
+      setCsvFileName(file.name);
+      setImportErrors([]); // Clear previous errors
+    } else {
+      setCsvFile(null);
+      setCsvFileName("");
+    }
+  };
+
+  const handleProcessImport = async () => {
+    if (!csvFile) {
+      toast({ title: "Nenhum arquivo selecionado", description: "Por favor, selecione um arquivo CSV.", variant: "destructive" });
+      return;
+    }
+    setImportLoading(true);
+    setImportErrors([]);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      const { data: parsedVendors, errors: parsingErrors } = parseCSVToVendors(text);
+
+      if (parsingErrors.length > 0) {
+        setImportErrors(parsingErrors);
+        setImportLoading(false);
+        toast({ title: "Erro ao Ler CSV", description: "Verifique os erros listados e o formato do arquivo.", variant: "destructive" });
+        return;
+      }
+
+      const currentVendors = loadVendors();
+      const newVendorsToSave: Vendor[] = [];
+      const validationErrors: string[] = [];
+      let importedCount = 0;
+
+      for (let i = 0; i < parsedVendors.length; i++) {
+        const pv = parsedVendors[i];
+        try {
+          // Validate each parsed vendor against the schema
+          const validatedData = vendorSchema.parse({
+            name: pv.name || '',
+            cnpj: pv.cnpj || '', // formatCNPJ was already applied in parseCSV
+            address: pv.address || '',
+            city: pv.city || '',
+            neighborhood: pv.neighborhood || '',
+            state: pv.state || '',
+            logoUrl: pv.logoUrl || 'https://placehold.co/120x60.png?text=Import',
+          });
+          
+          const rawCsvCnpj = cleanCNPJ(pv.cnpj || '');
+          if (currentVendors.some(v => v.cnpj === rawCsvCnpj) || newVendorsToSave.some(v => v.cnpj === rawCsvCnpj)) {
+            validationErrors.push(`Linha ${i + 2}: CNPJ ${pv.cnpj} já existe e foi ignorado.`);
+            continue;
+          }
+
+          newVendorsToSave.push({
+            id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}_${i}`,
+            ...validatedData,
+            cnpj: rawCsvCnpj, // Store cleaned CNPJ
+          });
+          importedCount++;
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            const fieldErrors = error.errors.map(err => `Linha ${i + 2} (${pv.name || 'Sem nome'}): ${err.path.join('.')} - ${err.message}`).join('; ');
+            validationErrors.push(fieldErrors);
+          } else {
+            validationErrors.push(`Linha ${i + 2} (${pv.name || 'Sem nome'}): Erro inesperado - ${(error as Error).message}`);
+          }
+        }
+      }
+
+      if (newVendorsToSave.length > 0) {
+        const updatedVendorList = [...currentVendors, ...newVendorsToSave];
+        saveVendors(updatedVendorList);
+        setVendors(updatedVendorList);
+      }
+      
+      setImportErrors(validationErrors);
+      setImportLoading(false);
+
+      if (importedCount > 0 && validationErrors.length === 0) {
+        toast({ title: "Importação Concluída!", description: `${importedCount} fornecedores importados com sucesso.` });
+        setIsImportDialogOpen(false);
+        setCsvFile(null);
+        setCsvFileName("");
+      } else if (importedCount > 0 && validationErrors.length > 0) {
+        toast({ title: "Importação Parcial", description: `${importedCount} fornecedores importados. Alguns registros tiveram erros.`, variant: "default" });
+      } else if (importedCount === 0 && validationErrors.length > 0) {
+        toast({ title: "Falha na Importação", description: "Nenhum fornecedor importado devido a erros. Verifique os detalhes.", variant: "destructive" });
+      } else if (importedCount === 0 && validationErrors.length === 0 && parsedVendors.length > 0) {
+        toast({ title: "Nenhum Novo Fornecedor", description: "Nenhum novo fornecedor para importar (possivelmente todos já existem).", variant: "default" });
+      } else {
+         toast({ title: "Nenhum dado para importar", description: "O arquivo CSV parece não conter dados de fornecedores válidos.", variant: "default" });
+      }
+    };
+    reader.onerror = () => {
+      toast({ title: "Erro ao ler arquivo", description: "Não foi possível ler o arquivo selecionado.", variant: "destructive" });
+      setImportLoading(false);
+    };
+    reader.readAsText(csvFile);
+  };
+
 
   const salespeopleForCurrentEditingVendor = useMemo(() => {
     if (!editingVendor) return [];
@@ -306,23 +413,26 @@ export default function ManageVendorsPage() {
         description="Adicione, edite ou remova fornecedores e gerencie seus vendedores."
         icon={Briefcase}
         actions={
-          <Button onClick={handleAddNewVendor}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Novo Fornecedor
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsImportDialogOpen(true)} variant="outline">
+              <UploadCloud className="mr-2 h-4 w-4" /> Importar Fornecedores (CSV)
+            </Button>
+            <Button onClick={handleAddNewVendor}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Novo Fornecedor
+            </Button>
+          </div>
         }
       />
 
+      {/* Vendor Edit/Add Dialog */}
       <Dialog open={isVendorDialogOpen} onOpenChange={(isOpen) => {
           setIsVendorDialogOpen(isOpen);
-          if (!isOpen) {
-            setEditingVendor(null); 
-            vendorForm.reset();
-          }
+          if (!isOpen) { setEditingVendor(null); vendorForm.reset(); }
       }}>
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editingVendor ? 'Editar Fornecedor' : 'Adicionar Novo Fornecedor'}</DialogTitle>
-            <DialogDescription>{editingVendor ? 'Atualize os detalhes deste fornecedor e gerencie seus vendedores.' : 'Preencha os detalhes para o novo fornecedor.'}</DialogDescription>
+            <DialogDescription>{editingVendor ? 'Atualize os detalhes e gerencie vendedores.' : 'Preencha os detalhes.'}</DialogDescription>
           </DialogHeader>
           <Form {...vendorForm}>
             <form onSubmit={vendorForm.handleSubmit(onVendorSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
@@ -338,157 +448,143 @@ export default function ManageVendorsPage() {
                   <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 </CardContent>
               </Card>
-
               {editingVendor && ( 
                 <Card className="mt-6">
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle className="text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle>
-                        <CardDescription>Gerencie os vendedores deste fornecedor.</CardDescription>
-                    </div>
-                    <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(editingVendor.id)}>
-                      <UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor
-                    </Button>
+                    <div><CardTitle className="text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
+                    <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(editingVendor.id)}><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
                   </CardHeader>
                   <CardContent>
                     {salespeopleForCurrentEditingVendor.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Nome</TableHead>
-                            <TableHead>Email (Login)</TableHead>
-                            <TableHead>Telefone</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {salespeopleForCurrentEditingVendor.map(sp => (
-                            <TableRow key={sp.id}>
-                              <TableCell>{sp.name}</TableCell>
-                              <TableCell>{sp.email}</TableCell>
-                              <TableCell>{sp.phone}</TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteSalesperson(sp)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
+                      <Table><TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Email (Login)</TableHead><TableHead>Telefone</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+                        <TableBody>{salespeopleForCurrentEditingVendor.map(sp => (<TableRow key={sp.id}><TableCell>{sp.name}</TableCell><TableCell>{sp.email}</TableCell><TableCell>{sp.phone}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button></TableCell></TableRow>))}</TableBody>
                       </Table>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum vendedor cadastrado para este fornecedor.</p>
-                    )}
+                    ) : (<p className="text-sm text-muted-foreground text-center py-4">Nenhum vendedor cadastrado.</p>)}
                   </CardContent>
-                </Card>
-              )}
-
+                </Card>)}
               <DialogFooter className="pt-4">
                 <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setIsVendorDialogOpen(false); setEditingVendor(null); vendorForm.reset();}}>Fechar</Button></DialogClose>
-                <Button type="submit" disabled={vendorForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingVendor ? 'Salvar Alterações no Fornecedor' : 'Cadastrar Fornecedor'}</Button>
+                <Button type="submit" disabled={vendorForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingVendor ? 'Salvar Alterações' : 'Cadastrar'}</Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
+       {/* Salesperson Edit/Add Dialog */}
       <Dialog open={isSalespersonDialogOpen} onOpenChange={(isOpen) => {
           setIsSalespersonDialogOpen(isOpen);
-          if (!isOpen) {
-              setEditingSalesperson(null);
-              salespersonForm.reset();
-          }
+          if (!isOpen) { setEditingSalesperson(null); salespersonForm.reset(); }
       }}>
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>{editingSalesperson ? 'Editar Vendedor' : 'Adicionar Novo Vendedor'}</DialogTitle>
-                <DialogDescription>
-                    {editingSalesperson ? `Atualize os dados de ${editingSalesperson.name}.` : `Adicione um novo vendedor para ${vendors.find(v => v.id === currentVendorIdForSalesperson)?.name || 'este fornecedor'}.`}
-                </DialogDescription>
+                <DialogDescription>{editingSalesperson ? `Atualize ${editingSalesperson.name}.` : `Adicione para ${vendors.find(v => v.id === currentVendorIdForSalesperson)?.name || ''}.`}</DialogDescription>
             </DialogHeader>
             <Form {...salespersonForm}>
                 <form onSubmit={salespersonForm.handleSubmit(onSalespersonSubmit)} className="space-y-4 py-4">
                     <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={salespersonForm.control} name="password" render={({ field }) => (<FormItem><FormLabel>Senha de Login {editingSalesperson ? '(Deixe em branco para não alterar)' : ''}</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={salespersonForm.control} name="password" render={({ field }) => (<FormItem><FormLabel>Senha de Login {editingSalesperson ? '(Não alterar)' : ''}</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <DialogFooter className="pt-4">
                         <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                        <Button type="submit" disabled={salespersonForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingSalesperson ? 'Salvar Alterações' : 'Cadastrar Vendedor'}</Button>
+                        <Button type="submit" disabled={salespersonForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingSalesperson ? 'Salvar' : 'Cadastrar'}</Button>
                     </DialogFooter>
                 </form>
             </Form>
         </DialogContent>
       </Dialog>
 
+      {/* Vendor Import Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={(isOpen) => {
+        setIsImportDialogOpen(isOpen);
+        if (!isOpen) {
+          setCsvFile(null);
+          setCsvFileName("");
+          setImportErrors([]);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Importar Fornecedores (CSV)</DialogTitle>
+            <DialogDescription>
+              Selecione um arquivo CSV para importar fornecedores em massa.
+              O arquivo deve conter as seguintes colunas na primeira linha (cabeçalho):
+              <code className="block bg-muted p-2 rounded-md my-2 text-xs">name,cnpj,address,city,neighborhood,state,logoUrl</code>
+              Certifique-se que o CNPJ esteja formatado corretamente ou apenas com números.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <FormItem>
+              <FormLabel htmlFor="csv-upload">Arquivo CSV</FormLabel>
+              <Input 
+                id="csv-upload"
+                type="file" 
+                accept=".csv" 
+                onChange={handleFileSelect} 
+                className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+              />
+            </FormItem>
+            {csvFileName && (
+              <div className="text-sm text-muted-foreground flex items-center">
+                <FileText className="h-4 w-4 mr-2" /> Arquivo selecionado: {csvFileName}
+              </div>
+            )}
+            {importErrors.length > 0 && (
+              <div className="mt-4 max-h-40 overflow-y-auto rounded-md border border-destructive/50 bg-destructive/10 p-3">
+                <h4 className="font-semibold text-destructive mb-2">Erros na Importação:</h4>
+                <ul className="list-disc list-inside text-xs text-destructive space-y-1">
+                  {importErrors.map((error, index) => <li key={index}>{error}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleProcessImport} disabled={!csvFile || importLoading}>
+              {importLoading ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+              {importLoading ? 'Importando...' : 'Importar Arquivo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+      {/* Alert Dialogs for Deletion Confirmation */}
       <AlertDialog open={!!vendorToDelete} onOpenChange={(open) => !open && setVendorToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão de Fornecedor</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o fornecedor "{vendorToDelete?.name}"? Esta ação também removerá todos os vendedores vinculados a ele (e seus respectivos logins) e não poderá ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setVendorToDelete(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteVendor} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir Fornecedor</AlertDialogAction>
-          </AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Excluir "{vendorToDelete?.name}"? Esta ação também removerá vendedores e logins vinculados.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel onClick={() => setVendorToDelete(null)}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteVendor} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       <AlertDialog open={!!salespersonToDelete} onOpenChange={(open) => !open && setSalespersonToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão de Vendedor</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o vendedor "{salespersonToDelete?.name}"? O login associado a este vendedor também será removido. Esta ação não poderá ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSalespersonToDelete(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteSalesperson} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir Vendedor</AlertDialogAction>
-          </AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Excluir "{salespersonToDelete?.name}"? O login associado também será removido.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel onClick={() => setSalespersonToDelete(null)}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteSalesperson} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Main Table of Vendors */}
       <Card className="shadow-lg mt-8">
-        <CardHeader>
-          <CardTitle>Fornecedores Cadastrados</CardTitle>
-          <CardDescription>Lista de todos os fornecedores no sistema.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle>Fornecedores Cadastrados</CardTitle><CardDescription>Lista de todos os fornecedores no sistema.</CardDescription></CardHeader>
         <CardContent>
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px]">Logo</TableHead>
-                <TableHead>Nome da Empresa</TableHead>
-                <TableHead>CNPJ</TableHead>
-                <TableHead>Cidade</TableHead>
-                <TableHead>Vendedores</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
+            <TableHeader><TableRow><TableHead className="w-[80px]">Logo</TableHead><TableHead>Nome</TableHead><TableHead>CNPJ</TableHead><TableHead>Cidade</TableHead><TableHead>Vendedores</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
             <TableBody>
-              {vendors.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>
-              )}
+              {vendors.length === 0 && (<TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>)}
               {vendors.map((vendor) => (
                 <TableRow key={vendor.id}>
-                  <TableCell>
-                    <Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" />
-                  </TableCell>
+                  <TableCell><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" /></TableCell>
                   <TableCell className="font-medium">{vendor.name}</TableCell>
                   <TableCell>{formatCNPJ(vendor.cnpj)}</TableCell>
                   <TableCell>{vendor.city}</TableCell>
                   <TableCell>{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditVendor(vendor)}>
-                      <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteVendor(vendor)}>
-                        <Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span>
-                    </Button>
+                    <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
+                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteVendor(vendor)}><Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span></Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -499,5 +595,4 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
-
     
