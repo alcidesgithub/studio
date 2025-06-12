@@ -242,7 +242,7 @@ export default function StorePositivacaoPage() {
           </CardHeader>
           <CardContent>
           <p className="text-sm">Sua loja tem <span className="font-bold text-lg text-secondary">{positivacoesCount}</span> selos.</p>
-          <p className="text-xs text-muted-foreground mt-1">Lojas com mais selos e que atingem as faixas de premiação participam de sorteios especiais. Continue engajando!</p>
+          <p className="text-xs text-muted-foreground mt-1">Lojas com mais selos e que atingem as faixas de premiação participam de sorteios especiais. Continue positivando!</p>
           </CardContent>
       </Card>
     </div>
