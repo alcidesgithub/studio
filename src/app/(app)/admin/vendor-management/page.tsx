@@ -29,7 +29,7 @@ const vendorSchema = z.object({
     return cleaned.length === 14;
   }, { message: "CNPJ deve ter 14 dígitos (após remover formatação)." }),
   address: z.string().min(5, "Endereço é obrigatório."),
-  city: z.string().min(2, "Cidade é obrigatória."),
+  city: z.string().min(2, "Município é obrigatório."),
   neighborhood: z.string().min(2, "Bairro é obrigatório."),
   state: z.string().min(2, "Estado é obrigatório."),
   logoUrl: z.string().url("Deve ser uma URL válida para o logo."),
@@ -465,7 +465,7 @@ export default function ManageVendorsPage() {
                   <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome da Empresa</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (<FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua das Indústrias, 789" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Cidade</FormLabel><FormControl><Input placeholder="Ex: São Paulo" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: São Paulo" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Pinheiros" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -528,7 +528,7 @@ export default function ManageVendorsPage() {
           setImportErrors([]);
         }
       }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Importar Fornecedores (CSV)</DialogTitle>
             <DialogDescription>
@@ -539,14 +539,14 @@ export default function ManageVendorsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-1">
+            <div>
               <label htmlFor="csv-upload" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Arquivo CSV</label>
               <Input 
                 id="csv-upload"
                 type="file" 
                 accept=".csv" 
                 onChange={handleFileSelect} 
-                className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
               />
             </div>
             {csvFileName && (
@@ -603,7 +603,7 @@ export default function ManageVendorsPage() {
                 <TableHead className="w-[80px]">Logo</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>CNPJ</TableHead>
-                <TableHead>Cidade</TableHead>
+                <TableHead>Município</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Vendedores</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -633,4 +633,3 @@ export default function ManageVendorsPage() {
   );
 }
     
-
