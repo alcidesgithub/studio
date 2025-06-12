@@ -27,8 +27,8 @@ const userFormSchema = z.object({
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres." }),
   email: z.string().email({ message: "Endereço de email inválido." }),
   password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres." }).optional(), // Opcional para edição
-  role: z.custom<UserRole>(val => ROLES.includes(val as UserRole), { 
-    message: "Perfil deve ser um dos valores permitidos.",
+  role: z.custom<UserRole>(val => ASSIGNABLE_ROLES.includes(val as UserRole), { 
+    message: "Perfil deve ser 'admin' ou 'manager'.",
   }),
 });
 
@@ -66,6 +66,11 @@ export default function AdminUsersPage() {
   };
 
   const handleEdit = (user: User) => {
+    // Somente admin e manager podem ser editados aqui
+    if (user.role !== 'admin' && user.role !== 'manager') {
+        toast({ title: "Ação não permitida", description: `Usuários de ${ROLES_TRANSLATIONS[user.role]} são gerenciados em suas respectivas telas.`, variant: "default"});
+        return;
+    }
     setEditingUser(user);
     form.reset({
         name: user.name,
@@ -78,18 +83,18 @@ export default function AdminUsersPage() {
   
   const handleDelete = (userId: string) => {
     const userToDelete = users.find(u => u.id === userId);
-    if (userToDelete?.role === 'admin' && users.filter(u => u.role === 'admin').length === 1) {
+    
+    // Proteção extra, embora o botão de delete já deva estar desabilitado para store/vendor
+    if (!userToDelete || (userToDelete.role !== 'admin' && userToDelete.role !== 'manager')) {
+        toast({ title: "Ação não permitida", description: "Este tipo de usuário não pode ser excluído aqui.", variant: "default"});
+        return;
+    }
+    
+    if (userToDelete.role === 'admin' && users.filter(u => u.role === 'admin').length === 1) {
       toast({ title: "Ação não permitida", description: "Não é possível excluir o último administrador.", variant: "destructive"});
       return;
     }
     
-    // Deleção de usuários 'store' e 'vendor' já é bloqueada no botão da tabela.
-    // Esta verificação é uma segurança adicional.
-    if (userToDelete?.role === 'store' || userToDelete?.role === 'vendor') {
-        toast({ title: "Ação não permitida", description: `Usuários de ${ROLES_TRANSLATIONS[userToDelete.role]} devem ser gerenciados em suas respectivas telas de cadastro.`, variant: "default"});
-        return;
-    }
-
     const updatedUsers = users.filter(u => u.id !== userId);
     setUsers(updatedUsers);
     saveUsers(updatedUsers);
@@ -104,17 +109,18 @@ export default function AdminUsersPage() {
     let updatedUsers;
 
     if (editingUser) {
-        // Se editando usuário 'store' ou 'vendor', o 'role' não deve ser alterado aqui.
-        // O campo 'role' no formulário estará desabilitado para eles.
-        const finalRole = (editingUser.role === 'store' || editingUser.role === 'vendor') ? editingUser.role : data.role;
-        const finalStoreName = (finalRole === 'store' || finalRole === 'vendor') ? editingUser.storeName : undefined;
+        // Assegura que estamos editando apenas admin ou manager. A role não deve mudar para store/vendor aqui.
+        if (editingUser.role !== 'admin' && editingUser.role !== 'manager') {
+             toast({ title: "Erro", description: "Não é possível modificar este tipo de usuário aqui.", variant: "destructive" });
+            return;
+        }
 
         updatedUsers = users.map(u => u.id === editingUser.id ? {
             ...editingUser, 
             name: data.name,
             email: data.email,
-            role: finalRole, 
-            storeName: finalStoreName,
+            role: data.role, // role aqui será admin ou manager, validado pelo schema e pelo select
+            storeName: undefined, // Admins/Managers não têm storeName
         } : u);
         toast({
             title: "Usuário Atualizado!",
@@ -152,6 +158,8 @@ export default function AdminUsersPage() {
     setEditingUser(null);
   };
 
+  const displayUsers = users.filter(user => user.role === 'admin' || user.role === 'manager');
+
   return (
     <div className="animate-fadeIn">
       <PageHeader
@@ -168,7 +176,7 @@ export default function AdminUsersPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{editingUser ? 'Editar Usuário' : 'Adicionar Novo Usuário'}</DialogTitle>
+            <DialogTitle>{editingUser ? 'Editar Administrador/Gerente' : 'Adicionar Novo Administrador/Gerente'}</DialogTitle>
             <DialogDescription>
               {editingUser ? 'Atualize os detalhes do usuário.' : 'Preencha os detalhes para o novo Administrador ou Gerente.'}
             </DialogDescription>
@@ -223,7 +231,9 @@ export default function AdminUsersPage() {
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value} 
-                      disabled={!!(editingUser && (editingUser.role === 'store' || editingUser.role === 'vendor'))}
+                      // Se estiver editando, e for admin/manager, permite alterar entre admin/manager
+                      // Se estiver criando, também permite apenas admin/manager
+                      disabled={false} 
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -231,27 +241,14 @@ export default function AdminUsersPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        { (editingUser && (editingUser.role === 'store' || editingUser.role === 'vendor')) ? (
-                            <SelectItem value={editingUser.role} className="capitalize">
-                              {ROLES_TRANSLATIONS[editingUser.role]}
-                            </SelectItem>
-                          ) : (
-                            ASSIGNABLE_ROLES.map(role => (
-                              <SelectItem key={role} value={role} className="capitalize">
-                                {ROLES_TRANSLATIONS[role]}
-                              </SelectItem>
-                            ))
-                          )
-                        }
+                        {ASSIGNABLE_ROLES.map(role => (
+                          <SelectItem key={role} value={role} className="capitalize">
+                            {ROLES_TRANSLATIONS[role]}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
-                    {editingUser && editingUser.role === 'store' && (
-                        <p className="text-xs text-muted-foreground pt-1">O perfil 'Loja' é gerenciado no Cadastro de Lojas.</p>
-                    )}
-                    {editingUser && editingUser.role === 'vendor' && (
-                        <p className="text-xs text-muted-foreground pt-1">O perfil 'Fornecedor' é gerenciado no Gerenciamento de Fornecedores.</p>
-                    )}
                   </FormItem>
                 )}
               />
@@ -270,8 +267,8 @@ export default function AdminUsersPage() {
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Usuários Cadastrados</CardTitle>
-          <CardDescription>Lista de todos os usuários no sistema (do armazenamento local).</CardDescription>
+          <CardTitle>Administradores e Gerentes Cadastrados</CardTitle>
+          <CardDescription>Lista de administradores e gerentes no sistema.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -280,17 +277,15 @@ export default function AdminUsersPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Perfil</TableHead>
-                <TableHead>Loja / Fornecedor Associado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {displayUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
-                  <TableCell>{user.storeName || 'N/A'}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEdit(user)}>
                       <Edit className="h-4 w-4" />
@@ -299,22 +294,12 @@ export default function AdminUsersPage() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="hover:text-destructive disabled:text-muted-foreground disabled:cursor-not-allowed" 
-                      disabled={(user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 && user.id === users.find(u => u.role === 'admin')?.id) || user.role === 'store' || user.role === 'vendor'}
+                      className="hover:text-destructive" 
+                      disabled={(user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 && user.id === users.find(u => u.role === 'admin')?.id)}
                       title={
-                        user.role === 'store' ? "Exclua usuários de Loja na tela de Cadastro de Lojas" :
-                        user.role === 'vendor' ? "Exclua usuários de Fornecedor na tela de Gerenciamento de Fornecedores" :
                         (user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 ? "Não é possível excluir o último administrador" : "Excluir")
                       }
-                      onClick={() => {
-                          if (user.role === 'store') {
-                              toast({title: "Ação não permitida", description: "Usuários de Loja devem ser removidos através do Cadastro de Lojas.", variant: "default" });
-                          } else if (user.role === 'vendor') {
-                              toast({title: "Ação não permitida", description: "Usuários de Fornecedor devem ser removidos através do Gerenciamento de Fornecedores.", variant: "default" });
-                          } else {
-                              handleDelete(user.id);
-                          }
-                      }}>
+                      onClick={() => handleDelete(user.id)}>
                       <Trash2 className="h-4 w-4" />
                       <span className="sr-only">Excluir</span>
                     </Button>
@@ -323,11 +308,12 @@ export default function AdminUsersPage() {
               ))}
             </TableBody>
           </Table>
-           {users.length === 0 && (
-            <p className="py-4 text-center text-muted-foreground">Nenhum usuário cadastrado.</p>
+           {displayUsers.length === 0 && (
+            <p className="py-4 text-center text-muted-foreground">Nenhum administrador ou gerente cadastrado.</p>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
