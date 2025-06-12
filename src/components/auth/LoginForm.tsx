@@ -18,7 +18,6 @@ import { LogIn, Loader2 } from 'lucide-react';
 const loginSchema = z.object({
   email: z.string().email({ message: "Endereço de email inválido." }),
   password: z.string().min(1, { message: "Senha é obrigatória." }),
-  // Role removed from schema
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -39,7 +38,6 @@ export function LoginForm() {
 
   const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
     setIsLoading(true);
-    // Call login without the role parameter
     const user = await login(data.email);
     setIsLoading(false);
 
@@ -48,11 +46,15 @@ export function LoginForm() {
         title: "Login Bem-sucedido",
         description: `Bem-vindo(a) de volta, ${user.name}!`,
       });
-      router.push('/dashboard');
+      if (user.role === 'store') {
+        router.push('/store/positivacao');
+      } else {
+        router.push('/dashboard'); // For admin, manager, vendor
+      }
     } else {
       toast({
         title: "Falha no Login",
-        description: "Credenciais inválidas. Por favor, tente novamente.", // Simplified message
+        description: "Credenciais inválidas. Por favor, tente novamente.",
         variant: "destructive",
       });
     }
@@ -96,7 +98,6 @@ export function LoginForm() {
                 </FormItem>
               )}
             />
-            {/* Role FormField removed */}
             <Button
               type="submit"
               className="w-full font-semibold bg-accent hover:bg-accent/90 text-accent-foreground"

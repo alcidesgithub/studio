@@ -37,7 +37,6 @@ const navItemsByRole = {
     { href: '/vendor/positivacao', label: 'Positivar Loja', icon: ThumbsUp },
   ],
   store: [
-    { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
     { href: '/event', label: 'Info Evento', icon: MapPin },
     { href: '/store/positivacao', label: 'Minha Cartela', icon: Star },
   ],
@@ -65,7 +64,7 @@ export function SidebarNav() {
   return (
     <>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <Link href="/dashboard" className="flex items-center gap-2" onClick={handleLinkClick}>
+        <Link href={user?.role === 'store' ? "/store/positivacao" : "/dashboard"} className="flex items-center gap-2" onClick={handleLinkClick}>
           <Building className="h-8 w-8 text-primary" />
           <h1 className="font-headline text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
             Hiperfarma
