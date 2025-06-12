@@ -84,13 +84,13 @@ export default function AdminEventManagementPage() {
         icon={Edit3}
       />
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle>Detalhes do Evento</CardTitle>
               <CardDescription>Atualize as informações que aparecem na página pública do evento.</CardDescription>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-6">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <FormField
                 control={form.control}
                 name="name"

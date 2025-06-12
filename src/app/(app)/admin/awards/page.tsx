@@ -187,7 +187,7 @@ export default function AdminAwardsPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -227,7 +227,7 @@ export default function AdminAwardsPage() {
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormField
                     control={form.control}
                     name="positivacoesRequiredPR"
@@ -255,7 +255,7 @@ export default function AdminAwardsPage() {
                     )}
                 />
               </div>
-              <DialogFooter className="pt-4">
+              <DialogFooter className="pt-3 sm:pt-4">
                  <DialogClose asChild>
                    <Button type="button" variant="outline" onClick={() => { setEditingTier(null); form.reset(); setIsDialogOpen(false);}}>Cancelar</Button>
                 </DialogClose>
@@ -274,50 +274,52 @@ export default function AdminAwardsPage() {
           <CardDescription>Lista das faixas de premiação atuais e seus critérios por estado. A ordem aqui será refletida na tela de sorteios.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ordem</TableHead>
-                <TableHead>Nome da Faixa</TableHead>
-                <TableHead>Prêmio</TableHead>
-                <TableHead className="text-right">Quantidade</TableHead>
-                <TableHead className="text-right">Positivações PR</TableHead>
-                <TableHead className="text-right">Positivações SC</TableHead>
-                <TableHead className="text-center">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tiers.map((tier, index) => (
-                <TableRow key={tier.id}>
-                  <TableCell className="w-24">
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveTier(tier.id, 'up')} disabled={index === 0}>
-                        <ArrowUp className="h-4 w-4" /> <span className="sr-only">Mover para Cima</span>
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveTier(tier.id, 'down')} disabled={index === tiers.length - 1}>
-                        <ArrowDown className="h-4 w-4" /> <span className="sr-only">Mover para Baixo</span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{tier.name}</TableCell>
-                  <TableCell>{tier.rewardName}</TableCell>
-                  <TableCell className="text-right">{tier.quantityAvailable}</TableCell>
-                  <TableCell className="text-right">{tier.positivacoesRequired.PR}</TableCell>
-                  <TableCell className="text-right">{tier.positivacoesRequired.SC}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEdit(tier)}>
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Editar</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDelete(tier.id)}>
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Excluir</span>
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-2 py-3 sm:px-4">Ordem</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Nome da Faixa</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Prêmio</TableHead>
+                  <TableHead className="text-right px-2 py-3 sm:px-4">Quantidade</TableHead>
+                  <TableHead className="text-right px-2 py-3 sm:px-4">Positivações PR</TableHead>
+                  <TableHead className="text-right px-2 py-3 sm:px-4">Positivações SC</TableHead>
+                  <TableHead className="text-center px-2 py-3 sm:px-4">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {tiers.map((tier, index) => (
+                  <TableRow key={tier.id}>
+                    <TableCell className="w-20 sm:w-24 px-2 py-3 sm:px-4">
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveTier(tier.id, 'up')} disabled={index === 0}>
+                          <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="sr-only">Mover para Cima</span>
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveTier(tier.id, 'down')} disabled={index === tiers.length - 1}>
+                          <ArrowDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="sr-only">Mover para Baixo</span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium px-2 py-3 sm:px-4">{tier.name}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{tier.rewardName}</TableCell>
+                    <TableCell className="text-right px-2 py-3 sm:px-4">{tier.quantityAvailable}</TableCell>
+                    <TableCell className="text-right px-2 py-3 sm:px-4">{tier.positivacoesRequired.PR}</TableCell>
+                    <TableCell className="text-right px-2 py-3 sm:px-4">{tier.positivacoesRequired.SC}</TableCell>
+                    <TableCell className="text-right px-2 py-3 sm:px-4">
+                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(tier)}>
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Editar</span>
+                      </Button>
+                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleDelete(tier.id)}>
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Excluir</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
            {tiers.length === 0 && (
             <p className="py-4 text-center text-muted-foreground">Nenhuma faixa de premiação configurada ainda.</p>
           )}

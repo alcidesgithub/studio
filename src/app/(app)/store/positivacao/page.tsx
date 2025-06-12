@@ -115,10 +115,10 @@ export default function StorePositivacaoPage() {
 
   if (!user || !currentEvent) {
     return (
-      <div className="animate-fadeIn p-6">
+      <div className="animate-fadeIn p-4 sm:p-6">
         <PageHeader title="Minhas Positivações" icon={Star} />
         <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
+          <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Carregando dados...
           </CardContent>
         </Card>
@@ -128,10 +128,10 @@ export default function StorePositivacaoPage() {
 
   if (!currentStore) {
      return (
-      <div className="animate-fadeIn p-6">
+      <div className="animate-fadeIn p-4 sm:p-6">
         <PageHeader title="Minhas Positivações" icon={Star} />
         <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
+          <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Dados da loja não encontrados para o usuário {user.name}.
           </CardContent>
         </Card>
@@ -143,18 +143,18 @@ export default function StorePositivacaoPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title={`${currentStore.code} - ${currentStore.name} (${currentStore.state || 'N/A'}) - Cartela de Positivações`}
+        title={`${currentStore.code} - ${currentStore.name} (${currentStore.state || 'N/A'})`}
         description={`Sua performance e selos recebidos no ${currentEvent.name}`}
         icon={Star}
       />
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Selos Recebidos</CardTitle>
             <BadgeCheck className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{positivacoesCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold">{positivacoesCount}</div>
             <p className="text-xs text-muted-foreground">De fornecedores participantes</p>
           </CardContent>
         </Card>
@@ -165,7 +165,7 @@ export default function StorePositivacaoPage() {
             <Trophy className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold">
               {currentAchievedTier ? currentAchievedTier.name : 'Nenhuma'}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -182,8 +182,8 @@ export default function StorePositivacaoPage() {
           <CardContent>
             {nextTier && currentStore.state ? (
               <>
-                <div className="text-xl font-bold">{positivacoesCount} / {getRequiredPositivationsForStore(nextTier, currentStore.state)} selos</div>
-                <Progress value={progressToNextTier} className="mt-2 h-3" />
+                <div className="text-lg sm:text-xl font-bold">{positivacoesCount} / {getRequiredPositivationsForStore(nextTier, currentStore.state)} selos</div>
+                <Progress value={progressToNextTier} className="mt-2 h-2.5 sm:h-3" />
                 <p className="text-xs text-muted-foreground mt-1">
                   Faltam {Math.max(0, getRequiredPositivationsForStore(nextTier, currentStore.state) - positivacoesCount)} selos para a faixa {nextTier.name}!
                 </p>
@@ -191,15 +191,15 @@ export default function StorePositivacaoPage() {
             ) : (
               currentAchievedTier ? (
                   <>
-                  <div className="text-xl font-bold">Parabéns!</div>
+                  <div className="text-lg sm:text-xl font-bold">Parabéns!</div>
                   <p className="text-xs text-muted-foreground mt-1">Você atingiu a faixa máxima de premiação!</p>
                   </>
               ) : ( 
                   <>
-                  <div className="text-xl font-bold">
+                  <div className="text-lg sm:text-xl font-bold">
                     {positivacoesCount} / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? (sortedAwardTiersForDisplay[0].positivacoesRequired.PR || '0') : '-')} selos
                   </div>
-                    <Progress value={progressToNextTier} className="mt-2 h-3" />
+                    <Progress value={progressToNextTier} className="mt-2 h-2.5 sm:h-3" />
                   <p className="text-xs text-muted-foreground mt-1">
                     {awardTiers.length === 0 ? "Nenhuma faixa de premiação configurada." : (currentStore.state ? "Comece a coletar selos!" : "Dados do estado da loja incompletos.")}
                   </p>
@@ -210,16 +210,16 @@ export default function StorePositivacaoPage() {
         </Card>
       </div>
 
-      <Card className="shadow-xl mb-8">
+      <Card className="shadow-xl mb-6 sm:mb-8">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Sua Cartela de Selos de Fornecedores</CardTitle>
+          <CardTitle className="font-headline text-xl sm:text-2xl">Sua Cartela de Selos</CardTitle>
           <CardDescription>Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
         </CardHeader>
         <CardContent>
           {allVendors.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Nenhum fornecedor cadastrado para o evento.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
               {allVendors.map((vendor: Vendor) => {
                 const positivation = positivationsMap.get(vendor.id);
                 const isPositivated = !!positivation;
@@ -228,18 +228,18 @@ export default function StorePositivacaoPage() {
                   <div
                     key={vendor.id}
                     className={`
-                      flex flex-col items-center p-4 rounded-lg transition-all duration-300 ease-in-out border
+                      flex flex-col items-center p-3 sm:p-4 rounded-lg transition-all duration-300 ease-in-out border
                       ${isPositivated ? 'border-secondary shadow-lg' : 'border-muted opacity-75 hover:opacity-100'}
-                      bg-card hover:shadow-md text-center min-h-[180px] justify-between group
+                      bg-card hover:shadow-md text-center min-h-[160px] sm:min-h-[180px] justify-between group
                     `}
                   >
                     <div className="flex flex-col items-center">
-                      <Avatar className="w-16 h-16 md:w-20 md:h-20 mb-2 transition-opacity duration-300">
+                      <Avatar className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-2 transition-opacity duration-300">
                         <AvatarImage src={vendor.logoUrl} alt={vendor.name} className="object-contain" />
                         <AvatarFallback>{vendor.name.substring(0, 2)}</AvatarFallback>
                       </Avatar>
                       <p className={`
-                        text-sm font-semibold text-center w-full
+                        text-xs sm:text-sm font-semibold text-center w-full
                         ${isPositivated ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}
                       `}>{vendor.name}</p>
                     </div>
@@ -275,57 +275,58 @@ export default function StorePositivacaoPage() {
             </div>
           )}
           {positivacoesCount === 0 && allVendors.length > 0 && (
-            <p className="mt-8 text-center text-lg text-muted-foreground">
+            <p className="mt-6 sm:mt-8 text-center text-base sm:text-lg text-muted-foreground">
               Ainda não há selos (positivações). Positive com os fornecedores para recebê-los!
             </p>
           )}
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg mb-8">
+      <Card className="shadow-lg mb-6 sm:mb-8">
         <CardHeader className="flex flex-row items-center gap-2">
-          <Trophy className="h-6 w-6 text-secondary"/>
+          <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-secondary"/>
           <CardTitle>Faixas de Premiação Disponíveis</CardTitle>
         </CardHeader>
         <CardContent>
           {sortedAwardTiersForDisplay.length > 0 && currentStore.state ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome da Faixa</TableHead>
-                  <TableHead>Prêmio</TableHead>
-                  <TableHead className="text-right">Qtd. Total Prêmios</TableHead>
-                  <TableHead className="text-right">Selos Necessários ({currentStore.state})</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedAwardTiersForDisplay.map((tier) => (
-                  <TableRow key={tier.id}>
-                    <TableCell className="font-medium">{tier.name}</TableCell>
-                    <TableCell>{tier.rewardName}</TableCell>
-                    <TableCell className="text-right">{tier.quantityAvailable}</TableCell>
-                    <TableCell className="text-right font-semibold">{getRequiredPositivationsForStore(tier, currentStore.state!)}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="px-2 py-3 sm:px-4">Nome da Faixa</TableHead>
+                    <TableHead className="px-2 py-3 sm:px-4">Prêmio</TableHead>
+                    <TableHead className="text-right px-2 py-3 sm:px-4">Qtd. Total Prêmios</TableHead>
+                    <TableHead className="text-right px-2 py-3 sm:px-4">Selos Necessários ({currentStore.state})</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {sortedAwardTiersForDisplay.map((tier) => (
+                    <TableRow key={tier.id}>
+                      <TableCell className="font-medium px-2 py-3 sm:px-4">{tier.name}</TableCell>
+                      <TableCell className="px-2 py-3 sm:px-4">{tier.rewardName}</TableCell>
+                      <TableCell className="text-right px-2 py-3 sm:px-4">{tier.quantityAvailable}</TableCell>
+                      <TableCell className="text-right font-semibold px-2 py-3 sm:px-4">{getRequiredPositivationsForStore(tier, currentStore.state!)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <p className="text-center text-muted-foreground py-4">Nenhuma faixa de premiação configurada para o evento ou estado da loja não definido.</p>
           )}
         </CardContent>
       </Card>
 
-      <Card className="mt-8 shadow-lg">
+      <Card className="mt-6 sm:mt-8 shadow-lg">
           <CardHeader className="flex flex-row items-center gap-2">
-              <Gift className="h-6 w-6 text-secondary"/>
+              <Gift className="h-5 w-5 sm:h-6 sm:w-6 text-secondary"/>
               <CardTitle>Qualificação para Sorteios</CardTitle>
           </CardHeader>
           <CardContent>
-          <p className="text-sm">Sua loja tem <span className="font-bold text-lg text-secondary">{positivacoesCount}</span> selos.</p>
+          <p className="text-sm">Sua loja tem <span className="font-bold text-base sm:text-lg text-secondary">{positivacoesCount}</span> selos.</p>
           <p className="text-xs text-muted-foreground mt-1">Lojas com mais selos e que atingem as faixas de premiação participam de sorteios especiais. Continue positivando!</p>
           </CardContent>
       </Card>
     </div>
   );
 }
-

@@ -135,12 +135,14 @@ export default function DashboardPage() {
   }, [chartData]);
 
   const yAxisWidthValue = useMemo(() => {
-    // Approx 7px per char for sm/xs font size, plus 30px for padding/icon
-    return Math.max(80, Math.min(250, (maxLabelLength * 7) + 30));
+    // Approx 6-7px per char for xs/sm font size, plus 20-30px for padding/icon
+    const charWidth = typeof window !== 'undefined' && window.innerWidth < 640 ? 6 : 7; // smaller char width for very small screens
+    const padding = typeof window !== 'undefined' && window.innerWidth < 640 ? 20 : 30;
+    return Math.max(60, Math.min(200, (maxLabelLength * charWidth) + padding)); // Adjust min/max if needed
   }, [maxLabelLength]);
 
   const barChartMarginLeft = useMemo(() => {
-    return yAxisWidthValue; // The YAxis width itself becomes the left margin for the chart content
+    return yAxisWidthValue; 
   }, [yAxisWidthValue]);
 
 
@@ -165,7 +167,7 @@ export default function DashboardPage() {
         description={`Visão geral do ${currentEvent.name}`}
         icon={LayoutDashboard}
       />
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Lojas Participantes</CardTitle>
@@ -205,10 +207,10 @@ export default function DashboardPage() {
             <CardTitle className="text-base font-semibold">Distribuição por Faixas de Premiação</CardTitle>
             <Trophy className="h-5 w-5 text-secondary" />
           </CardHeader>
-          <CardDescription className="px-6 text-xs">
+          <CardDescription className="px-4 sm:px-6 text-xs">
             Lojas pela maior faixa alcançada, baseado nos requisitos do seu estado (PR/SC).
           </CardDescription>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 px-2 sm:px-6">
             {noTiersConfigured ? (
                <p className="text-sm text-muted-foreground text-center py-8">Nenhuma faixa de premiação configurada.</p>
             ) : noParticipatingStores ? (
@@ -216,34 +218,35 @@ export default function DashboardPage() {
             ) : !showChart ? (
                  <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja atingiu as faixas de premiação ainda.</p>
             ) : (
-              <ChartContainer config={chartConfig} className="h-[250px] w-full">
+              <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] w-full">
                 <BarChart
                   layout="vertical"
                   accessibilityLayer 
                   data={chartData} 
                   margin={{ 
                     top: 5, 
-                    right: 30, 
-                    left: barChartMarginLeft, 
-                    bottom: 20
+                    right: 15, 
+                    left: barChartMarginLeft - (typeof window !== 'undefined' && window.innerWidth < 640 ? 10 : 0), // Adjust left margin for mobile
+                    bottom: 5
                   }}
                 >
                   <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                  <XAxis type="number" allowDecimals={false} tickMargin={8} />
+                  <XAxis type="number" allowDecimals={false} tickMargin={5} />
                   <YAxis
                     type="category"
                     dataKey="name"
                     tickLine={false}
                     axisLine={false}
-                    tickMargin={10}
+                    tickMargin={5}
                     interval={0}
                     width={yAxisWidthValue} 
+                    className="text-xs"
                   />
                   <ChartTooltip
                     cursor={false}
                     content={<ChartTooltipContent indicator="dot" />}
                   />
-                  <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={chartData.length > 6 ? 20 : (chartData.length > 3 ? 25 : 30)}/>
+                  <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={chartData.length > 6 ? 18 : (chartData.length > 3 ? 22 : 25)}/>
                 </BarChart>
               </ChartContainer>
             )}

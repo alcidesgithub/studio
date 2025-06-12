@@ -100,10 +100,10 @@ export default function VendorPositivacaoPage() {
 
   if (!currentEvent || !currentVendorCompany) {
     return (
-      <div className="animate-fadeIn p-6">
+      <div className="animate-fadeIn p-4 sm:p-6">
         <PageHeader title="Positivar Lojas" icon={ThumbsUp} />
         <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
+          <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             { !currentEvent ? "Carregando dados do evento..." : "Dados da empresa fornecedora não encontrados. Faça login como vendedor."}
           </CardContent>
         </Card>
@@ -120,7 +120,7 @@ export default function VendorPositivacaoPage() {
         icon={ThumbsUp}
       />
 
-      <div className="mb-6 relative flex items-center max-w-sm">
+      <div className="mb-4 sm:mb-6 relative flex items-center max-w-full sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input 
           type="text"
@@ -133,21 +133,21 @@ export default function VendorPositivacaoPage() {
 
       {filteredStores.length === 0 && allStores.length > 0 && (
         <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
+          <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Nenhuma loja encontrada com o termo pesquisado.
           </CardContent>
         </Card>
       )}
       {allStores.length === 0 && (
         <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
+          <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Nenhuma loja participante disponível para positivação.
           </CardContent>
         </Card>
       )}
 
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredStores.map((store: Store) => {
           const isPositivatedByThisVendorForSession = sessionPositivatedStores.has(store.id);
           // Check if *this vendor company* has already positivada this store
@@ -159,8 +159,8 @@ export default function VendorPositivacaoPage() {
           return (
             <Card key={store.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <StoreIcon className="h-6 w-6 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <StoreIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                   {store.name} ({store.code})
                 </CardTitle>
               </CardHeader>
@@ -171,19 +171,19 @@ export default function VendorPositivacaoPage() {
               </CardContent>
               <CardFooter>
                 <Button 
-                  className="w-full h-[80px]"
+                  className="w-full h-[70px] sm:h-[80px] text-sm sm:text-lg"
                   onClick={() => handlePositivar(store.id, store.name)}
                   disabled={isDisabled}
                 >
                   {isDisabled ? (
                     <>
-                      <CheckCircle className="flex-shrink-0" /> 
-                      <span className="truncate min-w-0 text-lg">Positivada por {currentVendorCompany.name}</span>
+                      <CheckCircle className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6" /> 
+                      <span className="truncate min-w-0 ml-2">Positivada por {currentVendorCompany.name}</span>
                     </>
                   ) : (
                     <>
                       {currentVendorCompany.logoUrl ? (
-                          <div className="relative w-[90px] h-[60px] flex-shrink-0">
+                          <div className="relative w-[70px] h-[40px] sm:w-[90px] sm:h-[60px] flex-shrink-0 mr-2 sm:mr-3">
                             <Image
                               src={currentVendorCompany.logoUrl}
                               alt={`Logo ${currentVendorCompany.name}`}
@@ -192,9 +192,9 @@ export default function VendorPositivacaoPage() {
                             />
                           </div>
                         ) : (
-                          <ThumbsUp className="flex-shrink-0" /> 
+                          <ThumbsUp className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" /> 
                         )}
-                      <span className="truncate min-w-0 text-lg">Positivar Loja</span>
+                      <span className="truncate min-w-0">Positivar Loja</span>
                     </>
                   )}
                 </Button>

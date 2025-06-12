@@ -430,18 +430,18 @@ export default function ManageVendorsPage() {
   }, [salespeople, editingVendor]);
 
   return (
-    <div className="animate-fadeIn space-y-8">
+    <div className="animate-fadeIn space-y-6 sm:space-y-8">
       <PageHeader
         title="Fornecedores"
         description="Adicione, edite ou remova fornecedores e gerencie seus vendedores."
         icon={Briefcase}
         actions={
-          <div className="flex gap-2">
-            <Button onClick={() => setIsImportDialogOpen(true)} variant="outline">
-              <UploadCloud className="mr-2 h-4 w-4" /> Importar Fornecedores (CSV)
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={() => setIsImportDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
+              <UploadCloud className="mr-2 h-4 w-4" /> Importar (CSV)
             </Button>
-            <Button onClick={handleAddNewVendor}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Novo Fornecedor
+            <Button onClick={handleAddNewVendor} className="w-full sm:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fornecedor
             </Button>
           </div>
         }
@@ -458,10 +458,10 @@ export default function ManageVendorsPage() {
             <DialogDescription>{editingVendor ? 'Atualize os detalhes e gerencie vendedores.' : 'Preencha os detalhes.'}</DialogDescription>
           </DialogHeader>
           <Form {...vendorForm}>
-            <form onSubmit={vendorForm.handleSubmit(onVendorSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+            <form onSubmit={vendorForm.handleSubmit(onVendorSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
               <Card>
-                <CardHeader><CardTitle className="text-xl">Informações do Fornecedor</CardTitle></CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4">
+                <CardHeader><CardTitle className="text-lg sm:text-xl">Informações do Fornecedor</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
                   <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (<FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua das Indústrias, 789" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -472,20 +472,37 @@ export default function ManageVendorsPage() {
                 </CardContent>
               </Card>
               {editingVendor && ( 
-                <Card className="mt-6">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div><CardTitle className="text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
-                    <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(editingVendor.id)}><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
+                <Card className="mt-4 sm:mt-6">
+                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div><CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
+                    <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(editingVendor.id)} className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
                   </CardHeader>
                   <CardContent>
                     {salespeopleForCurrentEditingVendor.length > 0 ? (
-                      <Table><TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Email (Login)</TableHead><TableHead>Telefone</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-                        <TableBody>{salespeopleForCurrentEditingVendor.map(sp => (<TableRow key={sp.id}><TableCell>{sp.name}</TableCell><TableCell>{sp.email}</TableCell><TableCell>{sp.phone}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button></TableCell></TableRow>))}</TableBody>
+                      <div className="overflow-x-auto">
+                        <Table><TableHeader><TableRow>
+                            <TableHead className="px-2 py-3 sm:px-4">Nome</TableHead>
+                            <TableHead className="px-2 py-3 sm:px-4">Email (Login)</TableHead>
+                            <TableHead className="px-2 py-3 sm:px-4">Telefone</TableHead>
+                            <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>
+                        </TableRow></TableHeader>
+                        <TableBody>{salespeopleForCurrentEditingVendor.map(sp => (
+                            <TableRow key={sp.id}>
+                                <TableCell className="px-2 py-3 sm:px-4">{sp.name}</TableCell>
+                                <TableCell className="px-2 py-3 sm:px-4">{sp.email}</TableCell>
+                                <TableCell className="px-2 py-3 sm:px-4">{sp.phone}</TableCell>
+                                <TableCell className="text-right px-2 py-3 sm:px-4">
+                                    <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}</TableBody>
                       </Table>
+                      </div>
                     ) : (<p className="text-sm text-muted-foreground text-center py-4">Nenhum vendedor cadastrado.</p>)}
                   </CardContent>
                 </Card>)}
-              <DialogFooter className="pt-4">
+              <DialogFooter className="pt-3 sm:pt-4">
                 <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setIsVendorDialogOpen(false); setEditingVendor(null); vendorForm.reset();}}>Fechar</Button></DialogClose>
                 <Button type="submit" disabled={vendorForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingVendor ? 'Salvar Alterações' : 'Cadastrar'}</Button>
               </DialogFooter>
@@ -505,12 +522,12 @@ export default function ManageVendorsPage() {
                 <DialogDescription>{editingSalesperson ? `Atualize ${editingSalesperson.name}.` : `Adicione para ${vendors.find(v => v.id === currentVendorIdForSalesperson)?.name || ''}.`}</DialogDescription>
             </DialogHeader>
             <Form {...salespersonForm}>
-                <form onSubmit={salespersonForm.handleSubmit(onSalespersonSubmit)} className="space-y-4 py-4">
+                <form onSubmit={salespersonForm.handleSubmit(onSalespersonSubmit)} className="space-y-3 sm:space-y-4 py-4">
                     <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={salespersonForm.control} name="password" render={({ field }) => (<FormItem><FormLabel>Senha de Login {editingSalesperson ? '(Não alterar)' : ''}</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <DialogFooter className="pt-4">
+                    <DialogFooter className="pt-3 sm:pt-4">
                         <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                         <Button type="submit" disabled={salespersonForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingSalesperson ? 'Salvar' : 'Cadastrar'}</Button>
                     </DialogFooter>
@@ -538,7 +555,7 @@ export default function ManageVendorsPage() {
               Certifique-se que o CNPJ esteja formatado corretamente ou apenas com números.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-4">
              <div>
                <label htmlFor="csv-upload" className="block text-sm font-medium mb-1">Arquivo CSV</label>
               <Input 
@@ -554,7 +571,7 @@ export default function ManageVendorsPage() {
                 <FileText className="h-4 w-4 mr-2" /> Arquivo selecionado: {csvFileName}
               </div>
             )}
-            <Button type="button" variant="link" size="sm" onClick={handleDownloadSampleCSV} className="p-0 h-auto text-primary">
+            <Button type="button" variant="link" size="sm" onClick={handleDownloadSampleCSV} className="p-0 h-auto text-primary text-xs sm:text-sm">
               <Download className="mr-1 h-3 w-3" /> Baixar CSV de Exemplo
             </Button>
             {importErrors.length > 0 && (
@@ -594,39 +611,41 @@ export default function ManageVendorsPage() {
       </AlertDialog>
 
       {/* Main Table of Vendors */}
-      <Card className="shadow-lg mt-8">
+      <Card className="shadow-lg mt-6 sm:mt-8">
         <CardHeader><CardTitle>Fornecedores Cadastrados</CardTitle><CardDescription>Lista de todos os fornecedores no sistema.</CardDescription></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px]">Logo</TableHead>
-                <TableHead>Razão Social</TableHead>
-                <TableHead>CNPJ</TableHead>
-                <TableHead>Município</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Vendedores</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {vendors.length === 0 && (<TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>)}
-              {vendors.map((vendor) => (
-                <TableRow key={vendor.id}>
-                  <TableCell><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" /></TableCell>
-                  <TableCell className="font-medium">{vendor.name}</TableCell>
-                  <TableCell>{formatCNPJ(vendor.cnpj)}</TableCell>
-                  <TableCell>{vendor.city}</TableCell>
-                  <TableCell>{vendor.state}</TableCell>
-                  <TableCell>{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteVendor(vendor)}><Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span></Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[60px] sm:w-[80px] px-2 py-3 sm:px-4">Logo</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Razão Social</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">CNPJ</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Município</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Estado</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Vendedores</TableHead>
+                  <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {vendors.length === 0 && (<TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4 px-2 sm:px-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>)}
+                {vendors.map((vendor) => (
+                  <TableRow key={vendor.id}>
+                    <TableCell className="px-2 py-3 sm:px-4"><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" /></TableCell>
+                    <TableCell className="font-medium px-2 py-3 sm:px-4">{vendor.name}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{formatCNPJ(vendor.cnpj)}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{vendor.city}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{vendor.state}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
+                    <TableCell className="text-right px-2 py-3 sm:px-4">
+                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
+                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteVendor(vendor)}><Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

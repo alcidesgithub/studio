@@ -168,7 +168,7 @@ export default function AdminUsersPage() {
         icon={UserCog}
         actions={
           <Button onClick={handleAddNew}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Administrador/Gerente
+            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Admin/Gerente
           </Button>
         }
       />
@@ -182,7 +182,7 @@ export default function AdminUsersPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -252,7 +252,7 @@ export default function AdminUsersPage() {
                   </FormItem>
                 )}
               />
-              <DialogFooter className="pt-4">
+              <DialogFooter className="pt-3 sm:pt-4">
                 <DialogClose asChild>
                    <Button type="button" variant="outline" onClick={() => { setEditingUser(null); form.reset(); setIsDialogOpen(false); }}>Cancelar</Button>
                 </DialogClose>
@@ -271,43 +271,45 @@ export default function AdminUsersPage() {
           <CardDescription>Lista de administradores e gerentes no sistema.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Perfil</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEdit(user)}>
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Editar</span>
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="hover:text-destructive" 
-                      disabled={(user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 && user.id === users.find(u => u.role === 'admin')?.id)}
-                      title={
-                        (user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 ? "Não é possível excluir o último administrador" : "Excluir")
-                      }
-                      onClick={() => handleDelete(user.id)}>
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Excluir</span>
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-2 py-3 sm:px-4">Nome</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Email</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Perfil</TableHead>
+                  <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {displayUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium px-2 py-3 sm:px-4">{user.name}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{user.email}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4"><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
+                    <TableCell className="text-right px-2 py-3 sm:px-4">
+                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(user)}>
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Editar</span>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" 
+                        disabled={(user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 && user.id === users.find(u => u.role === 'admin')?.id)}
+                        title={
+                          (user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 ? "Não é possível excluir o último administrador" : "Excluir")
+                        }
+                        onClick={() => handleDelete(user.id)}>
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Excluir</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
            {displayUsers.length === 0 && (
             <p className="py-4 text-center text-muted-foreground">Nenhum administrador ou gerente cadastrado.</p>
           )}

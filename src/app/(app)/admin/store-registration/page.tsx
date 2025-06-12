@@ -483,11 +483,11 @@ export default function ManageStoresPage() {
         description="Adicione, edite ou remova lojas participantes."
         icon={StoreIcon}
         actions={
-          <div className="flex gap-2">
-            <Button onClick={() => setIsImportStoreDialogOpen(true)} variant="outline">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={() => setIsImportStoreDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
               <UploadCloud className="mr-2 h-4 w-4" /> Importar Lojas (CSV)
             </Button>
-            <Button onClick={handleAddNew}>
+            <Button onClick={handleAddNew} className="w-full sm:w-auto">
               <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Loja
             </Button>
           </div>
@@ -504,10 +504,10 @@ export default function ManageStoresPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
               <Card>
-                <CardHeader><CardTitle className="text-xl">Informações da Loja</CardTitle></CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4">
+                <CardHeader><CardTitle className="text-lg sm:text-xl">Informações da Loja</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
                   <FormField control={form.control} name="code" render={({ field }) => (
                       <FormItem><FormLabel>Código da Loja</FormLabel><FormControl><Input placeholder="Ex: LJ001" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
@@ -535,8 +535,8 @@ export default function ManageStoresPage() {
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader><CardTitle className="text-xl">Contato e Login (Usuário da Loja)</CardTitle></CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-x-6 gap-y-4">
+                <CardHeader><CardTitle className="text-lg sm:text-xl">Contato e Login (Usuário da Loja)</CardTitle></CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
                   <FormField control={form.control} name="ownerName" render={({ field }) => (
                       <FormItem><FormLabel>Nome do Proprietário(a)</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
@@ -551,7 +551,7 @@ export default function ManageStoresPage() {
                   )}/>
                 </CardContent>
               </Card>
-              <DialogFooter className="pt-4">
+              <DialogFooter className="pt-3 sm:pt-4">
                 <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setEditingStore(null); form.reset(); setIsDialogOpen(false); }}>Cancelar</Button></DialogClose>
                 <Button type="submit" disabled={form.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingStore ? 'Salvar Alterações' : 'Cadastrar Loja'}</Button>
               </DialogFooter>
@@ -579,7 +579,7 @@ export default function ManageStoresPage() {
               O campo 'password' é usado para criar um novo login para a loja se o email não existir.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-4">
             <div>
               <label htmlFor="csv-store-upload" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Arquivo CSV</label>
               <Input 
@@ -595,7 +595,7 @@ export default function ManageStoresPage() {
                 <FileText className="h-4 w-4 mr-2" /> Arquivo selecionado: {csvStoreFileName}
               </div>
             )}
-            <Button type="button" variant="link" size="sm" onClick={handleDownloadSampleStoreCSV} className="p-0 h-auto text-primary">
+            <Button type="button" variant="link" size="sm" onClick={handleDownloadSampleStoreCSV} className="p-0 h-auto text-primary text-xs sm:text-sm">
               <Download className="mr-1 h-3 w-3" /> Baixar CSV de Exemplo para Lojas
             </Button>
             {importStoreErrors.length > 0 && (
@@ -620,48 +620,50 @@ export default function ManageStoresPage() {
       </Dialog>
 
 
-      <Card className="shadow-lg mt-8">
+      <Card className="shadow-lg mt-6 sm:mt-8">
         <CardHeader>
           <CardTitle>Lojas Cadastradas</CardTitle>
           <CardDescription>Lista de todas as lojas no sistema.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Código</TableHead>
-                <TableHead>Razão Social</TableHead>
-                <TableHead>CNPJ</TableHead>
-                <TableHead>Email (Login)</TableHead>
-                <TableHead>Município</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stores.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4">Nenhuma loja cadastrada.</TableCell></TableRow>
-              )}
-              {stores.map((store) => (
-                <TableRow key={store.id}>
-                  <TableCell>{store.code}</TableCell>
-                  <TableCell className="font-medium">{store.name}</TableCell>
-                  <TableCell>{formatCNPJ(store.cnpj)}</TableCell>
-                  <TableCell>{store.email || 'N/A'}</TableCell>
-                  <TableCell>{store.city || 'N/A'}</TableCell>
-                  <TableCell>{getDisplayState(store.state)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEdit(store)}>
-                      <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDelete(store.id)}>
-                      <Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span>
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-2 py-3 sm:px-4">Código</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Razão Social</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">CNPJ</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Email (Login)</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Município</TableHead>
+                  <TableHead className="px-2 py-3 sm:px-4">Estado</TableHead>
+                  <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {stores.length === 0 && (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4 px-2 sm:px-4">Nenhuma loja cadastrada.</TableCell></TableRow>
+                )}
+                {stores.map((store) => (
+                  <TableRow key={store.id}>
+                    <TableCell className="px-2 py-3 sm:px-4">{store.code}</TableCell>
+                    <TableCell className="font-medium px-2 py-3 sm:px-4">{store.name}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{formatCNPJ(store.cnpj)}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{store.email || 'N/A'}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{store.city || 'N/A'}</TableCell>
+                    <TableCell className="px-2 py-3 sm:px-4">{getDisplayState(store.state)}</TableCell>
+                    <TableCell className="text-right px-2 py-3 sm:px-4">
+                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(store)}>
+                        <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
+                      </Button>
+                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleDelete(store.id)}>
+                        <Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -670,6 +672,7 @@ export default function ManageStoresPage() {
     
 
     
+
 
 
 
