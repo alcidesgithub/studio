@@ -28,7 +28,6 @@ export default function DashboardPage() {
   useEffect(() => {
     setStores(loadStores());
     setCurrentEvent(loadEvent());
-    // Ordenar faixas por requisito de PR para consistência no gráfico
     setAwardTiers(loadAwardTiers().sort((a, b) => (a.positivacoesRequired?.PR ?? 0) - (b.positivacoesRequired?.PR ?? 0)));
     setVendors(loadVendors());
     setDrawnWinners(loadDrawnWinners());
@@ -53,7 +52,6 @@ export default function DashboardPage() {
     if (awardTiers.length === 0 && participatingStores.length === 0) return {};
     
     const tierCounts: Record<string, { name: string; count: number; reward: string }> = {};
-    // Initialize all configured tiers with 0 counts
     awardTiers.forEach(tier => {
       tierCounts[tier.id] = { name: tier.name, count: 0, reward: tier.rewardName };
     });
@@ -63,10 +61,9 @@ export default function DashboardPage() {
       const positivacoesCount = store.positivationsDetails?.filter(pd => vendors.some(v => v.id === pd.vendorId)).length || 0;
       let highestAchievedTier: AwardTier | undefined = undefined;
 
-      // Itera das faixas mais altas para as mais baixas (array já está ordenado por PR asc)
       for (let i = awardTiers.length - 1; i >= 0; i--) {
         const tier = awardTiers[i];
-        if (!store.state) continue; // Skip if store has no state
+        if (!store.state) continue; 
         const required = getRequiredPositivationsForStore(tier, store.state);
         if (positivacoesCount >= required) {
           highestAchievedTier = tier;
@@ -82,8 +79,6 @@ export default function DashboardPage() {
     });
 
     if (storesWithNoTierCount > 0 && participatingStores.length > 0) {
-      // Only add 'Nenhuma Faixa' if there are stores that didn't achieve any configured tier
-      // and there are participating stores.
       if (Object.values(tierCounts).some(tc => tc.count > 0) || storesWithNoTierCount > 0) {
          tierCounts['none'] = { name: 'Nenhuma Faixa', count: storesWithNoTierCount, reward: '-' };
       }
@@ -96,10 +91,8 @@ export default function DashboardPage() {
       .map(tier => ({
           name: tier.name,
           lojas: storesByHighestTier[tier.id]?.count || 0,
-      }))
-      .filter(d => d.lojas > 0); // Include only tiers with stores initially for sorting if needed or specific display
+      }));
       
-    // Re-add all tiers to ensure they are present, then add 'Nenhuma Faixa' if applicable
     const allTierNames = new Set(data.map(d => d.name));
     awardTiers.forEach(tier => {
         if (!allTierNames.has(tier.name)) {
@@ -108,7 +101,6 @@ export default function DashboardPage() {
         }
     });
 
-
     if (storesByHighestTier['none']?.count > 0) {
         data.push({
             name: storesByHighestTier['none'].name,
@@ -116,24 +108,40 @@ export default function DashboardPage() {
         });
     }
 
-    // Filter out entries that have 0 lojas IF 'Nenhuma Faixa' exists and has stores,
-    // or if all other tiers have 0 lojas and 'Nenhuma Faixa' has stores.
-    // This aims to prevent showing all tiers with 0 if 'Nenhuma Faixa' is the only one with data.
     const hasNenhumaFaixaData = storesByHighestTier['none']?.count > 0;
     const allOtherTiersAreZero = awardTiers.every(tier => (storesByHighestTier[tier.id]?.count || 0) === 0);
 
+    let filteredData = data;
     if (hasNenhumaFaixaData && allOtherTiersAreZero) {
-        return data.filter(d => d.name === 'Nenhuma Faixa' || d.lojas > 0);
+        filteredData = data.filter(d => d.name === 'Nenhuma Faixa' || d.lojas > 0);
     }
     
-    // Sort so 'Nenhuma Faixa' appears last if present, otherwise by 'lojas' descending
-    return data.sort((a, b) => {
+    return filteredData.sort((a, b) => {
         if (a.name === 'Nenhuma Faixa') return 1;
         if (b.name === 'Nenhuma Faixa') return -1;
-        return b.lojas - a.lojas; // Example: sort by count, or keep original tier order
+        // Sort by configured tier order (based on original awardTiers PR sort)
+        const tierAIndex = awardTiers.findIndex(t => t.name === a.name);
+        const tierBIndex = awardTiers.findIndex(t => t.name === b.name);
+        if (tierAIndex !== -1 && tierBIndex !== -1) {
+            return tierAIndex - tierBIndex;
+        }
+        return b.lojas - a.lojas; 
     });
 
   }, [awardTiers, storesByHighestTier]);
+
+  const maxLabelLength = useMemo(() => {
+    return chartData.length > 0 ? Math.max(...chartData.map(d => d.name.length)) : 0;
+  }, [chartData]);
+
+  const yAxisWidthValue = useMemo(() => {
+    // Approx 7px per char for sm/xs font size, plus 30px for padding/icon
+    return Math.max(80, Math.min(250, (maxLabelLength * 7) + 30));
+  }, [maxLabelLength]);
+
+  const barChartMarginLeft = useMemo(() => {
+    return yAxisWidthValue; // The YAxis width itself becomes the left margin for the chart content
+  }, [yAxisWidthValue]);
 
 
   if (!currentEvent) {
@@ -147,8 +155,6 @@ export default function DashboardPage() {
   const noTiersConfigured = awardTiers.length === 0;
   const noParticipatingStores = participatingStoresCount === 0;
   const noStoresInAnyTierBasedOnChartData = chartData.every(d => d.lojas === 0);
-  // Refined showChart condition:
-  // Show chart if there are tiers, participating stores, AND at least one category in chartData has 'lojas' > 0
   const showChart = !noTiersConfigured && !noParticipatingStores && !noStoresInAnyTierBasedOnChartData;
 
 
@@ -240,7 +246,7 @@ export default function DashboardPage() {
                   margin={{ 
                     top: 5, 
                     right: 30, 
-                    left: (chartData.length > 5 ? 20 : 10) + (Math.max(...chartData.map(d => d.name.length)) > 10 ? 60 : 20), // Dynamic left margin
+                    left: barChartMarginLeft, 
                     bottom: 20
                   }}
                 >
@@ -253,8 +259,7 @@ export default function DashboardPage() {
                     axisLine={false}
                     tickMargin={10}
                     interval={0}
-                    width={Math.max(...chartData.map(d => d.name.length)) > 10 ? 100 : 80} // Dynamic width for Y-axis labels
-                    tickFormatter={(value: string) => value.length > 12 ? `${value.slice(0,10)}...` : value}
+                    width={yAxisWidthValue} 
                   />
                   <ChartTooltip
                     cursor={false}
