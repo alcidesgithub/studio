@@ -97,6 +97,9 @@ export default function StorePositivacaoPage() {
     // Handle case where the next tier requires 0 positivacoes (e.g. entry level tier)
     if (requiredForNext === 0) return positivacoesCount >= 0 ? 100 : 0; // if any or 0 positivacoes, considered 100%
     
+    // Ensure positivacoesCount is not negative (though unlikely) and requiredForNext is positive to avoid NaN/Infinity
+    if (requiredForNext <= 0 || positivacoesCount < 0) return 0;
+
     const progress = (positivacoesCount / requiredForNext) * 100;
     return Math.min(progress, 100);
   }, [nextTier, positivacoesCount, currentAchievedTier, currentStore]);
@@ -191,12 +194,12 @@ export default function StorePositivacaoPage() {
                   <div className="text-xl font-bold">Parabéns!</div>
                   <p className="text-xs text-muted-foreground mt-1">Você atingiu a faixa máxima de premiação!</p>
                   </>
-              ) : ( // No next tier and no current tier (implies no tiers exist or store state missing)
+              ) : ( 
                   <>
                   <div className="text-xl font-bold">
-                    0 / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? (sortedAwardTiersForDisplay[0].positivacoesRequired.PR || '0') : '-')} selos
+                    {positivacoesCount} / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? (sortedAwardTiersForDisplay[0].positivacoesRequired.PR || '0') : '-')} selos
                   </div>
-                    <Progress value={0} className="mt-2 h-3" />
+                    <Progress value={progressToNextTier} className="mt-2 h-3" />
                   <p className="text-xs text-muted-foreground mt-1">
                     {awardTiers.length === 0 ? "Nenhuma faixa de premiação configurada." : (currentStore.state ? "Comece a coletar selos!" : "Dados do estado da loja incompletos.")}
                   </p>
@@ -273,7 +276,7 @@ export default function StorePositivacaoPage() {
           )}
           {positivacoesCount === 0 && allVendors.length > 0 && (
             <p className="mt-8 text-center text-lg text-muted-foreground">
-              Ainda não há selos (positivações). Interaja com os fornecedores para recebê-los!
+              Ainda não há selos (positivações). Positive com os fornecedores para recebê-los!
             </p>
           )}
         </CardContent>
