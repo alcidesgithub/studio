@@ -7,45 +7,44 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ROLES, ROLES_TRANSLATIONS } from '@/lib/constants'; // ROLES, ROLES_TRANSLATIONS can remain from constants
-import { loadUsers, saveUsers, loadStores } from '@/lib/localStorageUtils';
-import type { User, UserRole, Store } from '@/types';
+import { ROLES, ROLES_TRANSLATIONS } from '@/lib/constants';
+import { loadUsers, saveUsers } from '@/lib/localStorageUtils'; // loadStores removido pois não vamos mais vincular aqui
+import type { User, UserRole } from '@/types'; // Store removido
 import { UserCog, PlusCircle, Edit, Trash2, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 
+// Perfis que podem ser atribuídos/criados nesta página
+const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'manager', 'vendor'];
+
 const userFormSchema = z.object({
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres." }),
   email: z.string().email({ message: "Endereço de email inválido." }),
-  password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres." }),
-  role: z.custom<UserRole>(val => ROLES.includes(val as UserRole), {
+  password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres." }).optional(), // Opcional para edição
+  role: z.custom<UserRole>(val => ROLES.includes(val as UserRole), { // Valida contra todos os ROLES
     message: "Perfil deve ser um dos valores permitidos.",
   }),
-  storeId: z.string().optional(), // For store users, their store's ID
+  // storeId foi removido
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
-const privilegedRoles: UserRole[] = ['admin', 'manager']; // For creating new privileged users
-const allUserCreatableRoles: UserRole[] = ['admin', 'manager', 'vendor', 'store'];
-
-
 export default function AdminUsersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null); // For future edit functionality
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
-  const [stores, setStores] = useState<Store[]>([]);
+  // stores não é mais necessário aqui
   const { toast } = useToast();
 
   useEffect(() => {
     setUsers(loadUsers());
-    setStores(loadStores());
+    // loadStores() não é mais necessário aqui
   }, []);
 
   const form = useForm<UserFormValues>({
@@ -55,11 +54,12 @@ export default function AdminUsersPage() {
       email: '',
       password: '',
       role: 'manager', 
-      storeId: undefined,
+      // storeId removido
     },
   });
 
-  const selectedRole = form.watch('role');
+  // selectedRole não é mais usado para lógica condicional de storeId
+  // const selectedRole = form.watch('role'); 
 
   const handleAddNew = () => {
     setEditingUser(null);
@@ -67,32 +67,33 @@ export default function AdminUsersPage() {
       name: '',
       email: '',
       password: '',
-      role: 'manager',
-      storeId: undefined,
+      role: 'manager', // Default para novo usuário
+      // storeId removido
     });
     setIsDialogOpen(true);
   };
 
-  // Basic edit handler - can be expanded
   const handleEdit = (user: User) => {
     setEditingUser(user);
     form.reset({
         name: user.name,
         email: user.email,
-        password: '', // Typically don't repopulate password
+        password: '', // Senha não é pré-preenchida
         role: user.role,
-        storeId: users.find(u => u.id === user.id && u.role === 'store')?.storeName // This logic might need refinement if storeId is directly on User
+        // storeId removido
     });
     setIsDialogOpen(true);
   };
   
   const handleDelete = (userId: string) => {
-    // Prevent deleting the last admin
     const userToDelete = users.find(u => u.id === userId);
     if (userToDelete?.role === 'admin' && users.filter(u => u.role === 'admin').length === 1) {
       toast({ title: "Ação não permitida", description: "Não é possível excluir o último administrador.", variant: "destructive"});
       return;
     }
+    // Adicionar lógica para impedir exclusão de usuário de loja se necessário, ou alertar sobre.
+    // Por ora, permite excluir. A remoção do usuário 'store' aqui pode deixar a loja sem usuário associado.
+    // O ideal seria que usuários 'store' fossem removidos na tela de cadastro de lojas.
 
     const updatedUsers = users.filter(u => u.id !== userId);
     setUsers(updatedUsers);
@@ -104,34 +105,41 @@ export default function AdminUsersPage() {
     });
   };
 
-
   const onSubmit = (data: UserFormValues) => {
     let updatedUsers;
-    const userStore = data.role === 'store' && data.storeId ? stores.find(s => s.id === data.storeId) : null;
+    // Lógica de userStore e vinculação com storeId removida.
 
     if (editingUser) {
         updatedUsers = users.map(u => u.id === editingUser.id ? {
-            ...editingUser,
+            ...editingUser, // Preserva campos como storeName se for um usuário de loja
             name: data.name,
             email: data.email,
-            role: data.role,
-            // Password update logic would be more complex (e.g., only if field is filled)
-            storeName: data.role === 'store' && userStore ? userStore.name : undefined,
+            role: data.role, // Se editingUser.role era 'store', data.role será 'store' (select desabilitado)
+            // Se o role mudar (só pode para admin, manager, vendor), storeName deve ser indefinido
+            storeName: data.role === 'store' ? editingUser.storeName : undefined,
         } : u);
         toast({
             title: "Usuário Atualizado!",
             description: `Usuário ${data.name} foi atualizado.`,
         });
 
-    } else {
+    } else { // Criando novo usuário
+        // Verifica se o email já existe para um novo usuário
+        if (users.some(u => u.email === data.email)) {
+            form.setError("email", { type: "manual", message: "Este email já está em uso." });
+            toast({ title: "Erro", description: "Email já cadastrado.", variant: "destructive" });
+            return;
+        }
+        if (!data.password) { // Senha é obrigatória para novos usuários
+             form.setError("password", { type: "manual", message: "Senha é obrigatória para novos usuários." });
+             return;
+        }
         const newUser: User = {
           id: `user_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
           name: data.name,
           email: data.email,
-          role: data.role,
-          // storeName is primarily for display; actual linkage might be via storeId if User type changes
-          storeName: data.role === 'store' && userStore ? userStore.name : undefined,
-          // Password would be hashed and stored securely in a real app
+          role: data.role, // data.role aqui não será 'store'
+          storeName: undefined, // Novos usuários criados aqui não são 'store'
         };
         updatedUsers = [...users, newUser];
         toast({
@@ -151,7 +159,7 @@ export default function AdminUsersPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title="Gerenciamento de Usuários"
-        description="Gerencie contas de usuários do sistema."
+        description="Gerencie contas de usuários do sistema (admin, gerente, fornecedor)."
         icon={UserCog}
         actions={
           <Button onClick={handleAddNew}>
@@ -161,12 +169,11 @@ export default function AdminUsersPage() {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        {/* <DialogTrigger asChild /> */}
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{editingUser ? 'Editar Usuário' : 'Adicionar Novo Usuário'}</DialogTitle>
             <DialogDescription>
-              {editingUser ? 'Atualize os detalhes do usuário.' : 'Preencha os detalhes para o novo usuário.'}
+              {editingUser ? 'Atualize os detalhes do usuário.' : 'Preencha os detalhes para o novo usuário (Admin, Gerente ou Fornecedor).'}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -216,51 +223,41 @@ export default function AdminUsersPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Perfil</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value} // defaultValue não é necessário se value é controlado
+                      disabled={!!(editingUser && editingUser.role === 'store')}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione um perfil" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {allUserCreatableRoles.map(role => (
-                          <SelectItem key={role} value={role} className="capitalize">
-                            {ROLES_TRANSLATIONS[role]}
-                          </SelectItem>
-                        ))}
+                        { (editingUser && editingUser.role === 'store') ? (
+                            // Se editando usuário de loja, mostra apenas Loja (desabilitado)
+                            <SelectItem value="store" className="capitalize">
+                              {ROLES_TRANSLATIONS['store']}
+                            </SelectItem>
+                          ) : (
+                            // Para novos ou edição de outros perfis, mostra perfis atribuíveis
+                            ASSIGNABLE_ROLES.map(role => (
+                              <SelectItem key={role} value={role} className="capitalize">
+                                {ROLES_TRANSLATIONS[role]}
+                              </SelectItem>
+                            ))
+                          )
+                        }
                       </SelectContent>
                     </Select>
                     <FormMessage />
+                    {editingUser && editingUser.role === 'store' && (
+                        <p className="text-xs text-muted-foreground pt-1">O perfil de usuários 'Loja' é gerenciado na tela de Cadastro de Lojas.</p>
+                    )}
                   </FormItem>
                 )}
               />
-              {selectedRole === 'store' && (
-                <FormField
-                  control={form.control}
-                  name="storeId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vincular à Loja</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione uma loja" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {stores.map(store => (
-                            <SelectItem key={store.id} value={store.id}>
-                              {store.code} - {store.name}
-                            </SelectItem>
-                          ))}
-                          {stores.length === 0 && <SelectItem value="no-stores" disabled>Nenhuma loja cadastrada</SelectItem>}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              {/* FormField para storeId foi removido */}
               <DialogFooter className="pt-4">
                 <DialogClose asChild>
                    <Button type="button" variant="outline" onClick={() => { setEditingUser(null); form.reset(); setIsDialogOpen(false); }}>Cancelar</Button>
@@ -286,7 +283,7 @@ export default function AdminUsersPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Perfil</TableHead>
-                <TableHead>Loja / Fornecedor (se aplicável)</TableHead>
+                <TableHead>Loja / Fornecedor Associado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -303,8 +300,15 @@ export default function AdminUsersPage() {
                       <span className="sr-only">Editar</span>
                     </Button>
                     <Button variant="ghost" size="icon" className="hover:text-destructive disabled:text-muted-foreground" 
-                            disabled={user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 && user.id === users.find(u => u.role === 'admin')?.id }
-                            onClick={() => handleDelete(user.id)}>
+                            disabled={(user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 && user.id === users.find(u => u.role === 'admin')?.id) || user.role === 'store'}
+                            title={user.role === 'store' ? "Exclua usuários de Loja na tela de Cadastro de Lojas" : (user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 ? "Não é possível excluir o último administrador" : "Excluir")}
+                            onClick={() => {
+                                if (user.role === 'store') {
+                                    toast({title: "Ação não permitida", description: "Usuários de Loja devem ser removidos através do Cadastro de Lojas para desvincular corretamente.", variant: "default" });
+                                } else {
+                                    handleDelete(user.id)
+                                }
+                            }}>
                       <Trash2 className="h-4 w-4" />
                       <span className="sr-only">Excluir</span>
                     </Button>
@@ -321,3 +325,6 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+
+
+    
