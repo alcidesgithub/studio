@@ -207,7 +207,8 @@ export default function StorePositivacaoPage() {
                         {isPositivated && positivation && isValid(parseISO(positivation.date)) ? (
                           <>
                             <p className="text-sm text-secondary">
-                              <ThumbsUp className="inline-block h-4 w-4 mr-1 text-secondary" /> Positivado!
+                              <ThumbsUp className="inline-block h-4 w-4 mr-1 text-secondary" />
+                              Positivado por: <span className="font-semibold">{positivation.vendorName}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
                               Em: {format(parseISO(positivation.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
