@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
-import { Star, ThumbsUp, Medal, TrendingUp, Gift } from 'lucide-react'; 
+import { Star, ThumbsUp, Medal, TrendingUp, Gift, BadgeCheck } from 'lucide-react'; 
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState, useMemo } from 'react';
@@ -202,7 +202,7 @@ export default function StorePositivacaoPage() {
                       {isPositivated && positivation?.salespersonName && isValid(parseISO(positivation.date)) ? (
                         <>
                           <p className="text-secondary flex items-center justify-center">
-                            <ThumbsUp className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
+                            <BadgeCheck className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
                             <span className="font-semibold">Positivado por: {positivation.salespersonName}</span>
                           </p>
                           <p className="text-muted-foreground mt-0.5">
@@ -212,7 +212,7 @@ export default function StorePositivacaoPage() {
                       ) : isPositivated && positivation && isValid(parseISO(positivation.date)) ? (
                          <>
                           <p className="text-secondary flex items-center justify-center">
-                            <ThumbsUp className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
+                            <BadgeCheck className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
                             <span className="font-semibold">Positivado!</span>
                           </p>
                           <p className="text-muted-foreground mt-0.5">
@@ -248,3 +248,4 @@ export default function StorePositivacaoPage() {
     </div>
   );
 }
+
