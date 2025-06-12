@@ -516,8 +516,8 @@ export default function ManageVendorsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <FormItem>
-              <FormLabel htmlFor="csv-upload">Arquivo CSV</FormLabel>
+            <div className="space-y-2">
+              <label htmlFor="csv-upload" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Arquivo CSV</label>
               <Input 
                 id="csv-upload"
                 type="file" 
@@ -525,7 +525,7 @@ export default function ManageVendorsPage() {
                 onChange={handleFileSelect} 
                 className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
               />
-            </FormItem>
+            </div>
             {csvFileName && (
               <div className="text-sm text-muted-foreground flex items-center">
                 <FileText className="h-4 w-4 mr-2" /> Arquivo selecionado: {csvFileName}
