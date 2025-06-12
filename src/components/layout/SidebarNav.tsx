@@ -2,10 +2,10 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation'; // Adicionado useRouter
 import {
-  Sidebar, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger, useSidebar, TooltipProvider, Tooltip, TooltipTrigger, TooltipContent
-} from '@/components/ui/sidebar';
+  SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar, TooltipProvider, Tooltip, TooltipTrigger, TooltipContent
+} from '@/components/ui/sidebar'; // Removido Sidebar, SidebarGroup, SidebarTrigger
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase, Dice6 } from 'lucide-react';
@@ -47,6 +47,7 @@ export function SidebarNav() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { setOpenMobile, state: sidebarState, isMobile } = useSidebar(); 
+  const router = useRouter(); // Adicionado useRouter
 
   const navItems = user?.role ? navItemsByRole[user.role] : [];
 
@@ -54,6 +55,11 @@ export function SidebarNav() {
     if (isMobile) {
       setOpenMobile(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login'); // Redireciona para a página de login
   };
 
   return (
@@ -118,7 +124,7 @@ export function SidebarNav() {
           variant="ghost"
           size="sm"
           className="w-full text-sidebar-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          onClick={logout}
+          onClick={handleLogout} // Alterado para handleLogout
         >
           <LogOut className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
           <span className="ml-2 group-data-[collapsible=icon]:hidden">Sair</span>
@@ -127,4 +133,3 @@ export function SidebarNav() {
     </>
   );
 }
-
