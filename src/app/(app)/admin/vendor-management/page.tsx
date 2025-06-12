@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText } from 'lucide-react';
+import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -400,6 +400,25 @@ export default function ManageVendorsPage() {
     reader.readAsText(csvFile);
   };
 
+  const handleDownloadSampleCSV = () => {
+    const csvHeader = "name,cnpj,address,city,neighborhood,state,logoUrl\n";
+    const csvExampleRow1 = `"Exemplo Fornecedor Ltda.","12345678000199","Rua Exemplo, 123","Exemplópolis","Centro","SP","https://placehold.co/120x60.png?text=Exemplo1"\n`;
+    const csvExampleRow2 = `"Outro Fornecedor S.A.","98765432000100","Avenida Modelo, 456","Modelândia","Bairro Novo","PR","https://placehold.co/120x60.png?text=Exemplo2"\n`;
+    const csvContent = csvHeader + csvExampleRow1 + csvExampleRow2;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) { 
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "exemplo_fornecedores.csv");
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
 
   const salespeopleForCurrentEditingVendor = useMemo(() => {
     if (!editingVendor) return [];
@@ -516,7 +535,7 @@ export default function ManageVendorsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label htmlFor="csv-upload" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Arquivo CSV</label>
               <Input 
                 id="csv-upload"
@@ -531,6 +550,9 @@ export default function ManageVendorsPage() {
                 <FileText className="h-4 w-4 mr-2" /> Arquivo selecionado: {csvFileName}
               </div>
             )}
+            <Button type="button" variant="link" size="sm" onClick={handleDownloadSampleCSV} className="p-0 h-auto text-primary">
+              <Download className="mr-1 h-3 w-3" /> Baixar CSV de Exemplo
+            </Button>
             {importErrors.length > 0 && (
               <div className="mt-4 max-h-40 overflow-y-auto rounded-md border border-destructive/50 bg-destructive/10 p-3">
                 <h4 className="font-semibold text-destructive mb-2">Erros na Importação:</h4>
