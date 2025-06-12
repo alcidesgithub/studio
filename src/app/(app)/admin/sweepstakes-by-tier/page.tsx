@@ -50,7 +50,6 @@ export default function AdminTieredSweepstakesPage() {
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
 
   useEffect(() => {
-    // Sort by PR requirements by default for display, or by name if preferred
     setAwardTiers(loadAwardTiers().sort((a,b) => a.positivacoesRequired.PR - b.positivacoesRequired.PR));
     setStores(loadStores());
     setCurrentEvent(loadEvent());
@@ -65,6 +64,8 @@ export default function AdminTieredSweepstakesPage() {
 
 
   const awardTiersWithStats = useMemo(() => {
+    const allDrawnStoreIds = new Set(drawnWinners.map(w => w.storeId)); // Stores that have won any prize
+
     return awardTiers.map(tier => {
       const winnersForThisTier = drawnWinners.filter(w => w.tierId === tier.id).sort((a,b) => new Date(a.drawnAt).getTime() - new Date(b.drawnAt).getTime());
       const remainingQuantity = tier.quantityAvailable - winnersForThisTier.length;
@@ -72,22 +73,25 @@ export default function AdminTieredSweepstakesPage() {
       const eligibleStoresForTier = stores.filter(store => {
         const requiredPositivations = getRequiredPositivationsForStore(tier, store.state);
         const meetsPositivationRequirement = (store.positivationsDetails?.length || 0) >= requiredPositivations;
-        const hasNotWonThisTier = !winnersForThisTier.some(w => w.storeId === store.id);
-        return store.participating && meetsPositivationRequirement && hasNotWonThisTier;
+        
+        // Check if the store has ALREADY WON ANY PRIZE IN ANY TIER
+        const hasNotWonAnyPrizeYet = !allDrawnStoreIds.has(store.id);
+        
+        return store.participating && meetsPositivationRequirement && hasNotWonAnyPrizeYet;
       });
 
       return {
         ...tier,
         remainingQuantity,
         eligibleStores: eligibleStoresForTier,
-        winners: winnersForThisTier,
+        winners: winnersForThisTier, // Still show winners for *this* tier
       };
     });
   }, [drawnWinners, awardTiers, stores]);
 
   const handleDrawWinner = async (tier: typeof awardTiersWithStats[0]) => {
     if (tier.remainingQuantity <= 0 || tier.eligibleStores.length === 0) {
-      toast({ title: "Não é Possível Sortear", description: "Nenhum prêmio restante ou nenhuma loja elegível para esta faixa.", variant: "default" });
+      toast({ title: "Não é Possível Sortear", description: "Nenhum prêmio restante nesta faixa ou nenhuma loja elegível (que ainda não ganhou).", variant: "default" });
       return;
     }
 
@@ -110,7 +114,7 @@ export default function AdminTieredSweepstakesPage() {
     setIsLoadingDraw(null);
     toast({
       title: "Vencedor Sorteado!",
-      description: `${winningStore.name} ganhou o prêmio ${tier.rewardName} (da faixa ${tier.name}).`,
+      description: `${winningStore.name} ganhou o prêmio ${tier.rewardName} (da faixa ${tier.name}). Esta loja não poderá ser sorteada novamente.`,
     });
   };
 
@@ -137,7 +141,7 @@ export default function AdminTieredSweepstakesPage() {
     <div className="animate-fadeIn space-y-8">
       <PageHeader
         title="Gerenciamento de Sorteios por Faixa"
-        description={`Sorteie vencedores para cada faixa de premiação no ${currentEvent.name}.`}
+        description={`Sorteie vencedores para cada faixa de premiação no ${currentEvent.name}. Cada loja pode ganhar apenas uma vez.`}
         icon={Dice6}
         actions={
           <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0}>
@@ -171,7 +175,7 @@ export default function AdminTieredSweepstakesPage() {
                     )}
                   </ul>
                 ) : (
-                  <p className="text-xs text-muted-foreground p-2">Nenhuma loja elegível para o sorteio desta faixa.</p>
+                  <p className="text-xs text-muted-foreground p-2">Nenhuma loja elegível para o sorteio desta faixa (ou todas já ganharam um prêmio).</p>
                 )}
               </div>
 
@@ -260,3 +264,4 @@ export default function AdminTieredSweepstakesPage() {
     </div>
   );
 }
+
