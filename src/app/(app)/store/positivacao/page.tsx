@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
-import { Star, ThumbsUp, Medal, TrendingUp, Gift, BadgeCheck } from 'lucide-react'; 
+import { Star, Medal, TrendingUp, Gift, BadgeCheck } from 'lucide-react'; 
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState, useMemo } from 'react';
@@ -109,7 +109,7 @@ export default function StorePositivacaoPage() {
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Selos Recebidos</CardTitle>
-            <ThumbsUp className="h-5 w-5 text-secondary" />
+            <BadgeCheck className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{positivacoesCount}</div>
