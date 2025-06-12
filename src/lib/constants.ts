@@ -19,28 +19,28 @@ export const MOCK_AWARD_TIERS: AwardTier[] = [
 ].sort((a,b) => a.positivacoesRequired - b.positivacoesRequired); // Ensure sorted for progress logic
 
 export const MOCK_VENDORS: Vendor[] = [
-  { id: 'vendor_1', name: 'Farmacoop Produtos Farmacêuticos Ltda.', cnpj: '11222333000144', address: 'Rua dos Medicamentos, 123', city: 'São Paulo', neighborhood: 'Centro', state: 'SP', logoUrl: 'https://placehold.co/120x60.png?text=Farmacoop', dataAiHint: "pharmacy logo" },
-  { id: 'vendor_2', name: 'SaúdeMais Distribuidora S.A.', cnpj: '44555666000177', address: 'Av. Bem Estar, 456', city: 'Curitiba', neighborhood: 'Batel', state: 'PR', logoUrl: 'https://placehold.co/120x60.png?text=SaudeMais', dataAiHint: "health logo" },
-  { id: 'vendor_3', name: 'BioMedicina Inovações Farm. EIRELI', cnpj: '77888999000100', address: 'Travessa da Ciência, 789', city: 'Florianópolis', neighborhood: 'Trindade', state: 'SC', logoUrl: 'https://placehold.co/120x60.png?text=BioMed', dataAiHint: "medical science" },
-  { id: 'vendor_4', name: 'NutriBem Alimentos Funcionais Ltda.', cnpj: '12345678000191', address: 'Alameda da Nutrição, 101', city: 'Porto Alegre', neighborhood: 'Moinhos de Vento', state: 'RS', logoUrl: 'https://placehold.co/120x60.png?text=NutriBem', dataAiHint: "nutrition health" },
-  { id: 'vendor_5', name: 'CuidadoTotal Cosméticos e Higiene Pessoal S.A.', cnpj: '98765432000121', address: 'Praça do Cuidado, 202', city: 'Rio de Janeiro', neighborhood: 'Copacabana', state: 'RJ', logoUrl: 'https://placehold.co/120x60.png?text=CuidadoTotal', dataAiHint: "healthcare logo" },
-  { id: 'vendor_6', name: 'MediSuprimentos Hospitalares Ltda.', cnpj: '54321098000154', address: 'Rodovia dos Suprimentos, 303', city: 'Belo Horizonte', neighborhood: 'Savassi', state: 'MG', logoUrl: 'https://placehold.co/120x60.png?text=MediSupri', dataAiHint: "medical supply" },
+  { id: 'vendor_1', name: 'Farmacoop Produtos Farmacêuticos Ltda.', cnpj: '11222333000144', address: 'Rua dos Medicamentos, 123', city: 'São Paulo', neighborhood: 'Centro', state: 'SP', logoUrl: 'https://placehold.co/120x60.png?text=Farmacoop' },
+  { id: 'vendor_2', name: 'SaúdeMais Distribuidora S.A.', cnpj: '44555666000177', address: 'Av. Bem Estar, 456', city: 'Curitiba', neighborhood: 'Batel', state: 'PR', logoUrl: 'https://placehold.co/120x60.png?text=SaudeMais' },
+  { id: 'vendor_3', name: 'BioMedicina Inovações Farm. EIRELI', cnpj: '77888999000100', address: 'Travessa da Ciência, 789', city: 'Florianópolis', neighborhood: 'Trindade', state: 'SC', logoUrl: 'https://placehold.co/120x60.png?text=BioMed' },
+  { id: 'vendor_4', name: 'NutriBem Alimentos Funcionais Ltda.', cnpj: '12345678000191', address: 'Alameda da Nutrição, 101', city: 'Porto Alegre', neighborhood: 'Moinhos de Vento', state: 'RS', logoUrl: 'https://placehold.co/120x60.png?text=NutriBem' },
+  { id: 'vendor_5', name: 'CuidadoTotal Cosméticos e Higiene Pessoal S.A.', cnpj: '98765432000121', address: 'Praça do Cuidado, 202', city: 'Rio de Janeiro', neighborhood: 'Copacabana', state: 'RJ', logoUrl: 'https://placehold.co/120x60.png?text=CuidadoTotal' },
+  { id: 'vendor_6', name: 'MediSuprimentos Hospitalares Ltda.', cnpj: '54321098000154', address: 'Rodovia dos Suprimentos, 303', city: 'Belo Horizonte', neighborhood: 'Savassi', state: 'MG', logoUrl: 'https://placehold.co/120x60.png?text=MediSupri' },
 ].sort((a,b) => a.name.localeCompare(b.name)); // Sort vendors alphabetically
 
 const today = new Date();
 const positivationsStore1: PositivationDetail[] = [
-  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, vendorDataAiHint: MOCK_VENDORS[0].dataAiHint, date: subDays(today, 5).toISOString() },
-  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, vendorDataAiHint: MOCK_VENDORS[1].dataAiHint, date: subDays(today, 4).toISOString() },
-  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, vendorDataAiHint: MOCK_VENDORS[2].dataAiHint, date: subDays(today, 3).toISOString() },
+  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, date: subDays(today, 5).toISOString() },
+  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, date: subDays(today, 4).toISOString() },
+  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, date: subDays(today, 3).toISOString() },
 ];
 
 const positivationsStore4: PositivationDetail[] = [
-  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, vendorDataAiHint: MOCK_VENDORS[0].dataAiHint, date: subDays(today, 2).toISOString() },
-  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, vendorDataAiHint: MOCK_VENDORS[1].dataAiHint, date: subDays(today, 2).toISOString() },
-  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, vendorDataAiHint: MOCK_VENDORS[2].dataAiHint, date: subDays(today, 1).toISOString() },
-  { vendorId: MOCK_VENDORS[3].id, vendorName: MOCK_VENDORS[3].name, vendorLogoUrl: MOCK_VENDORS[3].logoUrl, vendorDataAiHint: MOCK_VENDORS[3].dataAiHint, date: subDays(today, 1).toISOString() },
-  { vendorId: MOCK_VENDORS[4].id, vendorName: MOCK_VENDORS[4].name, vendorLogoUrl: MOCK_VENDORS[4].logoUrl, vendorDataAiHint: MOCK_VENDORS[4].dataAiHint, date: subDays(today, 0).toISOString() },
-  { vendorId: MOCK_VENDORS[5].id, vendorName: MOCK_VENDORS[5].name, vendorLogoUrl: MOCK_VENDORS[5].logoUrl, vendorDataAiHint: MOCK_VENDORS[5].dataAiHint, date: subDays(today, 0).toISOString() },
+  { vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, date: subDays(today, 2).toISOString() },
+  { vendorId: MOCK_VENDORS[1].id, vendorName: MOCK_VENDORS[1].name, vendorLogoUrl: MOCK_VENDORS[1].logoUrl, date: subDays(today, 2).toISOString() },
+  { vendorId: MOCK_VENDORS[2].id, vendorName: MOCK_VENDORS[2].name, vendorLogoUrl: MOCK_VENDORS[2].logoUrl, date: subDays(today, 1).toISOString() },
+  { vendorId: MOCK_VENDORS[3].id, vendorName: MOCK_VENDORS[3].name, vendorLogoUrl: MOCK_VENDORS[3].logoUrl, date: subDays(today, 1).toISOString() },
+  { vendorId: MOCK_VENDORS[4].id, vendorName: MOCK_VENDORS[4].name, vendorLogoUrl: MOCK_VENDORS[4].logoUrl, date: subDays(today, 0).toISOString() },
+  { vendorId: MOCK_VENDORS[5].id, vendorName: MOCK_VENDORS[5].name, vendorLogoUrl: MOCK_VENDORS[5].logoUrl, date: subDays(today, 0).toISOString() },
 ];
 
 

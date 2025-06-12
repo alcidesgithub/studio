@@ -32,7 +32,6 @@ const vendorSchema = z.object({
   neighborhood: z.string().min(2, "Bairro é obrigatório."),
   state: z.string().min(2, "Estado é obrigatório."),
   logoUrl: z.string().url("Deve ser uma URL válida para o logo."),
-  dataAiHint: z.string().optional().describe("Dica para IA sobre o logo (ex: company logo)"),
 });
 type VendorFormValues = z.infer<typeof vendorSchema>;
 
@@ -73,7 +72,7 @@ export default function ManageVendorsPage() {
     resolver: zodResolver(vendorSchema),
     defaultValues: {
       name: '', cnpj: '', address: '', city: '', neighborhood: '', state: '',
-      logoUrl: 'https://placehold.co/120x60.png?text=Logo', dataAiHint: 'company logo',
+      logoUrl: 'https://placehold.co/120x60.png?text=Logo',
     },
   });
 
@@ -86,7 +85,7 @@ export default function ManageVendorsPage() {
     setEditingVendor(null);
     vendorForm.reset({
       name: '', cnpj: '', address: '', city: '', neighborhood: '', state: '',
-      logoUrl: 'https://placehold.co/120x60.png?text=NovoLogo', dataAiHint: 'company logo',
+      logoUrl: 'https://placehold.co/120x60.png?text=NovoLogo',
     });
     setIsVendorDialogOpen(true);
   };
@@ -101,7 +100,6 @@ export default function ManageVendorsPage() {
       neighborhood: vendor.neighborhood,
       state: vendor.state,
       logoUrl: vendor.logoUrl,
-      dataAiHint: vendor.dataAiHint || 'company logo',
     });
     setIsVendorDialogOpen(true);
   };
@@ -152,7 +150,7 @@ export default function ManageVendorsPage() {
 
     if (editingVendor) {
       updatedVendors = vendors.map(v =>
-        v.id === editingVendor.id ? { ...editingVendor, ...data, cnpj: rawCnpj, dataAiHint: data.dataAiHint || 'company logo' } : v
+        v.id === editingVendor.id ? { ...editingVendor, ...data, cnpj: rawCnpj } : v
       );
       toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.` });
     } else {
@@ -161,7 +159,6 @@ export default function ManageVendorsPage() {
         id: newVendorId,
         ...data,
         cnpj: rawCnpj,
-        dataAiHint: data.dataAiHint || 'company logo',
       };
       updatedVendors = [...vendors, newVendor];
       setEditingVendor(newVendor); 
@@ -338,8 +335,7 @@ export default function ManageVendorsPage() {
                   <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Cidade</FormLabel><FormControl><Input placeholder="Ex: São Paulo" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Pinheiros" {...field} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="dataAiHint" render={({ field }) => (<FormItem><FormLabel>Dica para IA (Logo)</FormLabel><FormControl><Input placeholder="Ex: company logo" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 </CardContent>
               </Card>
 
@@ -480,7 +476,7 @@ export default function ManageVendorsPage() {
               {vendors.map((vendor) => (
                 <TableRow key={vendor.id}>
                   <TableCell>
-                    <Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" data-ai-hint={vendor.dataAiHint || "company logo"} />
+                    <Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" />
                   </TableCell>
                   <TableCell className="font-medium">{vendor.name}</TableCell>
                   <TableCell>{formatCNPJ(vendor.cnpj)}</TableCell>

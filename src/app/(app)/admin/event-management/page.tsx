@@ -223,7 +223,6 @@ export default function AdminEventManagementPage() {
                             width={60}
                             height={30}
                             className="object-contain rounded"
-                            data-ai-hint={vendor.dataAiHint || "company logo"}
                           />
                         </TableCell>
                         <TableCell className="font-medium">{vendor.name}</TableCell>

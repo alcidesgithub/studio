@@ -23,7 +23,6 @@ export interface PositivationDetail {
   vendorId: string;
   vendorName: string;
   vendorLogoUrl: string;
-  vendorDataAiHint?: string;
   date: string; // ISO string
   // salespersonName?: string; // Future enhancement
   // salespersonEmail?: string; // Future enhancement
@@ -87,7 +86,6 @@ export interface Vendor {
   neighborhood: string;
   state: string; // e.g., "PR" or "SC"
   logoUrl: string;
-  dataAiHint?: string;
   website?: string; // Optional link to vendor's website
 }
 

@@ -67,7 +67,6 @@ export default function VendorPositivacaoPage() {
       vendorId: currentVendor.id,
       vendorName: currentVendor.name,
       vendorLogoUrl: currentVendor.logoUrl,
-      vendorDataAiHint: currentVendor.dataAiHint,
       date: new Date().toISOString(),
     };
 
@@ -191,5 +190,4 @@ export default function VendorPositivacaoPage() {
     </div>
   );
 }
-
     

@@ -192,7 +192,7 @@ export default function StorePositivacaoPage() {
                           bg-card hover:shadow-md cursor-default group
                         `}>
                           <Avatar className="w-16 h-16 md:w-20 md:h-20 mb-2 transition-opacity duration-300">
-                            <AvatarImage src={vendor.logoUrl} alt={vendor.name} data-ai-hint={vendor.dataAiHint || "company logo"} className="object-contain" />
+                            <AvatarImage src={vendor.logoUrl} alt={vendor.name} className="object-contain" />
                             <AvatarFallback>{vendor.name.substring(0, 2)}</AvatarFallback>
                           </Avatar>
                           <p className={`
@@ -243,4 +243,3 @@ export default function StorePositivacaoPage() {
     </TooltipProvider>
   );
 }
-

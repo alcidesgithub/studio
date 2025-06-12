@@ -94,7 +94,6 @@ export default async function LandingPage() {
                     width={150}
                     height={80}
                     className="object-contain"
-                    data-ai-hint={vendor.dataAiHint || "company logo"}
                   />
                 </div>
               ))}
