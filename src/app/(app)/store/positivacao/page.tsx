@@ -208,9 +208,8 @@ export default function StorePositivacaoPage() {
                         <>
                           <p className="text-secondary flex items-center justify-center">
                             <ThumbsUp className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
-                            Positivado por:
+                            Positivado por: <span className="font-semibold truncate ml-1">{positivation.vendorName}</span>
                           </p>
-                          <p className="font-semibold text-secondary truncate">{positivation.vendorName}</p>
                           <p className="text-muted-foreground mt-0.5">
                             Em: {format(parseISO(positivation.date), "dd/MM HH:mm", { locale: ptBR })}
                           </p>
