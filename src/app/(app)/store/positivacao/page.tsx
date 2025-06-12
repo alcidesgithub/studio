@@ -5,11 +5,12 @@ import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
-import { Star, Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react';
+import { Star, Trophy, TrendingUp, Gift, BadgeCheck, Award } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState, useMemo } from 'react';
@@ -23,7 +24,7 @@ export default function StorePositivacaoPage() {
 
   useEffect(() => {
     setAllStores(loadStores());
-    const loadedTiers = loadAwardTiers(); // Load unsorted or sorted by a default (e.g., PR)
+    const loadedTiers = loadAwardTiers();
     setAwardTiers(loadedTiers);
     setCurrentEvent(loadEvent());
     setAllVendors(loadVendors().sort((a,b) => a.name.localeCompare(b.name)));
@@ -42,47 +43,48 @@ export default function StorePositivacaoPage() {
 
   const positivacoesCount = useMemo(() => validPositivationsDetails.length, [validPositivationsDetails]);
 
-  const currentAchievedTier = useMemo(() => {
-    if (!currentStore || awardTiers.length === 0) return undefined;
+  const sortedAwardTiersForDisplay = useMemo(() => {
+    if (!currentStore || !currentStore.state || awardTiers.length === 0) return [...awardTiers].sort((a,b) => a.positivacoesRequired.PR - b.positivacoesRequired.PR); // fallback sort
     const storeState = currentStore.state;
-    // Sort tiers based on the current store's state requirements to find the highest achieved
-    const sortedTiersForStore = [...awardTiers].sort((a, b) =>
+    return [...awardTiers].sort((a, b) => 
         getRequiredPositivationsForStore(a, storeState) - getRequiredPositivationsForStore(b, storeState)
     );
+  }, [awardTiers, currentStore]);
 
+  const currentAchievedTier = useMemo(() => {
+    if (!currentStore || sortedAwardTiersForDisplay.length === 0) return undefined;
+    const storeState = currentStore.state;
     let achievedTier: AwardTier | undefined = undefined;
-    for (let i = sortedTiersForStore.length - 1; i >= 0; i--) {
-        if (positivacoesCount >= getRequiredPositivationsForStore(sortedTiersForStore[i], storeState)) {
-            achievedTier = sortedTiersForStore[i];
+    for (let i = sortedAwardTiersForDisplay.length - 1; i >= 0; i--) {
+        if (positivacoesCount >= getRequiredPositivationsForStore(sortedAwardTiersForDisplay[i], storeState)) {
+            achievedTier = sortedAwardTiersForDisplay[i];
             break;
         }
     }
     return achievedTier;
-  }, [awardTiers, positivacoesCount, currentStore]);
+  }, [sortedAwardTiersForDisplay, positivacoesCount, currentStore]);
 
   const nextTier = useMemo(() => {
-    if (!currentStore || awardTiers.length === 0) return undefined;
-    const storeState = currentStore.state;
-    const sortedTiersForStore = [...awardTiers].sort((a, b) =>
-        getRequiredPositivationsForStore(a, storeState) - getRequiredPositivationsForStore(b, storeState)
-    );
-
+    if (!currentStore || sortedAwardTiersForDisplay.length === 0) return undefined;
+    
     if (currentAchievedTier) {
-        const currentTierIndex = sortedTiersForStore.findIndex(t => t.id === currentAchievedTier!.id);
-        if (currentTierIndex < sortedTiersForStore.length - 1) {
-            return sortedTiersForStore[currentTierIndex + 1];
+        const currentTierIndex = sortedAwardTiersForDisplay.findIndex(t => t.id === currentAchievedTier!.id);
+        if (currentTierIndex < sortedAwardTiersForDisplay.length - 1) {
+            return sortedAwardTiersForDisplay[currentTierIndex + 1];
         }
         return undefined; // Max tier achieved
     }
-    return sortedTiersForStore.length > 0 ? sortedTiersForStore[0] : undefined; // First tier if none achieved
-  }, [awardTiers, currentAchievedTier, currentStore]);
+    return sortedAwardTiersForDisplay.length > 0 ? sortedAwardTiersForDisplay[0] : undefined; // First tier if none achieved
+  }, [sortedAwardTiersForDisplay, currentAchievedTier, currentStore]);
 
   const progressToNextTier = useMemo(() => {
     if (!currentStore || !nextTier) return currentAchievedTier ? 100 : 0;
     const storeState = currentStore.state;
     const requiredForNext = getRequiredPositivationsForStore(nextTier, storeState);
 
-    if (requiredForNext === 0) return 100; // Avoid division by zero if next tier requires 0
+    if (requiredForNext === 0 && positivacoesCount > 0) return 100; // If next tier needs 0 and has some, it's 100%
+    if (requiredForNext === 0) return 0; // Avoid division by zero if next tier requires 0
+    
     const progress = (positivacoesCount / requiredForNext) * 100;
     return Math.min(progress, 100); // Cap progress at 100%
   }, [nextTier, positivacoesCount, currentAchievedTier, currentStore]);
@@ -179,7 +181,7 @@ export default function StorePositivacaoPage() {
                   </>
               ) : (
                   <>
-                  <div className="text-xl font-bold">0 / {awardTiers.length > 0 && currentStore.state ? getRequiredPositivationsForStore(awardTiers[0], currentStore.state) : (awardTiers.length > 0 ? awardTiers[0].positivacoesRequired.PR : '-')} selos</div>
+                  <div className="text-xl font-bold">0 / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay[0] ? sortedAwardTiersForDisplay[0].positivacoesRequired.PR : '-')} selos</div>
                     <Progress value={0} className="mt-2 h-3" />
                   <p className="text-xs text-muted-foreground mt-1">Comece a coletar selos!</p>
                   </>
@@ -189,7 +191,7 @@ export default function StorePositivacaoPage() {
         </Card>
       </div>
 
-      <Card className="shadow-xl">
+      <Card className="shadow-xl mb-8">
         <CardHeader>
           <CardTitle className="font-headline text-2xl">Sua Cartela de Selos de Fornecedores</CardTitle>
           <CardDescription>Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
@@ -260,7 +262,41 @@ export default function StorePositivacaoPage() {
           )}
         </CardContent>
       </Card>
-        <Card className="mt-8 shadow-lg">
+
+      <Card className="shadow-lg mb-8">
+        <CardHeader className="flex flex-row items-center gap-2">
+          <Award className="h-6 w-6 text-primary"/>
+          <CardTitle>Faixas de Premiação Disponíveis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sortedAwardTiersForDisplay.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome da Faixa</TableHead>
+                  <TableHead>Prêmio</TableHead>
+                  <TableHead className="text-right">Qtd. Total Prêmios</TableHead>
+                  <TableHead className="text-right">Selos Necessários ({currentStore.state || 'N/A'})</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedAwardTiersForDisplay.map((tier) => (
+                  <TableRow key={tier.id}>
+                    <TableCell className="font-medium">{tier.name}</TableCell>
+                    <TableCell>{tier.rewardName}</TableCell>
+                    <TableCell className="text-right">{tier.quantityAvailable}</TableCell>
+                    <TableCell className="text-right font-semibold">{getRequiredPositivationsForStore(tier, currentStore.state)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center text-muted-foreground py-4">Nenhuma faixa de premiação configurada para o evento.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-8 shadow-lg">
           <CardHeader className="flex flex-row items-center gap-2">
               <Gift className="h-6 w-6 text-secondary"/>
               <CardTitle>Qualificação para Sorteios</CardTitle>
@@ -273,3 +309,4 @@ export default function StorePositivacaoPage() {
     </div>
   );
 }
+
