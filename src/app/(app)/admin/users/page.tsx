@@ -287,7 +287,7 @@ export default function AdminUsersPage() {
                   <TableCell>{user.email}</TableCell>
                   <TableCell><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEdit(user)}>
+                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEdit(user)}>
                       <Edit className="h-4 w-4" />
                       <span className="sr-only">Editar</span>
                     </Button>

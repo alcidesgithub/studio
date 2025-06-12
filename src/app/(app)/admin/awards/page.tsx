@@ -248,7 +248,7 @@ export default function AdminAwardsPage() {
                   <TableCell className="text-right">{tier.positivacoesRequired.PR}</TableCell>
                   <TableCell className="text-right">{tier.positivacoesRequired.SC}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEdit(tier)}>
+                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEdit(tier)}>
                       <Edit className="h-4 w-4" />
                       <span className="sr-only">Editar</span>
                     </Button>

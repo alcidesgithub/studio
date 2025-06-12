@@ -480,7 +480,7 @@ export default function ManageVendorsPage() {
                   <CardContent>
                     {salespeopleForCurrentEditingVendor.length > 0 ? (
                       <Table><TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Email (Login)</TableHead><TableHead>Telefone</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-                        <TableBody>{salespeopleForCurrentEditingVendor.map(sp => (<TableRow key={sp.id}><TableCell>{sp.name}</TableCell><TableCell>{sp.email}</TableCell><TableCell>{sp.phone}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button></TableCell></TableRow>))}</TableBody>
+                        <TableBody>{salespeopleForCurrentEditingVendor.map(sp => (<TableRow key={sp.id}><TableCell>{sp.name}</TableCell><TableCell>{sp.email}</TableCell><TableCell>{sp.phone}</TableCell><TableCell className="text-right"><Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button></TableCell></TableRow>))}</TableBody>
                       </Table>
                     ) : (<p className="text-sm text-muted-foreground text-center py-4">Nenhum vendedor cadastrado.</p>)}
                   </CardContent>
@@ -620,7 +620,7 @@ export default function ManageVendorsPage() {
                   <TableCell>{vendor.state}</TableCell>
                   <TableCell>{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
+                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
                     <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => confirmDeleteVendor(vendor)}><Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span></Button>
                   </TableCell>
                 </TableRow>
@@ -635,4 +635,5 @@ export default function ManageVendorsPage() {
     
 
     
+
 

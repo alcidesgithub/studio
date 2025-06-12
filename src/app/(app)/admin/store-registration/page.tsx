@@ -651,7 +651,7 @@ export default function ManageStoresPage() {
                   <TableCell>{store.city || 'N/A'}</TableCell>
                   <TableCell>{getDisplayState(store.state)}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="hover:text-accent" onClick={() => handleEdit(store)}>
+                    <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleEdit(store)}>
                       <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
                     </Button>
                     <Button variant="ghost" size="icon" className="hover:text-destructive" onClick={() => handleDelete(store.id)}>
@@ -670,5 +670,6 @@ export default function ManageStoresPage() {
     
 
     
+
 
 
