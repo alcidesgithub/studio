@@ -188,7 +188,7 @@ export default function VendorPositivacaoPage() {
                             alt={`Logo ${currentVendorCompany.name}`}
                             width={60}
                             height={30}
-                            className="object-contain flex-shrink-0"
+                            className="object-contain flex-shrink-0 w-[60px] h-[30px]"
                           />
                         ) : (
                           <ThumbsUp className="flex-shrink-0" /> 
@@ -206,3 +206,4 @@ export default function VendorPositivacaoPage() {
   );
 }
     
+
