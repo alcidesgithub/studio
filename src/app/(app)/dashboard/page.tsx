@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { loadStores, loadEvent, loadAwardTiers } from '@/lib/localStorageUtils';
 import type { Store, Event, AwardTier } from '@/types';
-import { Users, ThumbsUp, Trophy, LayoutDashboard } from 'lucide-react';
+import { Users, BadgeCheck, Trophy, LayoutDashboard } from 'lucide-react'; // Changed ThumbsUp to BadgeCheck
 import { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -113,7 +113,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Selos (Positivações)</CardTitle>
-            <ThumbsUp className="h-5 w-5 text-secondary" />
+            <BadgeCheck className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalPositivacoes}</div>
