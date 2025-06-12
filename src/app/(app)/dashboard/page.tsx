@@ -66,6 +66,7 @@ export default function DashboardPage() {
       // Itera das faixas mais altas para as mais baixas (array já está ordenado por PR asc)
       for (let i = awardTiers.length - 1; i >= 0; i--) {
         const tier = awardTiers[i];
+        if (!store.state) continue; // Skip if store has no state
         const required = getRequiredPositivationsForStore(tier, store.state);
         if (positivacoesCount >= required) {
           highestAchievedTier = tier;
@@ -88,22 +89,17 @@ export default function DashboardPage() {
   }, [participatingStores, awardTiers, vendors]);
 
   const chartData = useMemo(() => {
-    // Start with all configured tiers (awardTiers is sorted by PR)
     const data = awardTiers.map(tier => ({
         name: tier.name,
         lojas: storesByHighestTier[tier.id]?.count || 0,
     }));
     
-    // Add "Nenhuma Faixa" to the end if it exists and has stores
     if (storesByHighestTier['none']?.count > 0) {
         data.push({
             name: storesByHighestTier['none'].name,
             lojas: storesByHighestTier['none'].count,
         });
     }
-    // The chart should display all configured tiers, even if they have 0 lojas.
-    // "Nenhuma Faixa" should only be shown if it has > 0 lojas.
-    // So, no additional filtering is needed here if we start from awardTiers.
     return data;
   }, [awardTiers, storesByHighestTier]);
 
@@ -118,9 +114,8 @@ export default function DashboardPage() {
 
   const noTiersConfigured = awardTiers.length === 0;
   const noParticipatingStores = participatingStoresCount === 0;
-  // Show chart if tiers are configured and there are participating stores.
-  // The message "Nenhuma loja atingiu..." will be shown if chartData has no 'lojas' > 0.
-  const showChart = !noTiersConfigured && !noParticipatingStores;
+  const noStoresInAnyTier = chartData.every(d => d.lojas === 0);
+  const showChart = !noTiersConfigured && !noParticipatingStores && !noStoresInAnyTier;
 
 
   return (
@@ -200,11 +195,20 @@ export default function DashboardPage() {
                <p className="text-sm text-muted-foreground text-center py-8">Nenhuma faixa de premiação configurada.</p>
             ) : noParticipatingStores ? (
                <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja participando para exibir distribuição.</p>
-            ) : !showChart || chartData.filter(d => d.lojas > 0).length === 0 ? (
+            ) : !showChart ? (
                  <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja atingiu as faixas de premiação ainda.</p>
             ) : (
               <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <BarChart accessibilityLayer data={chartData} margin={{ top: 5, right: 20, left: -5, bottom: chartData.length > 5 ? 30 : 20 }}>
+                <BarChart 
+                  accessibilityLayer 
+                  data={chartData} 
+                  margin={{ 
+                    top: 5, 
+                    right: 20, 
+                    left: -5, 
+                    bottom: chartData.length > 5 ? 50 : (chartData.length > 3 ? 35 : 20) 
+                  }}
+                >
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
                     dataKey="name"
@@ -212,10 +216,10 @@ export default function DashboardPage() {
                     axisLine={false}
                     tickMargin={10}
                     interval={0} 
-                    angle={chartData.length > 4 ? -30 : 0}
-                    textAnchor={chartData.length > 4 ? "end" : "middle"}
-                    height={chartData.length > 4 ? 60 : 30}
-                    tickFormatter={(value) => value.length > 12 ? `${value.slice(0,10)}...` : value}
+                    angle={chartData.length > 5 ? -45 : (chartData.length > 3 ? -30 : 0)}
+                    textAnchor={chartData.length > 3 ? "end" : "middle"}
+                    height={chartData.length > 5 ? 70 : (chartData.length > 3 ? 50 : 30)}
+                    tickFormatter={(value: string) => value.length > 10 ? `${value.slice(0,8)}...` : value}
                   />
                   <YAxis allowDecimals={false} tickMargin={8} width={30} />
                   <ChartTooltip
