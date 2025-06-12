@@ -569,13 +569,13 @@ export default function ManageStoresPage() {
           setImportStoreErrors([]);
         }
       }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl"> {/* Increased max-width */}
           <DialogHeader>
             <DialogTitle>Importar Lojas (CSV)</DialogTitle>
             <DialogDescription>
               Selecione um arquivo CSV para importar lojas em massa.
               A primeira linha (cabeçalho) deve conter:
-              <code className="block bg-muted p-2 rounded-md my-2 text-xs">code,razaoSocial,cnpj,address,city,neighborhood,state,phone,ownerName,responsibleName,email,password</code>
+              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-words">code,razaoSocial,cnpj,address,city,neighborhood,state,phone,ownerName,responsibleName,email,password</code>
               O campo 'password' é usado para criar um novo login para a loja se o email não existir.
             </DialogDescription>
           </DialogHeader>
