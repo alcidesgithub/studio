@@ -159,11 +159,10 @@ export default function VendorPositivacaoPage() {
                   <StoreIcon className="h-6 w-6 text-primary" />
                   {store.name} ({store.code})
                 </CardTitle>
-                {/* CardDescription removida daqui */}
               </CardHeader>
               <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Interaja com esta loja para reconhecer sua participação e esforços.
+                  Confirme a positivação dessa loja.
                 </p>
               </CardContent>
               <CardFooter>
