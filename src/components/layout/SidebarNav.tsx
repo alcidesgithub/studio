@@ -78,7 +78,6 @@ export function SidebarNav() {
                 <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      {/* Link agora não tem asChild. SidebarMenuButton é seu filho direto. */}
                       <Link href={item.href!}>
                         <SidebarMenuButton
                           variant="default"
@@ -86,7 +85,6 @@ export function SidebarNav() {
                           isActive={pathname === item.href}
                           onItemClick={handleLinkClick} 
                           className="justify-start"
-                          // href e onClick de navegação são passados implicitamente pelo Link ao SidebarMenuButton
                         >
                           {item.icon && <item.icon className="h-5 w-5" />}
                           <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
@@ -116,7 +114,12 @@ export function SidebarNav() {
             </div>
           </div>
         )}
-        <Button variant="outline" size="sm" className="w-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={logout}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-sidebar-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          onClick={logout}
+        >
           <LogOut className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
           <span className="ml-2 group-data-[collapsible=icon]:hidden">Sair</span>
         </Button>
@@ -124,3 +127,4 @@ export function SidebarNav() {
     </>
   );
 }
+
