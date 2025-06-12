@@ -171,7 +171,7 @@ export default function VendorPositivacaoPage() {
               </CardContent>
               <CardFooter>
                 <Button 
-                  className="w-full"
+                  className="w-full h-[50px]"
                   onClick={() => handlePositivar(store.id, store.name)}
                   disabled={isDisabled}
                 >
