@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { loadAwardTiers, saveAwardTiers } from '@/lib/localStorageUtils';
 import type { AwardTier } from '@/types';
-import { Trophy, PlusCircle, Edit, Trash2, Save } from 'lucide-react';
+import { Trophy, PlusCircle, Edit, Trash2, Save, ArrowUp, ArrowDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -27,6 +27,11 @@ const awardTierSchema = z.object({
 
 type AwardTierFormValues = z.infer<typeof awardTierSchema>;
 
+// Helper function para reatribuir sortOrder e garantir que são sequenciais
+const reassignSortOrders = (tiersArray: AwardTier[]): AwardTier[] => {
+  return tiersArray.map((tier, index) => ({ ...tier, sortOrder: index }));
+};
+
 export default function AdminAwardsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<AwardTier | null>(null);
@@ -34,7 +39,19 @@ export default function AdminAwardsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    setTiers(loadAwardTiers());
+    let loadedTiers = loadAwardTiers();
+    const tiersNeedSortOrderInitialization = loadedTiers.some(t => typeof t.sortOrder !== 'number' || isNaN(t.sortOrder));
+
+    if (tiersNeedSortOrderInitialization) {
+      // Para faixas sem sortOrder, ordena por PR como padrão e atribui sortOrder
+      loadedTiers.sort((a,b) => (a.positivacoesRequired.PR ?? Infinity) - (b.positivacoesRequired.PR ?? Infinity));
+      loadedTiers = loadedTiers.map((tier, index) => ({ ...tier, sortOrder: index }));
+      saveAwardTiers(loadedTiers); // Salva as faixas com sortOrder inicializado
+    } else {
+      // Se todas têm sortOrder, apenas ordena por ele
+      loadedTiers.sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
+    }
+    setTiers(loadedTiers);
   }, []);
 
   const form = useForm<AwardTierFormValues>({
@@ -73,7 +90,8 @@ export default function AdminAwardsPage() {
   };
 
   const handleDelete = (tierId: string) => {
-    const updatedTiers = tiers.filter(t => t.id !== tierId);
+    let updatedTiers = tiers.filter(t => t.id !== tierId);
+    updatedTiers = reassignSortOrders(updatedTiers); // Reatribui sortOrder após exclusão
     setTiers(updatedTiers);
     saveAwardTiers(updatedTiers);
     toast({
@@ -97,20 +115,31 @@ export default function AdminAwardsPage() {
 
     if (editingTier) {
       updatedTiers = tiers.map(t =>
-        t.id === editingTier.id ? { ...editingTier, ...tierDataToSave } : t
+        t.id === editingTier.id ? { ...editingTier, ...tierDataToSave, sortOrder: editingTier.sortOrder } : t
       );
       toast({
         title: "Faixa Atualizada!",
         description: `A faixa de premiação "${data.name}" foi atualizada no armazenamento local.`,
       });
     } else {
-      const newTier: AwardTier = { id: `tier_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...tierDataToSave };
+      // Para novas faixas, sortOrder será o próximo número sequencial
+      const newTier: AwardTier = { 
+        id: `tier_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, 
+        ...tierDataToSave,
+        sortOrder: tiers.length // Adiciona ao final da ordem atual
+      };
       updatedTiers = [...tiers, newTier];
       toast({
         title: "Faixa Criada!",
         description: `A faixa de premiação "${data.name}" foi criada no armazenamento local.`,
       });
     }
+    // Reordenar explicitamente por sortOrder antes de salvar/setar no estado se a ordem puder ter mudado
+    // ou se a nova faixa foi adicionada (garantir que ela mantenha sua posição de "nova")
+    updatedTiers.sort((a,b) => a.sortOrder - b.sortOrder);
+    // Em seguida, reatribuir sortOrders para garantir a sequencialidade após qualquer adição/edição
+    updatedTiers = reassignSortOrders(updatedTiers);
+    
     setTiers(updatedTiers);
     saveAwardTiers(updatedTiers);
     form.reset();
@@ -118,12 +147,29 @@ export default function AdminAwardsPage() {
     setEditingTier(null);
   };
 
+  const moveTier = (tierId: string, direction: 'up' | 'down') => {
+    const currentIndex = tiers.findIndex(t => t.id === tierId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    if (newIndex < 0 || newIndex >= tiers.length) return;
+
+    const newTiersArray = [...tiers];
+    const [movedTier] = newTiersArray.splice(currentIndex, 1);
+    newTiersArray.splice(newIndex, 0, movedTier);
+
+    const finalTiers = reassignSortOrders(newTiersArray);
+    setTiers(finalTiers);
+    saveAwardTiers(finalTiers);
+  };
+
 
   return (
     <div className="animate-fadeIn">
       <PageHeader
         title="Gerenciamento de Faixas de Premiação"
-        description="Defina e gerencie as faixas de premiação para performance das lojas."
+        description="Defina e gerencie as faixas de premiação para performance das lojas. Use as setas para reordenar."
         icon={Trophy}
         actions={
           <Button onClick={handleAddNew}>
@@ -225,23 +271,34 @@ export default function AdminAwardsPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle>Faixas de Premiação Configurada</CardTitle>
-          <CardDescription>Lista das faixas de premiação atuais e seus critérios por estado.</CardDescription>
+          <CardDescription>Lista das faixas de premiação atuais e seus critérios por estado. A ordem aqui será refletida na tela de sorteios.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Ordem</TableHead>
                 <TableHead>Nome da Faixa</TableHead>
                 <TableHead>Prêmio</TableHead>
                 <TableHead className="text-right">Quantidade</TableHead>
                 <TableHead className="text-right">Positivações PR</TableHead>
                 <TableHead className="text-right">Positivações SC</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tiers.sort((a,b) => a.positivacoesRequired.PR - b.positivacoesRequired.PR).map((tier) => (
+              {tiers.map((tier, index) => (
                 <TableRow key={tier.id}>
+                  <TableCell className="w-24">
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveTier(tier.id, 'up')} disabled={index === 0}>
+                        <ArrowUp className="h-4 w-4" /> <span className="sr-only">Mover para Cima</span>
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveTier(tier.id, 'down')} disabled={index === tiers.length - 1}>
+                        <ArrowDown className="h-4 w-4" /> <span className="sr-only">Mover para Baixo</span>
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell className="font-medium">{tier.name}</TableCell>
                   <TableCell>{tier.rewardName}</TableCell>
                   <TableCell className="text-right">{tier.quantityAvailable}</TableCell>

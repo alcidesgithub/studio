@@ -50,12 +50,8 @@ export default function AdminTieredSweepstakesPage() {
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
 
   useEffect(() => {
-    setAwardTiers(loadAwardTiers().sort((a,b) => {
-        // Handle potential undefined values for PR before sorting
-        const aPR = a.positivacoesRequired?.PR ?? Infinity;
-        const bPR = b.positivacoesRequired?.PR ?? Infinity;
-        return aPR - bPR;
-    }));
+    // Carrega as faixas e ordena pelo sortOrder definido pelo usuário
+    setAwardTiers(loadAwardTiers().sort((a,b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)));
     setStores(loadStores());
     setCurrentEvent(loadEvent());
     setDrawnWinners(loadDrawnWinners());
@@ -147,7 +143,7 @@ export default function AdminTieredSweepstakesPage() {
     <div className="animate-fadeIn space-y-8">
       <PageHeader
         title="Gerenciamento de Sorteios por Faixa"
-        description={`Sorteie vencedores para cada faixa de premiação no ${currentEvent.name}. Cada loja pode ganhar apenas uma vez.`}
+        description={`Sorteie vencedores para cada faixa de premiação no ${currentEvent.name}. Cada loja pode ganhar apenas uma vez. A ordem das faixas abaixo respeita a configuração da tela de Gerenciamento de Faixas.`}
         icon={Dice6}
         actions={
           <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0}>
@@ -173,7 +169,7 @@ export default function AdminTieredSweepstakesPage() {
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
               <div>
-                <h4 className="font-semibold text-sm mb-1 flex items-center gap-1"><ListChecks className="h-5 w-5 text-secondary" /> Lojas Elegíveis ({tier.eligibleStores.length}):</h4>
+                <h4 className="font-semibold text-sm mb-1 flex items-center gap-1"><ListChecks className="text-secondary h-5 w-5" /> Lojas Elegíveis ({tier.eligibleStores.length}):</h4>
                 {tier.eligibleStores.length > 0 ? (
                   <ul className="list-disc list-inside text-xs text-muted-foreground max-h-24 overflow-y-auto bg-muted/30 p-2 rounded-md">
                     {tier.eligibleStores.map(store =>

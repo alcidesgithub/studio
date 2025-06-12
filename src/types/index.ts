@@ -56,6 +56,7 @@ export interface AwardTier {
     PR: number; // Positivações necessárias para lojas do Paraná
     SC: number; // Positivações necessárias para lojas de Santa Catarina
   };
+  sortOrder: number; // Ordem de exibição definida pelo usuário
 }
 
 export interface Positivacao {
@@ -105,3 +106,4 @@ export interface SweepstakeWinnerRecord {
   storeName: string;
   drawnAt: Date | string;
 }
+
