@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
-import { Star, Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react'; 
+import { Star, Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState, useMemo } from 'react';
@@ -19,7 +19,7 @@ export default function StorePositivacaoPage() {
   const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
-  
+
   useEffect(() => {
     setAllStores(loadStores());
     setAwardTiers(loadAwardTiers().sort((a,b) => a.positivacoesRequired - b.positivacoesRequired));
@@ -32,20 +32,26 @@ export default function StorePositivacaoPage() {
     return allStores.find(s => s.name === user.storeName);
   }, [user, allStores]);
 
-  const positivacoesCount = useMemo(() => currentStore?.positivationsDetails?.length || 0, [currentStore]);
+  const validPositivationsDetails = useMemo(() => {
+    if (!currentStore || !currentStore.positivationsDetails || allVendors.length === 0) return [];
+    const existingVendorIds = new Set(allVendors.map(v => v.id));
+    return currentStore.positivationsDetails.filter(pd => existingVendorIds.has(pd.vendorId));
+  }, [currentStore, allVendors]);
+
+  const positivacoesCount = useMemo(() => validPositivationsDetails.length, [validPositivationsDetails]);
 
   const currentAchievedTier = useMemo(() => {
-    if (!currentStore || awardTiers.length === 0) return undefined;
+    if (awardTiers.length === 0) return undefined;
     let achievedTier: AwardTier | undefined = undefined;
     for (let i = awardTiers.length - 1; i >= 0; i--) {
       if (positivacoesCount >= awardTiers[i].positivacoesRequired) {
         achievedTier = awardTiers[i];
-        break; 
+        break;
       }
     }
     return achievedTier;
-  }, [currentStore, awardTiers, positivacoesCount]);
-  
+  }, [awardTiers, positivacoesCount]);
+
   const nextTier = useMemo(() => {
     if (awardTiers.length === 0) return undefined;
     if (currentAchievedTier) {
@@ -60,16 +66,18 @@ export default function StorePositivacaoPage() {
 
   const progressToNextTier = useMemo(() => {
     if (!nextTier) return currentAchievedTier ? 100 : 0;
+    // Ensure positivacoesRequired is not zero to avoid division by zero
+    if (nextTier.positivacoesRequired === 0) return 100;
     return (positivacoesCount / nextTier.positivacoesRequired) * 100;
   }, [nextTier, positivacoesCount, currentAchievedTier]);
 
   const positivationsMap = useMemo(() => {
     const map = new Map<string, PositivationDetail>();
-    currentStore?.positivationsDetails?.forEach(detail => {
+    validPositivationsDetails.forEach(detail => {
       map.set(detail.vendorId, detail);
     });
     return map;
-  }, [currentStore]);
+  }, [validPositivationsDetails]);
 
   if (!user || !currentEvent) {
     return (
@@ -83,7 +91,7 @@ export default function StorePositivacaoPage() {
       </div>
     );
   }
-  
+
   if (!currentStore) {
      return (
       <div className="animate-fadeIn p-6">
@@ -154,7 +162,7 @@ export default function StorePositivacaoPage() {
                   </>
               ) : (
                   <>
-                  <div className="text-xl font-bold">0 / {awardTiers.length > 0 ? awardTiers[0].positivacoesRequired : '-'} selos</div>
+                  <div className="text-xl font-bold">0 / {awardTiers.length > 0 && awardTiers[0].positivacoesRequired > 0 ? awardTiers[0].positivacoesRequired : (awardTiers.length > 0 ? '-' : '-')} selos</div>
                     <Progress value={0} className="mt-2 h-3" />
                   <p className="text-xs text-muted-foreground mt-1">Comece a coletar selos!</p>
                   </>
@@ -179,7 +187,7 @@ export default function StorePositivacaoPage() {
                 const isPositivated = !!positivation;
 
                 return (
-                  <div 
+                  <div
                     key={vendor.id}
                     className={`
                       flex flex-col items-center p-4 rounded-lg transition-all duration-300 ease-in-out border
@@ -197,9 +205,9 @@ export default function StorePositivacaoPage() {
                         ${isPositivated ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}
                       `}>{vendor.name}</p>
                     </div>
-                    
+
                     <div className="text-xs mt-2 w-full">
-                      {isPositivated && positivation?.salespersonName && isValid(parseISO(positivation.date)) ? (
+                      {isPositivated && positivation?.salespersonName && positivation.date && isValid(parseISO(positivation.date)) ? (
                         <>
                           <p className="text-secondary flex items-center justify-center">
                             <BadgeCheck className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
@@ -209,7 +217,7 @@ export default function StorePositivacaoPage() {
                             Em: {format(parseISO(positivation.date), "dd/MM HH:mm", { locale: ptBR })}
                           </p>
                         </>
-                      ) : isPositivated && positivation && isValid(parseISO(positivation.date)) ? (
+                      ) : isPositivated && positivation && positivation.date && isValid(parseISO(positivation.date)) ? (
                          <>
                           <p className="text-secondary flex items-center justify-center">
                             <BadgeCheck className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
