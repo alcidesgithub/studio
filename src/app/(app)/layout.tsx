@@ -44,8 +44,6 @@ export default function AppLayout({
   }
   
   // Check role-based access for admin routes
-  // Allow admins and managers for /admin routes.
-  // Specific page components should handle finer-grained control if a manager shouldn't see a particular admin page.
   if (pathname.startsWith('/admin') && !['admin', 'manager'].includes(user.role)) {
      return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4">
@@ -54,6 +52,24 @@ export default function AppLayout({
           <Button onClick={() => router.push('/dashboard')}>Ir para o Painel</Button>
         </div>
       );
+  }
+
+  // Check role-based access for store routes
+  const allowedStorePaths = ['/dashboard', '/event', '/store/positivacao'];
+  if (user.role === 'store' && !allowedStorePaths.includes(pathname) && !pathname.startsWith('/_next/')) {
+    // Check if the current path is a sub-path of any allowed path, which is not strictly necessary
+    // for the current flat route structure but good for future-proofing if paths like /store/positivacao/details were added.
+    // For now, a direct includes check is sufficient.
+    // const isAllowedSubPath = allowedStorePaths.some(p => pathname.startsWith(p) && p !== pathname); 
+    // if (!isAllowedSubPath) { // Simplified: if not in the exact allowed list
+      return (
+          <div className="flex min-h-screen flex-col items-center justify-center p-4">
+            <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>
+            <p className="mb-4">Você não tem permissão para visualizar esta página.</p>
+            <Button onClick={() => router.push('/dashboard')}>Ir para o Painel</Button>
+          </div>
+        );
+    // }
   }
 
 

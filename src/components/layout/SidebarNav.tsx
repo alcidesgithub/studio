@@ -47,7 +47,7 @@ export function SidebarNav() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { setOpenMobile, state: sidebarState, isMobile } = useSidebar(); 
-  const router = useRouter(); // Adicionado useRouter
+  const router = useRouter(); 
 
   const navItems = user?.role ? navItemsByRole[user.role] : [];
 
@@ -59,7 +59,7 @@ export function SidebarNav() {
 
   const handleLogout = () => {
     logout();
-    router.push('/login'); // Redireciona para a página de login
+    router.push('/login'); 
   };
 
   return (
@@ -124,7 +124,7 @@ export function SidebarNav() {
           variant="ghost"
           size="sm"
           className="w-full text-sidebar-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          onClick={handleLogout} // Alterado para handleLogout
+          onClick={handleLogout}
         >
           <LogOut className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
           <span className="ml-2 group-data-[collapsible=icon]:hidden">Sair</span>
