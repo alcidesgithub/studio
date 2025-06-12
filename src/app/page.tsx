@@ -35,19 +35,14 @@ export default async function LandingPage() {
             <Image
               src="https://i.imgur.com/qlwlELF.png"
               alt="Logo Encontro de Negócios Hiperfarma"
-              width={600} // Metade da largura original para melhor ajuste inicial, pode ser ajustado com CSS
-              height={150} // Metade da altura original para manter a proporção
-              priority // Carregar a imagem com prioridade, pois é importante para o LCP
+              width={600} 
+              height={150} 
+              priority 
               className="rounded-md"
               data-ai-hint="event logo"
             />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold font-headline mb-2">
-            {event.name}
-          </h1>
-          <p className="text-lg md:text-xl text-primary-foreground/90">
-            O ponto de encontro da indústria farmacêutica para negócios e inovação.
-          </p>
+          {/* Título e descrição removidos conforme solicitado */}
         </div>
       </header>
 
