@@ -171,7 +171,7 @@ export default function StorePositivacaoPage() {
         <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="font-headline text-2xl">Sua Cartela de Selos de Fornecedores</CardTitle>
-            <CardDescription>Veja quais fornecedores já te prestigiaram neste evento.</CardDescription>
+            <CardDescription>Veja quais fornecedores já te positivaram.</CardDescription>
           </CardHeader>
           <CardContent>
             {allVendors.length === 0 ? (
