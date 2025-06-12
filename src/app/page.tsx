@@ -35,8 +35,8 @@ export default async function LandingPage() {
             <Image
               src="https://i.imgur.com/qlwlELF.png"
               alt="Logo Encontro de Negócios Hiperfarma"
-              width={600} 
-              height={150} 
+              width={400} 
+              height={100} 
               priority 
               className="rounded-md"
               data-ai-hint="event logo"
