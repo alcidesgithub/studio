@@ -177,7 +177,8 @@ export default function VendorPositivacaoPage() {
                 >
                   {isDisabled ? (
                     <>
-                      <CheckCircle className="mr-2 h-4 w-4" /> Positivada por {currentVendorCompany.name}
+                      <CheckCircle className="h-4 w-4" /> 
+                      <span>Positivada por {currentVendorCompany.name}</span>
                     </>
                   ) : (
                     <>
@@ -187,12 +188,12 @@ export default function VendorPositivacaoPage() {
                             alt={`Logo ${currentVendorCompany.name}`}
                             width={60}
                             height={30}
-                            className="mr-2 object-contain"
+                            className="object-contain" 
                           />
                         ) : (
-                          <ThumbsUp className="mr-2 h-4 w-4" /> 
+                          <ThumbsUp className="h-4 w-4" /> 
                         )}
-                      Positivar Loja
+                      <span>Positivar Loja</span>
                     </>
                   )}
                 </Button>
