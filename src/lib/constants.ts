@@ -88,7 +88,7 @@ export const ROLES: UserRole[] = ['admin', 'manager', 'vendor', 'store'];
 export const ROLES_TRANSLATIONS: Record<UserRole, string> = {
   admin: 'Administrador',
   manager: 'Gerente',
-  vendor: 'Fornecedor',
+  vendor: 'Vendedor', // Alterado de 'Fornecedor' para 'Vendedor'
   store: 'Loja',
 };
 
@@ -113,3 +113,4 @@ export const MOCK_SWEEPSTAKE_ENTRIES: SweepstakeEntry[] = MOCK_STORES
     // Qualification rate could be percentage of max possible positivations, or just goalProgress
     qualificationRate: s.goalProgress / 100,
   }));
+
