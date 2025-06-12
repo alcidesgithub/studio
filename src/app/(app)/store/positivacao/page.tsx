@@ -173,7 +173,7 @@ export default function StorePositivacaoPage() {
           {allVendors.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">Nenhum fornecedor cadastrado para o evento.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {allVendors.map((vendor: Vendor) => {
                 const positivation = positivationsMap.get(vendor.id);
                 const isPositivated = !!positivation;
