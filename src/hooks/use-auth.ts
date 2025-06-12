@@ -2,9 +2,8 @@
 // src/hooks/use-auth.ts
 "use client";
 
-import type { User, UserRole } from '@/types';
-// import { MOCK_USERS } from '@/lib/constants'; // No longer directly use MOCK_USERS for login
-import { loadUsers } from '@/lib/localStorageUtils'; // Import loadUsers
+import type { User } from '@/types';
+import { loadUsers } from '@/lib/localStorageUtils'; 
 import { useState, useEffect, useCallback } from 'react';
 
 const AUTH_STORAGE_KEY = 'hiperfarma_auth_user';
@@ -12,7 +11,7 @@ const AUTH_STORAGE_KEY = 'hiperfarma_auth_user';
 interface UseAuthReturn {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, roleHint?: UserRole) => Promise<User | null>; // Role hint for mock
+  login: (email: string) => Promise<User | null>; // Role hint removed
   logout: () => void;
 }
 
@@ -38,16 +37,16 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
-  const login = useCallback(async (email: string, roleHint?: UserRole): Promise<User | null> => {
+  const login = useCallback(async (email: string): Promise<User | null> => { // roleHint parameter removed
     setIsLoading(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
     
     // Use systemUsers (loaded from local storage) for validation
-    let foundUser = systemUsers.find(u => u.email === email);
-    if (foundUser && roleHint && foundUser.role !== roleHint) {
-        foundUser = systemUsers.find(u => u.email === email && u.role === roleHint) || foundUser;
-    }
+    // Find user based on email only
+    const foundUser = systemUsers.find(u => u.email === email);
+    // The password check would happen here in a real app, e.g., by sending email and password to a backend.
+    // For this mock, we assume if email matches, login is successful.
 
     if (foundUser) {
       setUser(foundUser);
@@ -62,8 +61,6 @@ export function useAuth(): UseAuthReturn {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
-    // Optionally redirect here or in consuming components
-    // router.push('/login'); 
   }, []);
 
   return { user, isLoading, login, logout };

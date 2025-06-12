@@ -11,17 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import type { UserRole } from '@/types';
-import { ROLES, ROLES_TRANSLATIONS } from '@/lib/constants'; // ROLES for dropdown
 import { LogIn, Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Endereço de email inválido." }),
-  password: z.string().min(1, { message: "Senha é obrigatória." }), 
-  role: z.custom<UserRole>(val => ROLES.includes(val as UserRole), {message: "Perfil de usuário inválido selecionado."}),
+  password: z.string().min(1, { message: "Senha é obrigatória." }),
+  // Role removed from schema
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -35,15 +32,15 @@ export function LoginForm() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '', 
-      password: "", 
-      role: 'admin', // Default to admin or any other sensible default
+      email: '',
+      password: "",
     },
   });
 
   const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
     setIsLoading(true);
-    const user = await login(data.email, data.role); 
+    // Call login without the role parameter
+    const user = await login(data.email);
     setIsLoading(false);
 
     if (user) {
@@ -55,7 +52,7 @@ export function LoginForm() {
     } else {
       toast({
         title: "Falha no Login",
-        description: "Credenciais ou perfil inválidos. Por favor, tente novamente.",
+        description: "Credenciais inválidas. Por favor, tente novamente.", // Simplified message
         variant: "destructive",
       });
     }
@@ -99,31 +96,10 @@ export function LoginForm() {
                 </FormItem>
               )}
             />
-             <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Perfil (para login de demonstração)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um perfil" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {ROLES.map(role => (
-                        <SelectItem key={role} value={role} className="capitalize">{ROLES_TRANSLATIONS[role]}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button 
-              type="submit" 
-              className="w-full font-semibold bg-accent hover:bg-accent/90 text-accent-foreground" 
+            {/* Role FormField removed */}
+            <Button
+              type="submit"
+              className="w-full font-semibold bg-accent hover:bg-accent/90 text-accent-foreground"
               disabled={isLoading}
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
@@ -135,5 +111,3 @@ export function LoginForm() {
     </Card>
   );
 }
-
-    
