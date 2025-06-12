@@ -183,7 +183,7 @@ export default function VendorPositivacaoPage() {
                   ) : (
                     <>
                       {currentVendorCompany.logoUrl ? (
-                          <div className="relative w-[60px] h-[30px] flex-shrink-0">
+                          <div className="relative w-[60px] h-[40px] flex-shrink-0">
                             <Image
                               src={currentVendorCompany.logoUrl}
                               alt={`Logo ${currentVendorCompany.name}`}
@@ -207,4 +207,3 @@ export default function VendorPositivacaoPage() {
   );
 }
     
-
