@@ -16,8 +16,8 @@ import { ClipboardPlus, Save, Edit, Trash2, PlusCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
-import { loadStores, saveStores } from '@/lib/localStorageUtils';
-import type { Store } from '@/types';
+import { loadStores, saveStores, loadUsers, saveUsers } from '@/lib/localStorageUtils'; // Added loadUsers, saveUsers
+import type { Store, User } from '@/types'; // Added User
 
 const storeRegistrationSchema = z.object({
   code: z.string().min(1, "Código da loja é obrigatório."),
@@ -31,7 +31,7 @@ const storeRegistrationSchema = z.object({
   ownerName: z.string().min(3, "Nome do proprietário é obrigatório."),
   responsibleName: z.string().min(3, "Nome do responsável é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres."),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(), // Made optional for editing existing users where password might not be changed
 });
 
 type StoreRegistrationFormValues = z.infer<typeof storeRegistrationSchema>;
@@ -109,12 +109,28 @@ export default function ManageStoresPage() {
       ownerName: store.ownerName || '',
       responsibleName: store.responsibleName || '',
       email: store.email || '',
-      password: '', // Password should not be pre-filled
+      password: '', // Password should not be pre-filled for editing
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = (storeId: string) => {
+    // Consider also deleting the associated user if desired, or handle orphaned users.
+    // For now, only deleting the store.
+    const storeToDelete = stores.find(s => s.id === storeId);
+    if (storeToDelete && storeToDelete.email) {
+        const currentUsers = loadUsers();
+        const usersToKeep = currentUsers.filter(u => u.email !== storeToDelete.email || u.role !== 'store');
+        if (usersToKeep.length < currentUsers.length) {
+            saveUsers(usersToKeep);
+            toast({
+                title: "Usuário da Loja Removido",
+                description: `O usuário associado ao email ${storeToDelete.email} foi removido.`,
+                variant: "info"
+            });
+        }
+    }
+
     const updatedStores = stores.filter(s => s.id !== storeId);
     setStores(updatedStores);
     saveStores(updatedStores);
@@ -139,16 +155,14 @@ export default function ManageStoresPage() {
       ownerName: data.ownerName,
       responsibleName: data.responsibleName,
       email: data.email,
-      // Note: password is not typically stored on the store object itself after registration
-      // It's used here for the User type creation if we were linking users directly from this form.
-      // For this app's structure, user management is separate.
+      // Password is handled for the User object, not stored directly on Store
     };
 
     if (editingStore) {
       updatedStores = stores.map(s =>
         s.id === editingStore.id
           ? {
-              ...s, // Keep existing fields like id, participating, goalProgress, positivationsDetails
+              ...s, 
               ...storeDataToSave,
             }
           : s
@@ -161,7 +175,7 @@ export default function ManageStoresPage() {
       const newStore: Store = {
         id: `store_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
         ...storeDataToSave,
-        participating: true, // Default for new stores
+        participating: true, 
         goalProgress: 0,
         positivationsDetails: [],
       };
@@ -173,6 +187,45 @@ export default function ManageStoresPage() {
     }
     setStores(updatedStores);
     saveStores(updatedStores);
+
+    // Sync with User list
+    const currentUsers = loadUsers();
+    const userIndex = currentUsers.findIndex(u => u.email === data.email);
+
+    if (userIndex > -1) { // User with this email exists
+      currentUsers[userIndex].name = data.responsibleName; // Or another name field as preferred
+      currentUsers[userIndex].role = 'store'; // Ensure role is store
+      currentUsers[userIndex].storeName = data.razaoSocial;
+      // Password update for existing users is tricky without a "change password" flow.
+      // If password field is filled during edit, it implies a change.
+      // For simplicity, we'll only set password on new user creation for now.
+      // If editingStore && data.password (and password has a value), you might update it.
+      // However, the `useAuth` mock login doesn't use password.
+    } else { // No user with this email, create one
+      if (data.password) { // Only create if password is provided
+        const newUserForStore: User = {
+          id: `user_store_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
+          email: data.email,
+          role: 'store',
+          name: data.responsibleName, // Using responsibleName for the User's name
+          storeName: data.razaoSocial,
+          // In a real app, password would be hashed here before saving.
+        };
+        currentUsers.push(newUserForStore);
+         toast({
+          title: "Usuário da Loja Criado!",
+          description: `Um login foi criado para ${data.email}.`,
+        });
+      } else if (!editingStore) {
+         toast({
+          title: "Senha Necessária",
+          description: `Senha não fornecida. Usuário para ${data.email} não foi criado.`,
+          variant: "destructive"
+        });
+      }
+    }
+    saveUsers(currentUsers);
+
     form.reset();
     setIsDialogOpen(false);
     setEditingStore(null);
@@ -237,13 +290,13 @@ export default function ManageStoresPage() {
                       <FormItem><FormLabel>Nome do Proprietário(a)</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="responsibleName" render={({ field }) => (
-                      <FormItem><FormLabel>Nome do Responsável (sistema)</FormLabel><FormControl><Input placeholder="Ex: Maria Oliveira" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Nome do Responsável (login sistema)</FormLabel><FormControl><Input placeholder="Ex: Maria Oliveira" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="email" render={({ field }) => (
                       <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="password" render={({ field }) => (
-                      <FormItem><FormLabel>Senha de Login {editingStore ? '(Deixe em branco para não alterar)' : ''}</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Senha de Login {editingStore ? '(Deixe em branco para não alterar se o usuário já existir)' : ''}</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>
                   )}/>
                 </CardContent>
               </Card>
@@ -268,7 +321,7 @@ export default function ManageStoresPage() {
                 <TableHead>Código</TableHead>
                 <TableHead>Razão Social</TableHead>
                 <TableHead>CNPJ</TableHead>
-                <TableHead>Proprietário(a)</TableHead>
+                <TableHead>Email (Login)</TableHead>
                 <TableHead>Município</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -283,7 +336,7 @@ export default function ManageStoresPage() {
                   <TableCell>{store.code}</TableCell>
                   <TableCell className="font-medium">{store.name}</TableCell>
                   <TableCell>{formatCNPJ(store.cnpj)}</TableCell>
-                  <TableCell>{store.ownerName || 'N/A'}</TableCell>
+                  <TableCell>{store.email || 'N/A'}</TableCell>
                   <TableCell>{store.city || 'N/A'}</TableCell>
                   <TableCell>{getDisplayState(store.state)}</TableCell>
                   <TableCell className="text-right">
@@ -303,3 +356,5 @@ export default function ManageStoresPage() {
     </div>
   );
 }
+
+    
