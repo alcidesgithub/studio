@@ -31,6 +31,17 @@ export default async function LandingPage() {
     <div className="min-h-screen bg-muted/40 flex flex-col items-center animate-fadeIn">
       <header className="w-full bg-primary text-primary-foreground py-8 shadow-lg">
         <div className="container mx-auto px-4 text-center">
+          <div className="mb-6 flex justify-center">
+            <Image
+              src="https://i.imgur.com/qlwlELF.png"
+              alt="Logo Encontro de Negócios Hiperfarma"
+              width={600} // Metade da largura original para melhor ajuste inicial, pode ser ajustado com CSS
+              height={150} // Metade da altura original para manter a proporção
+              priority // Carregar a imagem com prioridade, pois é importante para o LCP
+              className="rounded-md"
+              data-ai-hint="event logo"
+            />
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold font-headline mb-2">
             {event.name}
           </h1>
