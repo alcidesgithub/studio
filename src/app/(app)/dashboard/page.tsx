@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { loadStores, loadEvent, loadAwardTiers, loadVendors, loadDrawnWinners } from '@/lib/localStorageUtils';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
 import type { Store, Event, AwardTier, Vendor, SweepstakeWinnerRecord } from '@/types';
-import { Users, BadgeCheck, Trophy, LayoutDashboard, Briefcase, Gift, Dice6 } from 'lucide-react';
+import { Users, BadgeCheck, Trophy, LayoutDashboard, Briefcase } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -23,14 +23,14 @@ export default function DashboardPage() {
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
   const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]);
+  // const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]); // No longer needed for cards
 
   useEffect(() => {
     setStores(loadStores());
     setCurrentEvent(loadEvent());
     setAwardTiers(loadAwardTiers().sort((a, b) => (a.positivacoesRequired?.PR ?? 0) - (b.positivacoesRequired?.PR ?? 0)));
     setVendors(loadVendors());
-    setDrawnWinners(loadDrawnWinners());
+    // setDrawnWinners(loadDrawnWinners()); // No longer needed for cards
   }, []);
 
   const participatingStores = useMemo(() => stores.filter(s => s.participating), [stores]);
@@ -42,11 +42,11 @@ export default function DashboardPage() {
 
   const totalVendorsCount = useMemo(() => vendors.length, [vendors]);
   
-  const totalPrizesAvailable = useMemo(() => 
-    awardTiers.reduce((sum, tier) => sum + tier.quantityAvailable, 0), 
-  [awardTiers]);
+  // const totalPrizesAvailable = useMemo(() => 
+  //   awardTiers.reduce((sum, tier) => sum + tier.quantityAvailable, 0), 
+  // [awardTiers]);
   
-  const totalPrizesDrawn = useMemo(() => drawnWinners.length, [drawnWinners]);
+  // const totalPrizesDrawn = useMemo(() => drawnWinners.length, [drawnWinners]);
 
   const storesByHighestTier = useMemo(() => {
     if (awardTiers.length === 0 && participatingStores.length === 0) return {};
@@ -198,28 +198,6 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">Cadastrados no evento</p>
           </CardContent>
         </Card>
-
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Prêmios (Faixas)</CardTitle>
-            <Gift className="h-5 w-5 text-secondary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalPrizesAvailable}</div>
-            <p className="text-xs text-muted-foreground">Disponíveis em todas as faixas</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prêmios Já Sorteados</CardTitle>
-            <Dice6 className="h-5 w-5 text-secondary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalPrizesDrawn}</div>
-            <p className="text-xs text-muted-foreground">Distribuídos via sorteio</p>
-          </CardContent>
-        </Card>
       </div>
 
       <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full">
@@ -274,4 +252,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
