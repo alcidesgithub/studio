@@ -2,10 +2,11 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // Adicionado useRouter
+import { usePathname, useRouter } from 'next/navigation'; 
+import Image from 'next/image'; // Added Image import
 import {
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar, TooltipProvider, Tooltip, TooltipTrigger, TooltipContent
-} from '@/components/ui/sidebar'; // Removido Sidebar, SidebarGroup, SidebarTrigger
+} from '@/components/ui/sidebar'; 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, ThumbsUp, Star, ListChecks, Download, UserCog, Trophy, Edit3, ClipboardPlus, Briefcase, Dice6 } from 'lucide-react';
@@ -66,9 +67,15 @@ export function SidebarNav() {
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <Link href={user?.role === 'store' ? "/store/positivacao" : "/dashboard"} className="flex items-center gap-2" onClick={handleLinkClick}>
           <Building className="h-8 w-8 text-primary" />
-          <h1 className="font-headline text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-            Hiperfarma
-          </h1>
+          <Image
+            src="https://i.imgur.com/qlwlELF.png"
+            alt="Logo Hiperfarma BMM"
+            width={128} 
+            height={32}  
+            className="object-contain group-data-[collapsible=icon]:hidden"
+            data-ai-hint="event logo"
+            priority
+          />
         </Link>
       </SidebarHeader>
       <ScrollArea className="flex-1">
