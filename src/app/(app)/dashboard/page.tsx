@@ -173,7 +173,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{participatingStoresCount}</div>
-            <p className="text-xs text-muted-foreground">de {stores.length} lojas cadastradas</p>
+            <p className="text-xs text-muted-foreground">Cadastradas no evento</p>
           </CardContent>
         </Card>
 
