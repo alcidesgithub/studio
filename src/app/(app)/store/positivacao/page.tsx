@@ -113,7 +113,7 @@ export default function StorePositivacaoPage() {
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Selos Recebidos</CardTitle>
-              <ThumbsUp className="h-5 w-5 text-accent" />
+              <ThumbsUp className="h-5 w-5 text-secondary" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{positivacoesCount}</div>
@@ -124,7 +124,7 @@ export default function StorePositivacaoPage() {
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Faixa de Premiação Atual</CardTitle>
-              <Medal className="h-5 w-5 text-accent" />
+              <Medal className="h-5 w-5 text-secondary" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -139,7 +139,7 @@ export default function StorePositivacaoPage() {
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Progresso Próxima Faixa</CardTitle>
-              <TrendingUp className="h-5 w-5 text-accent" />
+              <TrendingUp className="h-5 w-5 text-secondary" />
             </CardHeader>
             <CardContent>
               {nextTier ? (
@@ -188,7 +188,7 @@ export default function StorePositivacaoPage() {
                         <div className={`
                           flex flex-col items-center justify-center p-3 aspect-square
                           border-4 rounded-full transition-all duration-300 ease-in-out
-                          ${isPositivated ? 'border-accent shadow-lg scale-105' : 'border-muted opacity-60 hover:opacity-100'}
+                          ${isPositivated ? 'border-secondary shadow-lg scale-105' : 'border-muted opacity-60 hover:opacity-100'}
                           bg-card hover:shadow-md cursor-default group
                         `}>
                           <Avatar className="w-16 h-16 md:w-20 md:h-20 mb-2 transition-opacity duration-300">
@@ -199,14 +199,14 @@ export default function StorePositivacaoPage() {
                             text-xs font-medium text-center truncate w-full
                             ${isPositivated ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}
                           `}>{vendor.name}</p>
-                           {isPositivated && <CheckCircle className="w-5 h-5 text-accent absolute top-2 right-2" />}
+                           {isPositivated && <CheckCircle className="w-5 h-5 text-secondary absolute top-2 right-2" />}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="bg-background border-border shadow-xl p-3">
                         <p className="font-semibold text-lg text-primary">{vendor.name}</p>
                         {isPositivated && positivation && isValid(parseISO(positivation.date)) ? (
                           <>
-                            <p className="text-sm text-green-600">
+                            <p className="text-sm text-secondary">
                               <ThumbsUp className="inline-block h-4 w-4 mr-1" /> Positivado!
                             </p>
                             <p className="text-xs text-muted-foreground">
@@ -231,11 +231,11 @@ export default function StorePositivacaoPage() {
         </Card>
          <Card className="mt-8 shadow-lg">
             <CardHeader className="flex flex-row items-center gap-2">
-                <Gift className="h-6 w-6 text-primary"/>
+                <Gift className="h-6 w-6 text-secondary"/>
                 <CardTitle>Qualificação para Sorteios</CardTitle>
             </CardHeader>
             <CardContent>
-            <p className="text-sm">Sua loja tem <span className="font-bold text-lg text-accent">{currentStore.positivationsDetails.length}</span> selos.</p>
+            <p className="text-sm">Sua loja tem <span className="font-bold text-lg text-secondary">{currentStore.positivationsDetails.length}</span> selos.</p>
             <p className="text-xs text-muted-foreground mt-1">Lojas com mais selos e que atingem as faixas de premiação participam de sorteios especiais. Continue engajando!</p>
             </CardContent>
         </Card>
@@ -243,3 +243,4 @@ export default function StorePositivacaoPage() {
     </TooltipProvider>
   );
 }
+
