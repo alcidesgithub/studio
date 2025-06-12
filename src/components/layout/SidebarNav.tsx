@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/sidebar'; 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, Store, Star, ListChecks, Download, UserCog, Trophy, Edit3, Briefcase, Dice6, BadgeCheck, Stamp } from 'lucide-react'; // Changed ClipboardPlus to Store
+import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, Store, Star, ListChecks, Download, UserCog, Trophy, Edit3, Briefcase, Dice6, BadgeCheck, Stamp } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ROLES_TRANSLATIONS } from '@/lib/constants';
@@ -20,10 +20,10 @@ const navItemsByRole = {
     { href: '/event', label: 'Info Evento', icon: MapPin },
     { group: 'Gerenciamento' },
     { href: '/admin/event-management', label: 'Gerenciar Evento', icon: Edit3 },
-    { href: '/admin/users', label: 'Usuários', icon: UserCog },
+    { href: '/admin/users', label: 'Admins e Gerentes', icon: UserCog },
     { href: '/admin/awards', label: 'Premiação', icon: Trophy },
     { href: '/admin/sweepstakes-by-tier', label: 'Sorteios', icon: Dice6 },
-    { href: '/admin/store-registration', label: 'Lojas', icon: Store }, // Changed icon here
+    { href: '/admin/store-registration', label: 'Lojas', icon: Store },
     { href: '/admin/vendor-management', label: 'Fornecedores', icon: Briefcase },
   ],
   manager: [
