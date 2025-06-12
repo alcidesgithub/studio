@@ -10,7 +10,7 @@ import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localS
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
-import { Star, Trophy, TrendingUp, Gift, BadgeCheck, Award } from 'lucide-react';
+import { Star, Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react'; // Removed Award, Trophy is already here
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState, useMemo } from 'react';
@@ -44,7 +44,13 @@ export default function StorePositivacaoPage() {
   const positivacoesCount = useMemo(() => validPositivationsDetails.length, [validPositivationsDetails]);
 
   const sortedAwardTiersForDisplay = useMemo(() => {
-    if (!currentStore || !currentStore.state || awardTiers.length === 0) return [...awardTiers].sort((a,b) => a.positivacoesRequired.PR - b.positivacoesRequired.PR); // fallback sort
+    if (!currentStore || !currentStore.state || awardTiers.length === 0) {
+      return [...awardTiers].sort((a,b) => {
+        const aReq = a.positivacoesRequired.PR || 0; // Fallback to PR if specific state req not found
+        const bReq = b.positivacoesRequired.PR || 0;
+        return aReq - bReq;
+      });
+    }
     const storeState = currentStore.state;
     return [...awardTiers].sort((a, b) => 
         getRequiredPositivationsForStore(a, storeState) - getRequiredPositivationsForStore(b, storeState)
@@ -52,7 +58,7 @@ export default function StorePositivacaoPage() {
   }, [awardTiers, currentStore]);
 
   const currentAchievedTier = useMemo(() => {
-    if (!currentStore || sortedAwardTiersForDisplay.length === 0) return undefined;
+    if (!currentStore || sortedAwardTiersForDisplay.length === 0 || !currentStore.state) return undefined;
     const storeState = currentStore.state;
     let achievedTier: AwardTier | undefined = undefined;
     for (let i = sortedAwardTiersForDisplay.length - 1; i >= 0; i--) {
@@ -65,7 +71,7 @@ export default function StorePositivacaoPage() {
   }, [sortedAwardTiersForDisplay, positivacoesCount, currentStore]);
 
   const nextTier = useMemo(() => {
-    if (!currentStore || sortedAwardTiersForDisplay.length === 0) return undefined;
+    if (!currentStore || sortedAwardTiersForDisplay.length === 0 || !currentStore.state) return undefined;
     
     if (currentAchievedTier) {
         const currentTierIndex = sortedAwardTiersForDisplay.findIndex(t => t.id === currentAchievedTier!.id);
@@ -74,19 +80,19 @@ export default function StorePositivacaoPage() {
         }
         return undefined; // Max tier achieved
     }
-    return sortedAwardTiersForDisplay.length > 0 ? sortedAwardTiersForDisplay[0] : undefined; // First tier if none achieved
+    // If no tier achieved and there are tiers available, next tier is the first one
+    return sortedAwardTiersForDisplay.length > 0 ? sortedAwardTiersForDisplay[0] : undefined;
   }, [sortedAwardTiersForDisplay, currentAchievedTier, currentStore]);
 
   const progressToNextTier = useMemo(() => {
-    if (!currentStore || !nextTier) return currentAchievedTier ? 100 : 0;
+    if (!currentStore || !nextTier || !currentStore.state) return currentAchievedTier ? 100 : 0;
     const storeState = currentStore.state;
     const requiredForNext = getRequiredPositivationsForStore(nextTier, storeState);
 
-    if (requiredForNext === 0 && positivacoesCount > 0) return 100; // If next tier needs 0 and has some, it's 100%
-    if (requiredForNext === 0) return 0; // Avoid division by zero if next tier requires 0
+    if (requiredForNext === 0) return positivacoesCount > 0 ? 100 : 0; // Achieved if needs 0 and has any, else 0
     
     const progress = (positivacoesCount / requiredForNext) * 100;
-    return Math.min(progress, 100); // Cap progress at 100%
+    return Math.min(progress, 100);
   }, [nextTier, positivacoesCount, currentAchievedTier, currentStore]);
 
 
@@ -165,7 +171,7 @@ export default function StorePositivacaoPage() {
             <TrendingUp className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
-            {nextTier ? (
+            {nextTier && currentStore.state ? (
               <>
                 <div className="text-xl font-bold">{positivacoesCount} / {getRequiredPositivationsForStore(nextTier, currentStore.state)} selos</div>
                 <Progress value={progressToNextTier} className="mt-2 h-3" />
@@ -179,11 +185,13 @@ export default function StorePositivacaoPage() {
                   <div className="text-xl font-bold">Parabéns!</div>
                   <p className="text-xs text-muted-foreground mt-1">Você atingiu a faixa máxima de premiação!</p>
                   </>
-              ) : (
+              ) : ( // No next tier and no current tier (implies no tiers exist or store state missing)
                   <>
-                  <div className="text-xl font-bold">0 / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay[0] ? sortedAwardTiersForDisplay[0].positivacoesRequired.PR : '-')} selos</div>
+                  <div className="text-xl font-bold">
+                    0 / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay[0] ? (sortedAwardTiersForDisplay[0].positivacoesRequired.PR || '0') : '-')} selos
+                  </div>
                     <Progress value={0} className="mt-2 h-3" />
-                  <p className="text-xs text-muted-foreground mt-1">Comece a coletar selos!</p>
+                  <p className="text-xs text-muted-foreground mt-1">Nenhuma faixa de premiação configurada ou dados da loja incompletos.</p>
                   </>
               )
             )}
@@ -265,18 +273,18 @@ export default function StorePositivacaoPage() {
 
       <Card className="shadow-lg mb-8">
         <CardHeader className="flex flex-row items-center gap-2">
-          <Award className="h-6 w-6 text-primary"/>
+          <Trophy className="h-6 w-6 text-primary"/>
           <CardTitle>Faixas de Premiação Disponíveis</CardTitle>
         </CardHeader>
         <CardContent>
-          {sortedAwardTiersForDisplay.length > 0 ? (
+          {sortedAwardTiersForDisplay.length > 0 && currentStore.state ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome da Faixa</TableHead>
                   <TableHead>Prêmio</TableHead>
                   <TableHead className="text-right">Qtd. Total Prêmios</TableHead>
-                  <TableHead className="text-right">Selos Necessários ({currentStore.state || 'N/A'})</TableHead>
+                  <TableHead className="text-right">Selos Necessários ({currentStore.state})</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -285,13 +293,13 @@ export default function StorePositivacaoPage() {
                     <TableCell className="font-medium">{tier.name}</TableCell>
                     <TableCell>{tier.rewardName}</TableCell>
                     <TableCell className="text-right">{tier.quantityAvailable}</TableCell>
-                    <TableCell className="text-right font-semibold">{getRequiredPositivationsForStore(tier, currentStore.state)}</TableCell>
+                    <TableCell className="text-right font-semibold">{getRequiredPositivationsForStore(tier, currentStore.state!)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <p className="text-center text-muted-foreground py-4">Nenhuma faixa de premiação configurada para o evento.</p>
+            <p className="text-center text-muted-foreground py-4">Nenhuma faixa de premiação configurada para o evento ou estado da loja não definido.</p>
           )}
         </CardContent>
       </Card>
