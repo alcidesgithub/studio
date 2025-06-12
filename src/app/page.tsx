@@ -35,8 +35,8 @@ export default async function LandingPage() {
             <Image
               src="https://i.imgur.com/qlwlELF.png"
               alt="Logo Encontro de Negócios Hiperfarma"
-              width={400} 
-              height={100} 
+              width={300} 
+              height={75} 
               priority 
               className="rounded-md"
               data-ai-hint="event logo"
@@ -81,7 +81,7 @@ export default async function LandingPage() {
 
         <section id="vendors-section" aria-labelledby="vendors-heading" className="mb-12 p-8 bg-card text-card-foreground rounded-xl shadow-2xl">
           <h2 id="vendors-heading" className="text-3xl font-semibold mb-8 text-center text-primary font-headline flex items-center justify-center gap-3">
-            <Users className="h-8 w-8 text-primary"/>
+            <Users className="h-8 w-8 text-accent"/> {/* Alterado para text-accent */}
             Fornecedores Participantes
           </h2>
           {vendors.length > 0 ? (
@@ -106,7 +106,7 @@ export default async function LandingPage() {
       </main>
 
       <footer className="w-full bg-primary text-primary-foreground py-6 text-center">
-        <p>&copy; {new Date().getFullYear()} Hiperfarma Business Meeting Manager. Todos os direitos reservados.</p>
+        <p className="text-sm">&copy; {new Date().getFullYear()} Hiperfarma Business Meeting Manager. Todos os direitos reservados.</p> {/* Adicionado text-sm */}
       </footer>
     </div>
   );
