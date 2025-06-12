@@ -38,7 +38,7 @@ const navItemsByRole = {
   ],
   store: [
     { href: '/event', label: 'Info Evento', icon: MapPin },
-    { href: '/store/positivacao', label: 'Minha Cartela', icon: Star },
+    { href: '/store/positivacao', label: 'Minhas Positivações', icon: Star },
   ],
 };
 
