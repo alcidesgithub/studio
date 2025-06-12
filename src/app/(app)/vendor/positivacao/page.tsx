@@ -171,7 +171,7 @@ export default function VendorPositivacaoPage() {
               </CardContent>
               <CardFooter>
                 <Button 
-                  className="w-full h-[50px]"
+                  className="w-full h-[80px]"
                   onClick={() => handlePositivar(store.id, store.name)}
                   disabled={isDisabled}
                 >
@@ -183,7 +183,7 @@ export default function VendorPositivacaoPage() {
                   ) : (
                     <>
                       {currentVendorCompany.logoUrl ? (
-                          <div className="relative w-[60px] h-[40px] flex-shrink-0">
+                          <div className="relative w-[90px] h-[60px] flex-shrink-0">
                             <Image
                               src={currentVendorCompany.logoUrl}
                               alt={`Logo ${currentVendorCompany.name}`}
@@ -207,3 +207,4 @@ export default function VendorPositivacaoPage() {
   );
 }
     
+
