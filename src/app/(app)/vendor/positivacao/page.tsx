@@ -11,7 +11,7 @@ import { ThumbsUp, Store as StoreIcon, CheckCircle, Search } from 'lucide-react'
 import { useState, useMemo, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import Image from 'next/image'; // Added import for Image
+import Image from 'next/image';
 
 export default function VendorPositivacaoPage() {
   const [allStores, setAllStores] = useState<Store[]>([]);
@@ -182,8 +182,8 @@ export default function VendorPositivacaoPage() {
                           <Image
                             src={currentVendor.logoUrl}
                             alt={`Logo ${currentVendor.name}`}
-                            width={16}
-                            height={16}
+                            width={20}
+                            height={20}
                             className="mr-2 object-contain"
                           />
                         ) : (
