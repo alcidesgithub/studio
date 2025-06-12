@@ -10,7 +10,7 @@ import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localS
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
-import { Star, Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react'; // Removed Award, Trophy is already here
+import { Star, Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState, useMemo } from 'react';
@@ -45,11 +45,16 @@ export default function StorePositivacaoPage() {
 
   const sortedAwardTiersForDisplay = useMemo(() => {
     if (!currentStore || !currentStore.state || awardTiers.length === 0) {
-      return [...awardTiers].sort((a,b) => {
-        const aReq = a.positivacoesRequired.PR || 0; // Fallback to PR if specific state req not found
-        const bReq = b.positivacoesRequired.PR || 0;
-        return aReq - bReq;
-      });
+      // Fallback sorting if store state or tiers are unavailable
+      const fallbackSortKey = awardTiers[0]?.positivacoesRequired?.PR !== undefined ? 'PR' : (awardTiers[0]?.positivacoesRequired?.SC !== undefined ? 'SC' : null);
+      if (fallbackSortKey) {
+        return [...awardTiers].sort((a,b) => {
+            const aReq = (a.positivacoesRequired as any)[fallbackSortKey] || 0;
+            const bReq = (b.positivacoesRequired as any)[fallbackSortKey] || 0;
+            return aReq - bReq;
+        });
+      }
+      return [...awardTiers]; // Return unsorted or sort by name if no req data
     }
     const storeState = currentStore.state;
     return [...awardTiers].sort((a, b) => 
@@ -89,7 +94,8 @@ export default function StorePositivacaoPage() {
     const storeState = currentStore.state;
     const requiredForNext = getRequiredPositivationsForStore(nextTier, storeState);
 
-    if (requiredForNext === 0) return positivacoesCount > 0 ? 100 : 0; // Achieved if needs 0 and has any, else 0
+    // Handle case where the next tier requires 0 positivacoes (e.g. entry level tier)
+    if (requiredForNext === 0) return positivacoesCount >= 0 ? 100 : 0; // if any or 0 positivacoes, considered 100%
     
     const progress = (positivacoesCount / requiredForNext) * 100;
     return Math.min(progress, 100);
@@ -188,10 +194,12 @@ export default function StorePositivacaoPage() {
               ) : ( // No next tier and no current tier (implies no tiers exist or store state missing)
                   <>
                   <div className="text-xl font-bold">
-                    0 / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay[0] ? (sortedAwardTiersForDisplay[0].positivacoesRequired.PR || '0') : '-')} selos
+                    0 / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? (sortedAwardTiersForDisplay[0].positivacoesRequired.PR || '0') : '-')} selos
                   </div>
                     <Progress value={0} className="mt-2 h-3" />
-                  <p className="text-xs text-muted-foreground mt-1">Nenhuma faixa de premiação configurada ou dados da loja incompletos.</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {awardTiers.length === 0 ? "Nenhuma faixa de premiação configurada." : (currentStore.state ? "Comece a coletar selos!" : "Dados do estado da loja incompletos.")}
+                  </p>
                   </>
               )
             )}
@@ -273,7 +281,7 @@ export default function StorePositivacaoPage() {
 
       <Card className="shadow-lg mb-8">
         <CardHeader className="flex flex-row items-center gap-2">
-          <Trophy className="h-6 w-6 text-primary"/>
+          <Trophy className="h-6 w-6 text-secondary"/>
           <CardTitle>Faixas de Premiação Disponíveis</CardTitle>
         </CardHeader>
         <CardContent>
