@@ -49,6 +49,7 @@ export default function LandingPage() {
                 width={250} 
                 height={62} 
                 className="sm:w-[300px] sm:h-[75px] rounded-md"
+                style={{ objectFit: "contain" }}
                 data-ai-hint="event logo"
                 priority 
               />
@@ -102,6 +103,7 @@ export default function LandingPage() {
               width={250} 
               height={62} 
               className="sm:w-[300px] sm:h-[75px] rounded-md"
+              style={{ objectFit: "contain" }}
               data-ai-hint="event logo"
               priority
             />
