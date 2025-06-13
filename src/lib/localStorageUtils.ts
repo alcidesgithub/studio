@@ -2,7 +2,7 @@
 // src/lib/localStorageUtils.ts
 "use client";
 import type { Event, AwardTier, Store, Vendor, Salesperson, User, SweepstakeWinnerRecord } from '@/types';
-// MOCKs não são mais usados para seeding, mas são mantidos em constants.ts para referência ou outros usos potenciais.
+import { MOCK_USERS } from './constants'; // Adicionada importação de MOCK_USERS
 
 const EVENT_KEY = 'hiperfarma_event_details';
 const AWARD_TIERS_KEY = 'hiperfarma_award_tiers';
@@ -24,7 +24,7 @@ const defaultEvent: Event = {
 };
 
 // Generic load function
-function loadData<T>(key: string, emptyDefault: T | (() => T)): T {
+function loadData<T>(key: string, emptyDefault: T | (() => T), mockDataFallback?: T): T {
   if (typeof window === 'undefined') {
     return typeof emptyDefault === 'function' ? (emptyDefault as () => T)() : emptyDefault;
   }
@@ -37,13 +37,20 @@ function loadData<T>(key: string, emptyDefault: T | (() => T)): T {
       }
       return JSON.parse(item) as T;
     } else {
-      // Return the empty default, DON'T store it initially.
-      // Let admin pages create the initial data.
+      // Se mockDataFallback for fornecido e o item não existir, salve e retorne o mockDataFallback.
+      if (mockDataFallback !== undefined) {
+        saveData(key, mockDataFallback); // Salva os mocks para que fiquem disponíveis
+        return mockDataFallback;
+      }
       return typeof emptyDefault === 'function' ? (emptyDefault as () => T)() : emptyDefault;
     }
   } catch (error) {
     console.error(`Error loading ${key} from localStorage:`, error);
-    // Fallback to empty default on error.
+    // Fallback para default ou mock em caso de erro no parse, se mockDataFallback existir
+    if (mockDataFallback !== undefined) {
+        saveData(key, mockDataFallback);
+        return mockDataFallback;
+    }
     return typeof emptyDefault === 'function' ? (emptyDefault as () => T)() : emptyDefault;
   }
 }
@@ -79,7 +86,8 @@ export const loadSalespeople = (): Salesperson[] => loadData<Salesperson[]>(SALE
 export const saveSalespeople = (salespeople: Salesperson[]): void => saveData<Salesperson[]>(SALESPEOPLE_KEY, salespeople);
 
 // Users
-export const loadUsers = (): User[] => loadData<User[]>(USERS_KEY, []);
+// Agora, se não houver usuários no localStorage, MOCK_USERS será carregado e salvo.
+export const loadUsers = (): User[] => loadData<User[]>(USERS_KEY, [], MOCK_USERS);
 export const saveUsers = (users: User[]): void => saveData<User[]>(USERS_KEY, users);
 
 // Drawn Winners
