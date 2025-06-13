@@ -182,7 +182,7 @@ export default function AdminAwardsPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Gerenciamento de Faixas de Premiação"
+        title="Faixas de premiação"
         description="Defina e gerencie as faixas de premiação para performance das lojas. Use as setas para reordenar."
         icon={Trophy}
         actions={
