@@ -231,8 +231,6 @@ export default function AdminUsersPage() {
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value} 
-                      // Se estiver editando, e for admin/manager, permite alterar entre admin/manager
-                      // Se estiver criando, também permite apenas admin/manager
                       disabled={false} 
                     >
                       <FormControl>
@@ -275,19 +273,19 @@ export default function AdminUsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-2 py-3 sm:px-4">Nome</TableHead>
-                  <TableHead className="px-2 py-3 sm:px-4">Email</TableHead>
-                  <TableHead className="px-2 py-3 sm:px-4">Perfil</TableHead>
-                  <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Nome</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Email</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Perfil</TableHead>
+                  <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {displayUsers.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium px-2 py-3 sm:px-4">{user.name}</TableCell>
-                    <TableCell className="px-2 py-3 sm:px-4">{user.email}</TableCell>
-                    <TableCell className="px-2 py-3 sm:px-4"><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
-                    <TableCell className="text-right px-2 py-3 sm:px-4">
+                    <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{user.name}</TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{user.email}</TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
+                    <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(user)}>
                         <Edit className="h-4 w-4" />
                         <span className="sr-only">Editar</span>
