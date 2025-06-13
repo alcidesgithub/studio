@@ -163,7 +163,7 @@ export default function AdminUsersPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Gerenciamento de Usuários"
+        title="Admins e Gerentes"
         description="Gerencie contas de Administradores e Gerentes do sistema."
         icon={UserCog}
         actions={
