@@ -584,7 +584,7 @@ export default function ManageStoresPage() {
                       </FormItem>
                   )}/>
                   <FormField control={form.control} name="address" render={({ field }) => (
-                      <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Principal, 123" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Roberto Faria, 180" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="city" render={({ field }) => (
                       <FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
