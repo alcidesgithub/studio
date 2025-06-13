@@ -146,7 +146,7 @@ export default function AdminTieredSweepstakesPage() {
         description={`Sorteie vencedores para cada faixa de premiação no ${currentEvent.name}. Cada loja pode ganhar apenas uma vez. A ordem das faixas abaixo respeita a configuração da tela de Gerenciamento de Faixas.`}
         icon={Dice6}
         actions={
-          <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0}>
+          <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4 text-secondary" /> Exportar Log (CSV)
           </Button>
         }
@@ -268,4 +268,3 @@ export default function AdminTieredSweepstakesPage() {
     </div>
   );
 }
-

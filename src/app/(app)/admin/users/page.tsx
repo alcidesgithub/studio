@@ -167,7 +167,7 @@ export default function AdminUsersPage() {
         description="Gerencie contas de Administradores e Gerentes do sistema."
         icon={UserCog}
         actions={
-          <Button onClick={handleAddNew}>
+          <Button onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Admin/Gerente
           </Button>
         }
@@ -318,4 +318,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-

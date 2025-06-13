@@ -20,7 +20,7 @@ export function PageHeader({ title, description, icon: Icon, actions }: PageHead
             {description && <p className="text-sm sm:text-base text-muted-foreground">{description}</p>}
           </div>
         </div>
-        {actions && <div className="flex-shrink-0 mt-3 sm:mt-0">{actions}</div>}
+        {actions && <div className="flex-shrink-0">{actions}</div>}
       </div>
     </div>
   );

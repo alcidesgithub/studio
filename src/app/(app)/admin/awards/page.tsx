@@ -172,7 +172,7 @@ export default function AdminAwardsPage() {
         description="Defina e gerencie as faixas de premiação para performance das lojas. Use as setas para reordenar."
         icon={Trophy}
         actions={
-          <Button onClick={handleAddNew}>
+          <Button onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Faixa
           </Button>
         }
