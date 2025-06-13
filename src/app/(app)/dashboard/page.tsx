@@ -172,7 +172,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Lojas Participantes</CardTitle>
-            <StoreIcon className="h-6 w-6 text-secondary" /> 
+            <StoreIcon className="h-8 w-8 text-secondary" /> 
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{participatingStoresCount}</div>
@@ -183,7 +183,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Selos (Positivações)</CardTitle>
-            <BadgeCheck className="h-6 w-6 text-secondary" />
+            <BadgeCheck className="h-8 w-8 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalPositivacoes}</div>
@@ -194,7 +194,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Fornecedores Participantes</CardTitle>
-            <Briefcase className="h-6 w-6 text-secondary" />
+            <Briefcase className="h-8 w-8 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalVendorsCount}</div>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
       <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full">
          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base font-semibold">Distribuição por Faixas de Premiação</CardTitle>
-            <Trophy className="h-6 w-6 text-secondary" />
+            <Trophy className="h-8 w-8 text-secondary" />
           </CardHeader>
           <CardDescription className="px-4 sm:px-6 text-xs">
             Lojas pela maior faixa alcançada, baseado nos requisitos do seu estado (PR/SC).
