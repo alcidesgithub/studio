@@ -53,10 +53,6 @@ export default function LandingPage() {
                 <Skeleton className="h-32 w-full" />
             </div>
             <Skeleton className="h-64 w-full mb-8" />
-            <Skeleton className="h-10 w-1/2 mx-auto mb-8" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 items-center">
-                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-            </div>
         </div>
         <footer className="w-full bg-card/50 border-t border-border py-10 sm:py-16 mt-12">
             <div className="container mx-auto px-4 text-center">
@@ -144,7 +140,7 @@ export default function LandingPage() {
                     alt={vendor.name}
                     layout="fill"
                     objectFit="contain"
-                    className="border-2 border-white rounded-full" 
+                    className="rounded-full" 
                     data-ai-hint="vendor logo"
                   />
                 </div>
