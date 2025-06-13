@@ -149,7 +149,7 @@ export default function VendorPositivacaoPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title={`Positivar Lojas (${currentVendorCompany.name})`}
-        description={`Interaja com as lojas no ${currentEvent.name}. Você (${user?.name}) pode positivar cada loja uma vez em nome de ${currentVendorCompany.name}.`}
+        description={`Você (${user?.name}) pode positivar cada loja uma vez em nome de ${currentVendorCompany.name}.`}
         icon={BadgeCheck}
         iconClassName="text-secondary"
       />
