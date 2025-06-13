@@ -142,7 +142,7 @@ export default function AdminTieredSweepstakesPage() {
   return (
     <div className="animate-fadeIn space-y-6 sm:space-y-8">
       <PageHeader
-        title="Gerenciamento de Sorteios por Faixa"
+        title="Sorteios por faixa"
         description={`Sorteie vencedores para cada faixa de premiação no ${currentEvent.name}. Cada loja pode ganhar apenas uma vez. A ordem das faixas abaixo respeita a configuração da tela de Gerenciamento de Faixas.`}
         icon={Dice6}
         actions={
