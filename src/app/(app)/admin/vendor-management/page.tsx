@@ -243,7 +243,7 @@ export default function ManageVendorsPage() {
   const onVendorSubmit = (data: VendorFormValues) => {
     let updatedVendors;
     const rawCnpj = cleanCNPJ(data.cnpj);
-    const initialEditingVendor = editingVendor; // Capture state at the beginning of the function
+    const initialEditingVendor = editingVendor; 
 
     if (initialEditingVendor) {
       updatedVendors = vendors.map(v =>
@@ -258,17 +258,16 @@ export default function ManageVendorsPage() {
       updatedVendors = [...vendors, newVendor];
       setEditingVendor(newVendor); 
       toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.` });
-      vendorForm.reset(data); // Reset form with new data to clear dirty state
+      vendorForm.reset(data); 
     }
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
     
-    if (initialEditingVendor && !viewingVendor) { // If it was an edit from the start
-        vendorForm.reset(); // Full reset
+    if (initialEditingVendor && !viewingVendor) { 
+        vendorForm.reset(); 
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
     }
-    // If it was a new vendor (!initialEditingVendor), dialog stays open. Form was reset above.
   };
 
   const handleAddNewSalesperson = (vendorId: string) => {
@@ -643,7 +642,7 @@ export default function ManageVendorsPage() {
                 type="file" 
                 accept=".csv" 
                 onChange={handleFileSelect} 
-                className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                className="h-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
               />
             </div>
             {csvFileName && (
