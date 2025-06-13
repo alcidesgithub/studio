@@ -245,7 +245,7 @@ export default function VendorPositivacaoPage() {
                   ) : (
                     <>
                       {currentVendorCompany.logoUrl ? (
-                          <div className="relative w-[70px] h-[40px] sm:w-[90px] sm:h-[60px] mr-2 sm:mr-3 flex-shrink-0">
+                          <div className="relative w-[70px] h-[40px] sm:w-[90px] sm:h-[60px] flex-shrink-0">
                             <Image
                               src={currentVendorCompany.logoUrl}
                               alt={`Logo ${currentVendorCompany.name}`}
@@ -255,9 +255,9 @@ export default function VendorPositivacaoPage() {
                             />
                           </div>
                         ) : (
-                          <BadgeCheck className="mr-2 sm:mr-3 flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6" /> 
+                          <BadgeCheck className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6" /> 
                         )}
-                      <span className="truncate min-w-0 ml-2">Positivar Loja</span>
+                      <span className="truncate min-w-0">Positivar Loja</span>
                     </>
                   )}
                 </Button>
