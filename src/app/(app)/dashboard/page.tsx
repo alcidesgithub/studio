@@ -163,8 +163,8 @@ export default function DashboardPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Painel do Evento"
-        description={`Visão geral do ${currentEvent.name}`}
+        title="Painel do evento"
+        description=""
         icon={LayoutDashboard}
       />
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
