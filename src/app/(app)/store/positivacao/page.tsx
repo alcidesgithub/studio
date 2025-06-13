@@ -116,7 +116,7 @@ export default function StorePositivacaoPage() {
   if (!user || !currentEvent) {
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
-        <PageHeader title="Minhas Positivações" icon={Star} />
+        <PageHeader title="Minhas Positivações" icon={BadgeCheck} />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Carregando dados...
@@ -129,7 +129,7 @@ export default function StorePositivacaoPage() {
   if (!currentStore) {
      return (
       <div className="animate-fadeIn p-4 sm:p-6">
-        <PageHeader title="Minhas Positivações" icon={Star} />
+        <PageHeader title="Minhas Positivações" icon={BadgeCheck} />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Dados da loja não encontrados para o usuário {user.name}.
@@ -145,7 +145,7 @@ export default function StorePositivacaoPage() {
       <PageHeader
         title={`${currentStore.code} - ${currentStore.name} (${currentStore.state || 'N/A'})`}
         description={`Sua performance e selos recebidos no ${currentEvent.name}`}
-        icon={Star}
+        icon={BadgeCheck}
       />
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
         <Card className="shadow-lg">
@@ -229,8 +229,8 @@ export default function StorePositivacaoPage() {
                     key={vendor.id}
                     className={`
                       flex flex-col items-center p-3 sm:p-4 rounded-lg transition-all duration-300 ease-in-out
-                      ${isPositivated ? 'shadow-lg' : 'opacity-75 hover:opacity-100'}
-                      hover:shadow-md text-center min-h-[160px] sm:min-h-[180px] justify-between group
+                      ${isPositivated ? '' : 'opacity-75 hover:opacity-100'}
+                       text-center min-h-[160px] sm:min-h-[180px] justify-between group
                     `}
                   >
                     <div className="flex flex-col items-center">
