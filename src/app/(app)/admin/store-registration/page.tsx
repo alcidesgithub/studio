@@ -28,7 +28,7 @@ const storeRegistrationSchema = z.object({
   }, { message: "CNPJ deve ter 14 dígitos (após remover formatação)." }),
   address: z.string().min(5, "Endereço é obrigatório."),
   city: z.string().min(2, "Cidade é obrigatória."),
-  neighborhood: z.string().min(2, "Bairro é obrigatório."),
+  neighborhood: z.string().min(2, "Bairro é obrigatória."),
   state: z.enum(STATES.map(s => s.value) as [string, ...string[]], { required_error: "Estado é obrigatório." }),
   phone: z.string().min(10, "Telefone é obrigatório."),
   ownerName: z.string().min(3, "Nome do proprietário é obrigatório."),
@@ -54,8 +54,25 @@ type StoreCSVData = {
   password?: string;
 };
 
+const applyCnpjMask = (value: string = ''): string => {
+  const cleaned = value.replace(/\D/g, "").slice(0, 14);
+  const parts = [];
+  if (cleaned.length > 0) parts.push(cleaned.substring(0, 2));
+  if (cleaned.length > 2) parts.push(cleaned.substring(2, 5));
+  if (cleaned.length > 5) parts.push(cleaned.substring(5, 8));
+  if (cleaned.length > 8) parts.push(cleaned.substring(8, 12));
+  if (cleaned.length > 12) parts.push(cleaned.substring(12, 14));
+  
+  let masked = parts.shift() || "";
+  if (parts.length > 0) masked += "." + parts.shift();
+  if (parts.length > 0) masked += "." + parts.shift();
+  if (parts.length > 0) masked += "/" + parts.shift();
+  if (parts.length > 0) masked += "-" + parts.shift();
+  
+  return masked;
+};
 
-const formatCNPJ = (cnpj: string = '') => {
+const formatDisplayCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
   if (cleaned.length !== 14) return cnpj;
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
@@ -185,7 +202,7 @@ export default function ManageStoresPage() {
     form.reset({
       code: store.code,
       razaoSocial: store.name,
-      cnpj: formatCNPJ(store.cnpj),
+      cnpj: formatDisplayCNPJ(store.cnpj),
       address: store.address || '',
       city: store.city || '',
       neighborhood: store.neighborhood || '',
@@ -206,7 +223,7 @@ export default function ManageStoresPage() {
     form.reset({
       code: store.code,
       razaoSocial: store.name,
-      cnpj: formatCNPJ(store.cnpj),
+      cnpj: formatDisplayCNPJ(store.cnpj),
       address: store.address || '',
       city: store.city || '',
       neighborhood: store.neighborhood || '',
@@ -416,7 +433,7 @@ export default function ManageStoresPage() {
             continue;
           }
           if (currentLocalStores.some(s => s.cnpj === validatedData.cnpj) || newStoresToSave.some(s => s.cnpj === validatedData.cnpj)) {
-            validationErrors.push(`Linha ${i + 2}: CNPJ ${formatCNPJ(validatedData.cnpj)} já existe e foi ignorado.`);
+            validationErrors.push(`Linha ${i + 2}: CNPJ ${formatDisplayCNPJ(validatedData.cnpj)} já existe e foi ignorado.`);
             continue;
           }
           if (currentLocalUsers.some(u => u.email === validatedData.email && u.role === 'store') || newUsersToSave.some(u => u.email === validatedData.email && u.role === 'store')) {
@@ -550,7 +567,20 @@ export default function ManageStoresPage() {
                       <FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Hiperfarma Medicamentos Ltda." {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="cnpj" render={({ field }) => (
-                      <FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+                      <FormItem>
+                        <FormLabel>CNPJ</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="00.000.000/0000-00" 
+                            {...field} 
+                            value={field.value} 
+                            onChange={e => field.onChange(applyCnpjMask(e.target.value))} 
+                            disabled={!!viewingStore}
+                            maxLength={18} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                   )}/>
                   <FormField control={form.control} name="address" render={({ field }) => (
                       <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Principal, 123" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
@@ -687,7 +717,7 @@ export default function ManageStoresPage() {
                   <TableRow key={store.id}>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.code}</TableCell>
                     <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.name}</TableCell>
-                    <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatCNPJ(store.cnpj)}</TableCell>
+                    <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatDisplayCNPJ(store.cnpj)}</TableCell>
                     <TableCell className="hidden lg:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{store.email || 'N/A'}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.city || 'N/A'}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{getDisplayState(store.state)}</TableCell>

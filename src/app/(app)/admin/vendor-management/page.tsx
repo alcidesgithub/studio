@@ -43,7 +43,25 @@ const salespersonSchema = z.object({
 });
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
-const formatCNPJ = (cnpj: string = '') => {
+const applyCnpjMask = (value: string = ''): string => {
+  const cleaned = value.replace(/\D/g, "").slice(0, 14);
+  const parts = [];
+  if (cleaned.length > 0) parts.push(cleaned.substring(0, 2));
+  if (cleaned.length > 2) parts.push(cleaned.substring(2, 5));
+  if (cleaned.length > 5) parts.push(cleaned.substring(5, 8));
+  if (cleaned.length > 8) parts.push(cleaned.substring(8, 12));
+  if (cleaned.length > 12) parts.push(cleaned.substring(12, 14));
+  
+  let masked = parts.shift() || "";
+  if (parts.length > 0) masked += "." + parts.shift();
+  if (parts.length > 0) masked += "." + parts.shift();
+  if (parts.length > 0) masked += "/" + parts.shift();
+  if (parts.length > 0) masked += "-" + parts.shift();
+  
+  return masked;
+};
+
+const formatDisplayCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
   if (cleaned.length !== 14) return cnpj; 
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
@@ -90,7 +108,8 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
         });
         
         if (vendorRow.cnpj) {
-            vendorRow.cnpj = formatCNPJ(vendorRow.cnpj); 
+            // No CSV, o CNPJ pode vir formatado ou não. A validação Zod cuidará disso.
+            // A função `applyCnpjMask` não é usada aqui, pois é para input interativo.
         } else {
             errors.push(`Linha ${i + 1}: CNPJ não fornecido.`);
             hasErrorInRow = true;
@@ -164,7 +183,7 @@ export default function ManageVendorsPage() {
     setViewingVendor(null);
     vendorForm.reset({
       name: vendor.name,
-      cnpj: formatCNPJ(vendor.cnpj),
+      cnpj: formatDisplayCNPJ(vendor.cnpj),
       address: vendor.address,
       city: vendor.city,
       neighborhood: vendor.neighborhood,
@@ -180,7 +199,7 @@ export default function ManageVendorsPage() {
     setEditingVendor(null);
     vendorForm.reset({
       name: vendor.name,
-      cnpj: formatCNPJ(vendor.cnpj),
+      cnpj: formatDisplayCNPJ(vendor.cnpj),
       address: vendor.address,
       city: vendor.city,
       neighborhood: vendor.neighborhood,
@@ -359,7 +378,8 @@ export default function ManageVendorsPage() {
       for (let i = 0; i < parsedVendors.length; i++) {
         const pv = parsedVendors[i];
         try {
-          
+          // O schema Zod já possui um refine que limpa o CNPJ antes de validar o tamanho.
+          // Portanto, passamos o CNPJ como está (pv.cnpj) para a validação.
           const validatedData = vendorSchema.parse({
             name: pv.name || '',
             cnpj: pv.cnpj || '', 
@@ -370,7 +390,7 @@ export default function ManageVendorsPage() {
             logoUrl: pv.logoUrl || 'https://placehold.co/120x60.png?text=Import',
           });
           
-          const rawCsvCnpj = cleanCNPJ(pv.cnpj || '');
+          const rawCsvCnpj = cleanCNPJ(pv.cnpj || ''); // Limpamos para checagem de duplicidade e para salvar
           if (currentVendors.some(v => v.cnpj === rawCsvCnpj) || newVendorsToSave.some(v => v.cnpj === rawCsvCnpj)) {
             validationErrors.push(`Linha ${i + 2}: CNPJ ${pv.cnpj} já existe e foi ignorado.`);
             continue;
@@ -378,8 +398,8 @@ export default function ManageVendorsPage() {
 
           newVendorsToSave.push({
             id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}_${i}`,
-            ...validatedData,
-            cnpj: rawCsvCnpj, 
+            ...validatedData, // validatedData.cnpj é o valor que passou no Zod (pode ter máscara)
+            cnpj: rawCsvCnpj, // Garantimos que o CNPJ salvo seja o limpo
           });
           importedCount++;
         } catch (error) {
@@ -496,7 +516,22 @@ export default function ManageVendorsPage() {
                 <CardHeader><CardTitle className="text-lg sm:text-xl">Informações do Fornecedor</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
                   <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (<FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CNPJ</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="00.000.000/0000-00" 
+                          {...field} 
+                          value={field.value} 
+                          onChange={e => field.onChange(applyCnpjMask(e.target.value))} 
+                          disabled={!!viewingVendor}
+                          maxLength={18}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                   <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua das Indústrias, 789" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
@@ -675,7 +710,7 @@ export default function ManageVendorsPage() {
                   <TableRow key={vendor.id}>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" /></TableCell>
                     <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.name}</TableCell>
-                    <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatCNPJ(vendor.cnpj)}</TableCell>
+                    <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatDisplayCNPJ(vendor.cnpj)}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.city}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.state}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
