@@ -52,7 +52,7 @@ export default function LandingPage() {
                 <Skeleton className="h-32 w-full" />
                 <Skeleton className="h-32 w-full" />
             </div>
-            <Skeleton className="h-64 w-full mb-8" />
+            <Skeleton className="h-80 sm:h-96 md:h-[500px] w-full mb-8" />
         </div>
         <footer className="w-full bg-card/50 border-t border-border py-10 sm:py-16 mt-12">
             <div className="container mx-auto px-4 text-center">
@@ -119,7 +119,9 @@ export default function LandingPage() {
           </div>
           {event.mapEmbedUrl && event.mapEmbedUrl.trim() !== "" ? (
             <>
-              <EventMap embedUrl={event.mapEmbedUrl} address={event.address} />
+              <div className="h-80 sm:h-96 md:h-[500px]">
+                <EventMap embedUrl={event.mapEmbedUrl} address={event.address} />
+              </div>
               <p className="text-center text-sm text-muted-foreground mt-4">{event.address}</p>
             </>
           ) : (
