@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { EventMap } from '@/components/event/EventMap';
 import { loadEvent as loadEventClient, loadVendors as loadVendorsClient } from '@/lib/localStorageUtils';
 import type { Event, Vendor } from '@/types';
-import { CalendarDays, Clock, MapPin as MapPinIcon, Users, Building, Target, Trophy, Store, ArrowRight, Sparkles, Repeat, ChevronsRight, LogIn } from 'lucide-react';
+import { CalendarDays, Clock, MapPin as MapPinIcon, Users, Building, Target, Trophy, Store, ArrowRight, Sparkles, Repeat, ChevronsRight, LogIn, Briefcase } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Image from 'next/image';
@@ -65,64 +65,33 @@ export default function LandingPage() {
               priority
             />
           </div>
-          <p className="text-sm uppercase tracking-wider text-muted-foreground mb-4">EM {currentYear}, CADA ENCONTRO TEM PROPÓSITO:</p>
-          <div className="inline-block bg-accent text-accent-foreground font-semibold py-3 px-6 rounded-md text-xl sm:text-2xl md:text-3xl mb-6">
-            <h1 className="flex items-center justify-center gap-2">
-              <Target className="h-6 w-6 sm:h-8 sm:w-8 hidden sm:inline-block" />
-              Conectar para Crescer & Negociar para Avançar.
-            </h1>
-          </div>
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground mb-8">
-            Participe do principal encontro de negócios do setor farmacêutico. Uma oportunidade única para networking, aprendizado e fechamento de grandes negócios. Prepare-se para inovar e expandir seus horizontes!
-          </p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-6">
+            {event.name}
+          </h1>
+          
           <Link href="/login">
             <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-base sm:text-lg px-8 py-6 mb-10">
               <LogIn className="mr-2 h-5 w-5" /> Acessar Sistema
             </Button>
           </Link>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
-            <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 py-6 rounded-lg text-center">
-              <Trophy className="h-10 w-10 text-accent mx-auto mb-3" />
-              <div className="text-2xl sm:text-3xl font-bold">+100MIL</div>
-              <p className="text-sm text-accent">ATÉ EM PRÊMIOS</p>
+
+          {vendors.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 sm:gap-6 max-w-xs mx-auto">
+                <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 py-6 rounded-lg text-center">
+                <Briefcase className="h-10 w-10 text-accent mx-auto mb-3" />
+                <div className="text-2xl sm:text-3xl font-bold">{vendors.length}</div>
+                <p className="text-sm text-accent">FORNECEDORES CONFIRMADOS</p>
+                </div>
             </div>
-            <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 py-6 rounded-lg text-center">
-              <Store className="h-10 w-10 text-accent mx-auto mb-3" />
-              <div className="text-2xl sm:text-3xl font-bold">+{vendors.length > 30 ? vendors.length : '40'}</div>
-              <p className="text-sm text-accent">STANDS</p>
-            </div>
-            <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 py-6 rounded-lg text-center">
-              <Users className="h-10 w-10 text-accent mx-auto mb-3" />
-              <div className="text-2xl sm:text-3xl font-bold">+700</div>
-              <p className="text-sm text-accent">PARTICIPANTES</p>
-            </div>
-          </div>
+          )}
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 sm:py-12 flex-grow w-full">
 
-        <section id="mapa-stands-section" aria-labelledby="mapa-stands-heading" className="my-12 sm:my-16">
-          <div className="relative text-center mb-8">
-            <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-accent/30"></div>
-            <div className="absolute inset-x-0 top-[calc(50%+4px)] transform -translate-y-1/2 h-0.5 bg-secondary/30"></div>
-            <h2 id="mapa-stands-heading" className="relative inline-block bg-background px-4 text-2xl sm:text-3xl font-semibold text-foreground uppercase tracking-wider">MAPA DOS STANDS</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            <div className="bg-card p-4 sm:p-6 rounded-lg shadow-xl border border-border">
-              <h3 className="text-xl font-semibold mb-3 text-center text-accent">MAPA TÉRREO</h3>
-              <Image src="https://placehold.co/600x400.png" alt="Mapa do Térreo" width={600} height={400} className="rounded-md mx-auto" data-ai-hint="floor plan ground"/>
-            </div>
-            <div className="bg-card p-4 sm:p-6 rounded-lg shadow-xl border border-border">
-              <h3 className="text-xl font-semibold mb-3 text-center text-accent">MAPA 1º ANDAR</h3>
-              <Image src="https://placehold.co/600x400.png" alt="Mapa do Primeiro Andar" width={600} height={400} className="rounded-md mx-auto" data-ai-hint="floor plan first"/>
-            </div>
-          </div>
-        </section>
-
         {vendors.length > 0 && (
           <section id="fornecedores-section" aria-labelledby="fornecedores-heading" className="my-12 sm:my-16 py-10 sm:py-12 bg-accent/10 rounded-lg">
-            <h2 id="fornecedores-heading" className="text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-10 text-accent uppercase tracking-wider">FORNECEDORES</h2>
+            <h2 id="fornecedores-heading" className="text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-10 text-accent uppercase tracking-wider">FORNECEDORES PARTICIPANTES</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 items-center px-4">
               {vendors.map(vendor => (
                 <div key={vendor.id} className="flex justify-center items-center h-20 p-2 bg-card/50 rounded shadow-md hover:shadow-lg transition-shadow">
@@ -140,30 +109,11 @@ export default function LandingPage() {
           </section>
         )}
 
-        <section id="galeria-section" aria-labelledby="galeria-heading" className="my-12 sm:my-16">
-          <h2 id="galeria-heading" className="text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-10 text-foreground uppercase tracking-wider">NOSSA GALERIA</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-            {[
-              { src: "https://placehold.co/400x300.png", alt: "Foto do evento 1", hint: "event team photo" },
-              { src: "https://placehold.co/400x300.png", alt: "Foto do evento 2", hint: "speaker presentation" },
-              { src: "https://placehold.co/400x300.png", alt: "Foto do evento 3", hint: "networking event" },
-              { src: "https://placehold.co/400x300.png", alt: "Foto do evento 4", hint: "audience engagement" },
-              { src: "https://placehold.co/400x300.png", alt: "Foto do evento 5", hint: "event stage" },
-              { src: "https://placehold.co/400x300.png", alt: "Foto do evento 6", hint: "happy attendees" },
-            ].map((img, index) => (
-              <div key={index} className="aspect-w-4 aspect-h-3 relative">
-                <Image src={img.src} alt={img.alt} layout="fill" objectFit="cover" className="rounded-lg shadow-lg" data-ai-hint={img.hint}/>
-              </div>
-            ))}
-          </div>
-           <p className="text-center text-sm text-muted-foreground mt-4">A galeria de fotos do evento de {currentYear}.</p>
-        </section>
-
         <section id="quando-onde-section" aria-labelledby="quando-onde-heading" className="my-12 sm:my-16">
            <div className="relative text-center mb-8">
             <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-secondary/30"></div>
             <div className="absolute inset-x-0 top-[calc(50%+4px)] transform -translate-y-1/2 h-0.5 bg-accent/30"></div>
-            <h2 id="quando-onde-heading" className="relative inline-block bg-background px-4 text-2xl sm:text-3xl font-semibold text-foreground uppercase tracking-wider">QUANDO & ONDE</h2>
+            <h2 id="quando-onde-heading" className="relative inline-block bg-background px-4 text-2xl sm:text-3xl font-semibold text-foreground uppercase tracking-wider">LOCALIZAÇÃO E DETALHES DO EVENTO</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8 text-center">
             <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 sm:p-6 rounded-lg">
@@ -182,23 +132,24 @@ export default function LandingPage() {
               <p className="text-base">{event.location}</p>
             </div>
           </div>
-          <EventMap embedUrl={event.mapEmbedUrl} address={event.address} />
-          <p className="text-center text-sm text-muted-foreground mt-4">{event.address}</p>
+          {event.mapEmbedUrl && event.mapEmbedUrl.trim() !== "" ? (
+            <>
+              <EventMap embedUrl={event.mapEmbedUrl} address={event.address} />
+              <p className="text-center text-sm text-muted-foreground mt-4">{event.address}</p>
+            </>
+          ) : (
+            <div className="bg-card p-4 sm:p-6 rounded-lg shadow-xl border border-border text-center">
+              <p className="text-muted-foreground">Mapa e endereço detalhado serão disponibilizados em breve.</p>
+            </div>
+          )}
         </section>
       </main>
 
       <footer className="w-full bg-card/50 border-t border-border py-10 sm:py-16">
         <div className="container mx-auto px-4 text-center">
-          <div className="space-y-2 text-lg sm:text-xl text-foreground mb-8 mt-8 max-w-md mx-auto">
-            <p className="flex items-center justify-center gap-2 font-medium">Conectar para <ArrowRight className="h-5 w-5 text-accent inline-block" /></p>
-            <p className="flex items-center justify-center gap-2 font-bold text-accent text-2xl sm:text-3xl"><Sparkles className="h-6 w-6 sm:h-7 sm:w-7 inline-block"/> crescer <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 inline-block"/></p>
-            <p className="flex items-center justify-center gap-2 font-medium">negociar <Repeat className="h-5 w-5 text-secondary inline-block" /></p>
-            <p className="flex items-center justify-center gap-2 font-bold text-secondary text-2xl sm:text-3xl">para avançar <ChevronsRight className="h-6 w-6 sm:h-7 sm:w-7 inline-block"/></p>
-          </div>
-
           <div className="flex justify-center mb-4">
              <Image
-              src="https://i.imgur.com/qlwlELF.png"
+              src="https://i.imgur.com/qlwlELF.png" 
               alt="Negócios Hiperfarma"
               width={180}
               height={45}
@@ -212,3 +163,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
