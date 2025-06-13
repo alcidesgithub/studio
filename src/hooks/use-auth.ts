@@ -19,10 +19,12 @@ interface UseAuthReturn {
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [systemUsers, setSystemUsers] = useState<User[]>([]);
+  // systemUsers state no hook useAuth é apenas para o login inicial.
+  // A alteração de senha deve buscar os dados mais recentes do localStorage.
+  // const [systemUsers, setSystemUsers] = useState<User[]>([]); 
 
   useEffect(() => {
-    setSystemUsers(loadUsers());
+    // setSystemUsers(loadUsers()); // Carrega todos os usuários para o processo de login
     try {
       const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
       if (storedUser) {
@@ -39,9 +41,11 @@ export function useAuth(): UseAuthReturn {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    const allSystemUsers = loadUsers(); // Carrega usuários no momento do login
+    
     // NOTE: In a real app, password check would happen here against a backend.
     // For this mock, we only check email. The mock password is used for the change password feature.
-    const foundUser = systemUsers.find(u => u.email === email);
+    const foundUser = allSystemUsers.find(u => u.email === email);
 
     if (foundUser) {
       setUser(foundUser);
@@ -51,7 +55,7 @@ export function useAuth(): UseAuthReturn {
     }
     setIsLoading(false);
     return null;
-  }, [systemUsers]);
+  }, []);
 
   const logout = useCallback(() => {
     setUser(null);
@@ -59,30 +63,42 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const changePassword = useCallback(async (oldPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
-    if (!user) {
-      return { success: false, message: "Nenhum usuário logado." };
+    // Recarregar o usuário ATUAL do localStorage para garantir que temos a senha mais recente para ele.
+    // E recarregar TODOS os usuários para atualizar a senha na lista geral.
+    const currentAuthUserJson = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!currentAuthUserJson) {
+         return { success: false, message: "Nenhum usuário autenticado encontrado no armazenamento local." };
+    }
+    const currentAuthUser = JSON.parse(currentAuthUserJson) as User;
+
+
+    const allSystemUsers = loadUsers(); // Carrega a lista mais atual de TODOS os usuários
+    const userToUpdateInSystem = allSystemUsers.find(u => u.id === currentAuthUser.id);
+
+    if (!userToUpdateInSystem) {
+      return { success: false, message: "Usuário não encontrado no sistema para atualização de senha." };
     }
 
-    // MOCK PASSWORD CHECK: In a real app, this check would be against a hashed password on the backend.
-    // Here we compare against the plaintext mock password.
-    if (user.password !== oldPassword) {
+    // MOCK PASSWORD CHECK:
+    // Comparar a 'oldPassword' com a senha do 'userToUpdateInSystem' (que é a mais recente do localStorage)
+    if (userToUpdateInSystem.password !== oldPassword) {
       return { success: false, message: "Senha atual incorreta." };
     }
 
-    // Update password in the systemUsers list (our mock "database")
-    const updatedSystemUsers = systemUsers.map(u => 
-      u.id === user.id ? { ...u, password: newPassword } : u
+    // Atualizar a senha na lista de todos os usuários
+    const updatedSystemUsers = allSystemUsers.map(u => 
+      u.id === userToUpdateInSystem.id ? { ...u, password: newPassword } : u
     );
-    saveUsers(updatedSystemUsers); // Save to localStorage
-    setSystemUsers(updatedSystemUsers); // Update local state of systemUsers
+    saveUsers(updatedSystemUsers); // Salva a lista completa e atualizada no localStorage
 
-    // Update password for the currently logged-in user state
-    const updatedUser = { ...user, password: newPassword };
-    setUser(updatedUser);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+    // Atualizar a senha para o estado do usuário logado (user) e no AUTH_STORAGE_KEY
+    const updatedLoggedInUser = { ...userToUpdateInSystem, password: newPassword };
+    setUser(updatedLoggedInUser); // Atualiza o estado do hook
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedLoggedInUser)); // Atualiza o usuário autenticado no localStorage
 
     return { success: true, message: "Senha alterada com sucesso!" };
-  }, [user, systemUsers]);
+  }, []); // user (o estado do hook) não é mais estritamente necessário como dependência aqui,
+          // pois estamos sempre pegando a versão mais fresca do localStorage. Mas mantê-lo não prejudica.
 
   return { user, isLoading, login, logout, changePassword };
 }

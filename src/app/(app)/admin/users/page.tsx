@@ -115,13 +115,22 @@ export default function AdminUsersPage() {
             return;
         }
 
-        updatedUsers = users.map(u => u.id === editingUser.id ? {
-            ...editingUser, 
-            name: data.name,
-            email: data.email,
-            role: data.role, // role aqui será admin ou manager, validado pelo schema e pelo select
-            storeName: undefined, // Admins/Managers não têm storeName
-        } : u);
+        updatedUsers = users.map(u => {
+          if (u.id === editingUser.id) {
+            const updatedUserEntry: User = {
+              ...editingUser, 
+              name: data.name,
+              email: data.email,
+              role: data.role, // role aqui será admin ou manager, validado pelo schema e pelo select
+              storeName: undefined, // Admins/Managers não têm storeName
+            };
+            if (data.password && data.password.trim() !== "") {
+              updatedUserEntry.password = data.password;
+            }
+            return updatedUserEntry;
+          }
+          return u;
+        });
         toast({
             title: "Usuário Atualizado!",
             description: `Usuário ${data.name} foi atualizado.`,
@@ -142,6 +151,7 @@ export default function AdminUsersPage() {
           name: data.name,
           email: data.email,
           role: data.role, // Aqui, data.role será 'admin' ou 'manager'
+          password: data.password, // Salva a senha para o novo usuário
           storeName: undefined, 
         };
         updatedUsers = [...users, newUser];
