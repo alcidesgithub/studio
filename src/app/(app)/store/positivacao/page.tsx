@@ -303,7 +303,7 @@ export default function StorePositivacaoPage() {
                   {sortedAwardTiersForDisplay.map((tier) => (
                     <TableRow key={tier.id}>
                       <TableCell className="font-medium px-2 py-3 sm:px-4">{tier.name}</TableCell>
-                      <TableCell className="px-2 py-3 sm:px-4">{tier.rewardName}</TableCell>
+                      <TableCell className="px-2 py-3 sm:px-4 break-words">{tier.rewardName}</TableCell>
                       <TableCell className="text-right px-2 py-3 sm:px-4">{tier.quantityAvailable}</TableCell>
                       <TableCell className="text-right font-semibold px-2 py-3 sm:px-4">{getRequiredPositivationsForStore(tier, currentStore.state!)}</TableCell>
                     </TableRow>

@@ -253,7 +253,7 @@ export default function AdminTieredSweepstakesPage() {
                     <TableRow key={`${record.tierId}-${record.storeId}-${index}`}>
                       <TableCell className="font-medium px-2 py-3 sm:px-4">{record.tierName}</TableCell>
                       <TableCell className="px-2 py-3 sm:px-4">{record.prizeName}</TableCell>
-                      <TableCell className="font-semibold px-2 py-3 sm:px-4">{record.storeName}</TableCell>
+                      <TableCell className="font-semibold px-2 py-3 sm:px-4 break-words">{record.storeName}</TableCell>
                       <TableCell className="text-right text-xs px-2 py-3 sm:px-4">{format(new Date(record.drawnAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}</TableCell>
                     </TableRow>
                   ))}

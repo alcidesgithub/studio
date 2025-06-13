@@ -489,7 +489,7 @@ export default function ManageVendorsPage() {
                         <TableBody>{salespeopleForCurrentEditingVendor.map(sp => (
                             <TableRow key={sp.id}>
                                 <TableCell className="px-2 py-3 sm:px-4">{sp.name}</TableCell>
-                                <TableCell className="px-2 py-3 sm:px-4">{sp.email}</TableCell>
+                                <TableCell className="px-2 py-3 sm:px-4 break-words">{sp.email}</TableCell>
                                 <TableCell className="px-2 py-3 sm:px-4">{sp.phone}</TableCell>
                                 <TableCell className="text-right px-2 py-3 sm:px-4">
                                     <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
@@ -618,26 +618,26 @@ export default function ManageVendorsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[60px] sm:w-[80px] px-2 py-3 sm:px-4">Logo</TableHead>
-                  <TableHead className="px-2 py-3 sm:px-4">Razão Social</TableHead>
-                  <TableHead className="px-2 py-3 sm:px-4">CNPJ</TableHead>
-                  <TableHead className="px-2 py-3 sm:px-4">Município</TableHead>
-                  <TableHead className="px-2 py-3 sm:px-4">Estado</TableHead>
-                  <TableHead className="px-2 py-3 sm:px-4">Vendedores</TableHead>
-                  <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>
+                  <TableHead className="w-[60px] sm:w-[80px] px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Logo</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Razão Social</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">CNPJ</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Município</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Estado</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Vendedores</TableHead>
+                  <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vendors.length === 0 && (<TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4 px-2 sm:px-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>)}
+                {vendors.length === 0 && (<TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>)}
                 {vendors.map((vendor) => (
                   <TableRow key={vendor.id}>
-                    <TableCell className="px-2 py-3 sm:px-4"><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" /></TableCell>
-                    <TableCell className="font-medium px-2 py-3 sm:px-4">{vendor.name}</TableCell>
-                    <TableCell className="px-2 py-3 sm:px-4">{formatCNPJ(vendor.cnpj)}</TableCell>
-                    <TableCell className="px-2 py-3 sm:px-4">{vendor.city}</TableCell>
-                    <TableCell className="px-2 py-3 sm:px-4">{vendor.state}</TableCell>
-                    <TableCell className="px-2 py-3 sm:px-4">{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
-                    <TableCell className="text-right px-2 py-3 sm:px-4">
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" /></TableCell>
+                    <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.name}</TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatCNPJ(vendor.cnpj)}</TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.city}</TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.state}</TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
+                    <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteVendor(vendor)}><Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span></Button>
                     </TableCell>
@@ -654,5 +654,6 @@ export default function ManageVendorsPage() {
     
 
     
+
 
 
