@@ -12,8 +12,8 @@ interface EventMapProps {
 export function EventMap({ embedUrl, address }: EventMapProps) {
   if (!embedUrl || embedUrl.trim() === "") {
     return (
-      <Card className="rounded-lg overflow-hidden shadow-lg">
-        <CardContent className="h-[450px] flex flex-col items-center justify-center text-center">
+      <Card className="rounded-lg overflow-hidden shadow-lg h-full">
+        <CardContent className="h-full flex flex-col items-center justify-center text-center">
           <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground font-semibold">Mapa não disponível</p>
           <p className="text-xs text-muted-foreground">
@@ -25,11 +25,11 @@ export function EventMap({ embedUrl, address }: EventMapProps) {
   }
 
   return (
-    <div className="rounded-lg overflow-hidden shadow-lg border">
+    <div className="rounded-lg overflow-hidden shadow-lg border h-full">
       <iframe
         src={embedUrl}
         width="100%"
-        height="450"
+        className="w-full h-full"
         style={{ border: 0 }}
         allowFullScreen={true}
         loading="lazy"
