@@ -118,7 +118,7 @@ export default function VendorPositivacaoPage() {
         checkString(store.code) ||
         checkCnpj(store.cnpj) ||
         checkString(store.ownerName) ||
-        checkString(store.responsibleName) || // Added responsibleName to search
+        checkString(store.responsibleName) || 
         checkString(store.city) ||
         checkString(store.neighborhood) ||
         checkString(store.state)
@@ -149,7 +149,7 @@ export default function VendorPositivacaoPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title={`Positivar Lojas (${currentVendorCompany.name})`}
-        description={`Você (${user?.name}) pode positivar cada loja uma vez em nome de ${currentVendorCompany.name}.`}
+        description={`Você (${user?.name}) pode positivar cada loja uma vez em nome da ${currentVendorCompany.name}.`}
         icon={BadgeCheck}
         iconClassName="text-secondary"
       />
