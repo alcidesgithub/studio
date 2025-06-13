@@ -94,7 +94,6 @@ export default function LandingPage() {
               <LogIn className="mr-2 h-5 w-5" /> Acessar Sistema
             </Button>
           </Link>
-
         </div>
       </header>
 
@@ -139,14 +138,13 @@ export default function LandingPage() {
             <h2 id="fornecedores-heading" className="text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-10 text-accent uppercase tracking-wider">FORNECEDORES PARTICIPANTES</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 items-center px-4">
               {vendors.map(vendor => (
-                <div key={vendor.id} className="flex justify-center items-center h-20 p-2 bg-card/50 rounded shadow-md hover:shadow-lg transition-shadow">
+                <div key={vendor.id} className="relative h-20 w-full">
                   <Image
                     src={vendor.logoUrl}
                     alt={vendor.name}
-                    width={150}
-                    height={80}
-                    style={{ objectFit: "contain" }}
-                    className="max-h-full max-w-full"
+                    layout="fill"
+                    objectFit="contain"
+                    className="border-2 border-white rounded-md"
                     data-ai-hint="vendor logo"
                   />
                 </div>
