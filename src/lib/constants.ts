@@ -13,10 +13,10 @@ export const MOCK_EVENT: Event = {
 };
 
 export const MOCK_AWARD_TIERS: AwardTier[] = [
-  { id: 'tier_1', name: 'Bronze', rewardName: 'Cartão Presente R$100', quantityAvailable: 20, positivacoesRequired: { PR: 3, SC: 4 } },
-  { id: 'tier_2', name: 'Prata', rewardName: 'Cartão Presente R$250', quantityAvailable: 10, positivacoesRequired: { PR: 7, SC: 8 } },
-  { id: 'tier_3', name: 'Ouro', rewardName: 'Cartão Presente R$500 + Destaque', quantityAvailable: 5, positivacoesRequired: { PR: 10, SC: 12 } },
-].sort((a,b) => a.positivacoesRequired.PR - b.positivacoesRequired.PR); // Sort by PR requirements for now
+  { id: 'tier_1', name: 'Bronze', rewardName: 'Cartão Presente R$100', quantityAvailable: 20, positivacoesRequired: { PR: 3, SC: 4 }, sortOrder: 0 },
+  { id: 'tier_2', name: 'Prata', rewardName: 'Cartão Presente R$250', quantityAvailable: 10, positivacoesRequired: { PR: 7, SC: 8 }, sortOrder: 1 },
+  { id: 'tier_3', name: 'Ouro', rewardName: 'Cartão Presente R$500 + Destaque', quantityAvailable: 5, positivacoesRequired: { PR: 10, SC: 12 }, sortOrder: 2 },
+].sort((a,b) => a.sortOrder - b.sortOrder);
 
 export const MOCK_VENDORS: Vendor[] = [
   { id: 'vendor_1', name: 'Farmacoop Produtos Farmacêuticos Ltda.', cnpj: '11222333000144', address: 'Rua dos Medicamentos, 123', city: 'São Paulo', neighborhood: 'Centro', state: 'SP', logoUrl: 'https://placehold.co/120x60.png?text=Farmacoop' },
@@ -83,18 +83,18 @@ export const MOCK_STORES: Store[] = [
 
 
 export const MOCK_USERS: User[] = [
-  { id: 'user_admin', email: 'admin@hiperfarma.com', role: 'admin', name: 'Usuário Admin' },
-  { id: 'user_alcides', email: 'alcides@redehiperfarma.com.br', role: 'admin', name: 'Alcides' },
-  { id: 'user_manager', email: 'manager@hiperfarma.com', role: 'manager', name: 'Usuário Gerente' },
+  { id: 'user_admin', email: 'admin@hiperfarma.com', role: 'admin', name: 'Usuário Admin', password: 'adminpassword' },
+  { id: 'user_alcides', email: 'alcides@redehiperfarma.com.br', role: 'admin', name: 'Alcides', password: 'alcidespassword' },
+  { id: 'user_manager', email: 'manager@hiperfarma.com', role: 'manager', name: 'Usuário Gerente', password: 'managerpassword' },
   // Salesperson users - their 'name' is the salesperson's name, 'storeName' is their vendor company name
-  { id: MOCK_SALESPEOPLE[0].id, email: MOCK_SALESPEOPLE[0].email, role: 'vendor', name: MOCK_SALESPEOPLE[0].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[0].vendorId)?.name },
-  { id: MOCK_SALESPEOPLE[1].id, email: MOCK_SALESPEOPLE[1].email, role: 'vendor', name: MOCK_SALESPEOPLE[1].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[1].vendorId)?.name },
-  { id: MOCK_SALESPEOPLE[2].id, email: MOCK_SALESPEOPLE[2].email, role: 'vendor', name: MOCK_SALESPEOPLE[2].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[2].vendorId)?.name },
-  { id: MOCK_SALESPEOPLE[3].id, email: MOCK_SALESPEOPLE[3].email, role: 'vendor', name: MOCK_SALESPEOPLE[3].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[3].vendorId)?.name },
+  { id: MOCK_SALESPEOPLE[0].id, email: MOCK_SALESPEOPLE[0].email, role: 'vendor', name: MOCK_SALESPEOPLE[0].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[0].vendorId)?.name, password: MOCK_SALESPEOPLE[0].password },
+  { id: MOCK_SALESPEOPLE[1].id, email: MOCK_SALESPEOPLE[1].email, role: 'vendor', name: MOCK_SALESPEOPLE[1].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[1].vendorId)?.name, password: MOCK_SALESPEOPLE[1].password },
+  { id: MOCK_SALESPEOPLE[2].id, email: MOCK_SALESPEOPLE[2].email, role: 'vendor', name: MOCK_SALESPEOPLE[2].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[2].vendorId)?.name, password: MOCK_SALESPEOPLE[2].password },
+  { id: MOCK_SALESPEOPLE[3].id, email: MOCK_SALESPEOPLE[3].email, role: 'vendor', name: MOCK_SALESPEOPLE[3].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[3].vendorId)?.name, password: MOCK_SALESPEOPLE[3].password },
   // Store users
-  { id: 'user_store_1', email: 'store1@hiperfarma.com', role: 'store', name: 'Equipe Matriz', storeName: MOCK_STORES[0].name },
-  { id: 'user_store_2', email: 'store2@hiperfarma.com', role: 'store', name: 'Equipe Filial Centro', storeName: MOCK_STORES[1].name },
-  { id: 'user_store_4', email: 'store4@hiperfarma.com', role: 'store', name: 'Equipe Av. Brasil', storeName: MOCK_STORES[3].name },
+  { id: 'user_store_1', email: 'store1@hiperfarma.com', role: 'store', name: 'Equipe Matriz', storeName: MOCK_STORES[0].name, password: 'storepassword1' },
+  { id: 'user_store_2', email: 'store2@hiperfarma.com', role: 'store', name: 'Equipe Filial Centro', storeName: MOCK_STORES[1].name, password: 'storepassword2' },
+  { id: 'user_store_4', email: 'store4@hiperfarma.com', role: 'store', name: 'Equipe Av. Brasil', storeName: MOCK_STORES[3].name, password: 'storepassword4' },
 ];
 
 export const ROLES: UserRole[] = ['admin', 'manager', 'vendor', 'store'];
@@ -119,3 +119,4 @@ export const MOCK_SWEEPSTAKE_ENTRIES: SweepstakeEntry[] = MOCK_STORES
     storeName: s.name,
     qualificationRate: s.goalProgress / 100,
   }));
+

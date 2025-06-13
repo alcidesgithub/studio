@@ -3,7 +3,7 @@
 "use client";
 
 import type { User } from '@/types';
-import { loadUsers } from '@/lib/localStorageUtils'; 
+import { loadUsers, saveUsers } from '@/lib/localStorageUtils'; 
 import { useState, useEffect, useCallback } from 'react';
 
 const AUTH_STORAGE_KEY = 'hiperfarma_auth_user';
@@ -11,8 +11,9 @@ const AUTH_STORAGE_KEY = 'hiperfarma_auth_user';
 interface UseAuthReturn {
   user: User | null;
   isLoading: boolean;
-  login: (email: string) => Promise<User | null>; // Role hint removed
+  login: (email: string) => Promise<User | null>;
   logout: () => void;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
 }
 
 export function useAuth(): UseAuthReturn {
@@ -21,10 +22,7 @@ export function useAuth(): UseAuthReturn {
   const [systemUsers, setSystemUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    // Load users for login validation
     setSystemUsers(loadUsers());
-
-    // Load authenticated user from session
     try {
       const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
       if (storedUser) {
@@ -37,16 +35,13 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
-  const login = useCallback(async (email: string): Promise<User | null> => { // roleHint parameter removed
+  const login = useCallback(async (email: string): Promise<User | null> => {
     setIsLoading(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Use systemUsers (loaded from local storage) for validation
-    // Find user based on email only
+    // NOTE: In a real app, password check would happen here against a backend.
+    // For this mock, we only check email. The mock password is used for the change password feature.
     const foundUser = systemUsers.find(u => u.email === email);
-    // The password check would happen here in a real app, e.g., by sending email and password to a backend.
-    // For this mock, we assume if email matches, login is successful.
 
     if (foundUser) {
       setUser(foundUser);
@@ -56,12 +51,38 @@ export function useAuth(): UseAuthReturn {
     }
     setIsLoading(false);
     return null;
-  }, [systemUsers]); // Depend on systemUsers
+  }, [systemUsers]);
 
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
   }, []);
 
-  return { user, isLoading, login, logout };
+  const changePassword = useCallback(async (oldPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    if (!user) {
+      return { success: false, message: "Nenhum usuário logado." };
+    }
+
+    // MOCK PASSWORD CHECK: In a real app, this check would be against a hashed password on the backend.
+    // Here we compare against the plaintext mock password.
+    if (user.password !== oldPassword) {
+      return { success: false, message: "Senha atual incorreta." };
+    }
+
+    // Update password in the systemUsers list (our mock "database")
+    const updatedSystemUsers = systemUsers.map(u => 
+      u.id === user.id ? { ...u, password: newPassword } : u
+    );
+    saveUsers(updatedSystemUsers); // Save to localStorage
+    setSystemUsers(updatedSystemUsers); // Update local state of systemUsers
+
+    // Update password for the currently logged-in user state
+    const updatedUser = { ...user, password: newPassword };
+    setUser(updatedUser);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+
+    return { success: true, message: "Senha alterada com sucesso!" };
+  }, [user, systemUsers]);
+
+  return { user, isLoading, login, logout, changePassword };
 }

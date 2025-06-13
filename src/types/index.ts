@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;
   name: string;
   storeName?: string; // For store users (vendor's company name) or store's own name
+  password?: string; // MOCK ONLY - DO NOT USE IN PRODUCTION
 }
 
 export interface Event {

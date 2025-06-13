@@ -4,12 +4,15 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation'; 
 import Image from 'next/image'; 
+import { useState } from 'react'; // Added useState
 import {
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar, TooltipProvider, Tooltip, TooltipTrigger, TooltipContent
 } from '@/components/ui/sidebar'; 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, Store, Star, ListChecks, Download, UserCog, Trophy, Edit3, Briefcase, Dice6, BadgeCheck, Stamp } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'; // Added Dialog components
+import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm'; // Added ChangePasswordForm
+import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, Store, Star, ListChecks, Download, UserCog, Trophy, Edit3, Briefcase, Dice6, BadgeCheck, Stamp, KeyRound } from 'lucide-react'; // Added KeyRound
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ROLES_TRANSLATIONS } from '@/lib/constants';
@@ -47,6 +50,7 @@ export function SidebarNav() {
   const { user, logout } = useAuth();
   const { setOpenMobile, state: sidebarState, isMobile } = useSidebar(); 
   const router = useRouter(); 
+  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
 
   const navItems = user?.role ? navItemsByRole[user.role] : [];
 
@@ -141,6 +145,31 @@ export function SidebarNav() {
             </div>
           </div>
         )}
+        <Dialog open={isChangePasswordDialogOpen} onOpenChange={setIsChangePasswordDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-sidebar-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center hover:bg-sidebar-accent hover:text-sidebar-accent-foreground mb-2"
+            >
+              <KeyRound className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
+              <span className="ml-2 group-data-[collapsible=icon]:hidden">Alterar Senha</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Alterar Senha</DialogTitle>
+              <DialogDescription>
+                Preencha os campos abaixo para alterar sua senha.
+                <span className="block mt-1 text-xs text-destructive/80">
+                  Atenção: A verificação de senha atual é simulada. Em produção, esta seria uma operação segura com backend.
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <ChangePasswordForm onSuccess={() => setIsChangePasswordDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
+
         <Button
           variant="ghost"
           size="sm"
