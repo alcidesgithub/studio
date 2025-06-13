@@ -14,3 +14,9 @@ export const getRequiredPositivationsForStore = (tier: AwardTier, storeState: st
   // Assume PR is always defined as a fallback or primary requirement
   return tier.positivacoesRequired.PR;
 };
+
+export const formatDisplayCNPJ = (cnpj: string = ''): string => {
+  const cleaned = cnpj.replace(/\D/g, '');
+  if (cleaned.length !== 14) return cnpj; // Retorna original se não for um CNPJ completo
+  return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+};

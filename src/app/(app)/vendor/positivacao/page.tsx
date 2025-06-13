@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { loadStores, saveStores, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, Event as EventType, Vendor, PositivationDetail } from '@/types';
-import { ThumbsUp, Store as StoreIcon, CheckCircle, Search } from 'lucide-react';
+import { ThumbsUp, Store as StoreIcon, CheckCircle, Search, User, MapPin, BuildingIcon, Globe } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
+import { formatDisplayCNPJ } from '@/lib/utils';
 
 export default function VendorPositivacaoPage() {
   const [allStores, setAllStores] = useState<Store[]>([]);
@@ -148,7 +149,7 @@ export default function VendorPositivacaoPage() {
       )}
 
 
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredStores.map((store: Store) => {
           const isPositivatedByThisVendorForSession = sessionPositivatedStores.has(store.id);
           // Check if *this vendor company* has already positivada this store
@@ -161,14 +162,35 @@ export default function VendorPositivacaoPage() {
             <Card key={store.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <StoreIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                  {store.name} ({store.code})
+                  <StoreIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+                  <span className="truncate">{store.name} ({store.code})</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex-grow">
-                <p className="text-sm text-muted-foreground mb-2">
+              <CardContent className="flex-grow space-y-1.5 text-xs sm:text-sm">
+                <p className="text-muted-foreground mb-2">
                   Confirme a positivação dessa loja.
                 </p>
+                {store.cnpj && (
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <BuildingIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="font-medium">CNPJ:</span>
+                        <span>{formatDisplayCNPJ(store.cnpj)}</span>
+                    </div>
+                )}
+                {store.ownerName && (
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <User className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="font-medium">Proprietário:</span>
+                        <span className="truncate">{store.ownerName}</span>
+                    </div>
+                )}
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="font-medium">Local:</span>
+                    <span className="truncate">
+                        {store.city || 'N/A'} - {store.neighborhood || 'N/A'} ({store.state || 'N/A'})
+                    </span>
+                </div>
               </CardContent>
               <CardFooter>
                 <Button 
