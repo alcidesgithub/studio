@@ -75,7 +75,7 @@ export default function LandingPage() {
           <p className="max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground mb-8">
             Participe do principal encontro de negócios do setor farmacêutico. Uma oportunidade única para networking, aprendizado e fechamento de grandes negócios. Prepare-se para inovar e expandir seus horizontes!
           </p>
-          <Link href="/login" passHref legacyBehavior>
+          <Link href="/login">
             <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-base sm:text-lg px-8 py-6 mb-10">
               <LogIn className="mr-2 h-5 w-5" /> Acessar Sistema
             </Button>
