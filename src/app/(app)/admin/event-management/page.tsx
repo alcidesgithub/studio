@@ -79,7 +79,7 @@ export default function AdminEventManagementPage() {
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Gerenciamento do Evento"
+        title="Gerenciar evento"
         description="Edite os detalhes principais do evento de negócios."
         icon={Edit3}
       />
