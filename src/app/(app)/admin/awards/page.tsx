@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { loadAwardTiers, saveAwardTiers } from '@/lib/localStorageUtils';
 import type { AwardTier } from '@/types';
-import { Trophy, PlusCircle, Edit, Trash2, Save, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trophy, PlusCircle, Edit, Trash2, Save, ArrowUp, ArrowDown, Eye } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -34,7 +34,9 @@ const reassignSortOrders = (tiersArray: AwardTier[]): AwardTier[] => {
 
 export default function AdminAwardsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<AwardTier | null>(null);
+  const [viewingTier, setViewingTier] = useState<AwardTier | null>(null);
   const [tiers, setTiers] = useState<AwardTier[]>([]);
   const { toast } = useToast();
 
@@ -43,12 +45,10 @@ export default function AdminAwardsPage() {
     const tiersNeedSortOrderInitialization = loadedTiers.some(t => typeof t.sortOrder !== 'number' || isNaN(t.sortOrder));
 
     if (tiersNeedSortOrderInitialization) {
-      // Para faixas sem sortOrder, ordena por PR como padrão e atribui sortOrder
       loadedTiers.sort((a,b) => (a.positivacoesRequired.PR ?? Infinity) - (b.positivacoesRequired.PR ?? Infinity));
       loadedTiers = loadedTiers.map((tier, index) => ({ ...tier, sortOrder: index }));
-      saveAwardTiers(loadedTiers); // Salva as faixas com sortOrder inicializado
+      saveAwardTiers(loadedTiers);
     } else {
-      // Se todas têm sortOrder, apenas ordena por ele
       loadedTiers.sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
     }
     setTiers(loadedTiers);
@@ -67,6 +67,7 @@ export default function AdminAwardsPage() {
 
   const handleAddNew = () => {
     setEditingTier(null);
+    setViewingTier(null);
     form.reset({
       name: '',
       rewardName: '',
@@ -75,10 +76,12 @@ export default function AdminAwardsPage() {
       positivacoesRequiredSC: 1,
     });
     setIsDialogOpen(true);
+    setIsViewDialogOpen(false);
   };
 
   const handleEdit = (tier: AwardTier) => {
     setEditingTier(tier);
+    setViewingTier(null);
     form.reset({
       name: tier.name,
       rewardName: tier.rewardName,
@@ -87,11 +90,26 @@ export default function AdminAwardsPage() {
       positivacoesRequiredSC: tier.positivacoesRequired.SC,
     });
     setIsDialogOpen(true);
+    setIsViewDialogOpen(false);
+  };
+
+  const handleView = (tier: AwardTier) => {
+    setViewingTier(tier);
+    setEditingTier(null);
+    form.reset({
+      name: tier.name,
+      rewardName: tier.rewardName,
+      quantityAvailable: tier.quantityAvailable,
+      positivacoesRequiredPR: tier.positivacoesRequired.PR,
+      positivacoesRequiredSC: tier.positivacoesRequired.SC,
+    });
+    setIsViewDialogOpen(true);
+    setIsDialogOpen(false);
   };
 
   const handleDelete = (tierId: string) => {
     let updatedTiers = tiers.filter(t => t.id !== tierId);
-    updatedTiers = reassignSortOrders(updatedTiers); // Reatribui sortOrder após exclusão
+    updatedTiers = reassignSortOrders(updatedTiers);
     setTiers(updatedTiers);
     saveAwardTiers(updatedTiers);
     toast({
@@ -122,11 +140,10 @@ export default function AdminAwardsPage() {
         description: `A faixa de premiação "${data.name}" foi atualizada no armazenamento local.`,
       });
     } else {
-      // Para novas faixas, sortOrder será o próximo número sequencial
       const newTier: AwardTier = { 
         id: `tier_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, 
         ...tierDataToSave,
-        sortOrder: tiers.length // Adiciona ao final da ordem atual
+        sortOrder: tiers.length 
       };
       updatedTiers = [...tiers, newTier];
       toast({
@@ -134,10 +151,7 @@ export default function AdminAwardsPage() {
         description: `A faixa de premiação "${data.name}" foi criada no armazenamento local.`,
       });
     }
-    // Reordenar explicitamente por sortOrder antes de salvar/setar no estado se a ordem puder ter mudado
-    // ou se a nova faixa foi adicionada (garantir que ela mantenha sua posição de "nova")
     updatedTiers.sort((a,b) => a.sortOrder - b.sortOrder);
-    // Em seguida, reatribuir sortOrders para garantir a sequencialidade após qualquer adição/edição
     updatedTiers = reassignSortOrders(updatedTiers);
     
     setTiers(updatedTiers);
@@ -178,12 +192,27 @@ export default function AdminAwardsPage() {
         }
       />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog 
+        open={isDialogOpen || isViewDialogOpen} 
+        onOpenChange={(openState) => {
+            if (!openState) {
+                setIsDialogOpen(false);
+                setIsViewDialogOpen(false);
+                setEditingTier(null);
+                setViewingTier(null);
+                form.reset();
+            }
+        }}
+      >
         <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle>{editingTier ? 'Editar Faixa de Premiação' : 'Adicionar Nova Faixa de Premiação'}</DialogTitle>
+            <DialogTitle>
+                {editingTier ? 'Editar Faixa de Premiação' : 
+                (viewingTier ? 'Visualizar Faixa de Premiação' : 'Adicionar Nova Faixa de Premiação')}
+            </DialogTitle>
             <DialogDescription>
-              {editingTier ? 'Atualize os detalhes desta faixa de premiação.' : 'Preencha os detalhes para a nova faixa de premiação.'}
+              {editingTier ? 'Atualize os detalhes desta faixa de premiação.' : 
+              (viewingTier ? 'Detalhes da faixa de premiação.' : 'Preencha os detalhes para a nova faixa de premiação.')}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -195,7 +224,7 @@ export default function AdminAwardsPage() {
                   <FormItem>
                     <FormLabel>Nome da Faixa</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Bronze, Prata, Ouro" {...field} />
+                      <Input placeholder="Ex: Bronze, Prata, Ouro" {...field} disabled={!!viewingTier} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -208,7 +237,7 @@ export default function AdminAwardsPage() {
                   <FormItem>
                     <FormLabel>Nome / Descrição do Prêmio</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Cartão Presente R$100, Tablet XYZ" {...field} />
+                      <Input placeholder="Ex: Cartão Presente R$100, Tablet XYZ" {...field} disabled={!!viewingTier} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -221,7 +250,7 @@ export default function AdminAwardsPage() {
                   <FormItem>
                     <FormLabel>Quantidade Disponível</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="Ex: 10" {...field} />
+                      <Input type="number" placeholder="Ex: 10" {...field} disabled={!!viewingTier} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -235,7 +264,7 @@ export default function AdminAwardsPage() {
                     <FormItem>
                         <FormLabel>Positivações Req. (PR)</FormLabel>
                         <FormControl>
-                        <Input type="number" placeholder="Ex: 5" {...field} />
+                        <Input type="number" placeholder="Ex: 5" {...field} disabled={!!viewingTier} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -248,7 +277,7 @@ export default function AdminAwardsPage() {
                     <FormItem>
                         <FormLabel>Positivações Req. (SC)</FormLabel>
                         <FormControl>
-                        <Input type="number" placeholder="Ex: 5" {...field} />
+                        <Input type="number" placeholder="Ex: 5" {...field} disabled={!!viewingTier} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -257,11 +286,15 @@ export default function AdminAwardsPage() {
               </div>
               <DialogFooter className="pt-3 sm:pt-4">
                  <DialogClose asChild>
-                   <Button type="button" variant="outline" onClick={() => { setEditingTier(null); form.reset(); setIsDialogOpen(false);}}>Cancelar</Button>
+                   <Button type="button" variant="outline">
+                        {viewingTier ? 'Fechar' : 'Cancelar'}
+                   </Button>
                 </DialogClose>
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                   <Save className="mr-2 h-4 w-4" /> {editingTier ? 'Salvar Alterações' : 'Criar Faixa'}
-                </Button>
+                {!viewingTier && (
+                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                        <Save className="mr-2 h-4 w-4" /> {editingTier ? 'Salvar Alterações' : 'Criar Faixa'}
+                    </Button>
+                )}
               </DialogFooter>
             </form>
           </Form>
@@ -306,6 +339,10 @@ export default function AdminAwardsPage() {
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{tier.positivacoesRequired.PR}</TableCell>
                     <TableCell className="hidden sm:table-cell text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{tier.positivacoesRequired.SC}</TableCell>
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                      <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleView(tier)}>
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">Visualizar</span>
+                      </Button>
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(tier)}>
                         <Edit className="h-4 w-4" />
                         <span className="sr-only">Editar</span>

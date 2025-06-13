@@ -10,11 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download } from 'lucide-react';
+import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download, Eye } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -25,7 +24,7 @@ import Image from 'next/image';
 const vendorSchema = z.object({
   name: z.string().min(3, "Razão Social da empresa deve ter pelo menos 3 caracteres."),
   cnpj: z.string().refine(value => {
-    const cleaned = value.replace(/\D/g, '');
+    const cleaned = (value || "").replace(/\D/g, '');
     return cleaned.length === 14;
   }, { message: "CNPJ deve ter 14 dígitos (após remover formatação)." }),
   address: z.string().min(5, "Endereço é obrigatório."),
@@ -46,7 +45,7 @@ type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
 const formatCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
-  if (cleaned.length !== 14) return cnpj; // Return original or partially formatted if not 14 digits
+  if (cleaned.length !== 14) return cnpj; 
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
 
@@ -54,8 +53,6 @@ const cleanCNPJ = (cnpj: string = '') => {
     return cnpj.replace(/\D/g, '');
 };
 
-// Helper function to parse CSV content
-// Expected headers: name,cnpj,address,city,neighborhood,state,logoUrl
 function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[], errors: string[] } {
     const allLines = csvText.trim().split(/\r\n|\n/);
     if (allLines.length < 2) {
@@ -64,7 +61,6 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
 
     const headerLine = allLines[0].toLowerCase();
     const headers = headerLine.split(',').map(h => h.trim());
-    const expectedHeaders = ["name", "cnpj", "address", "city", "neighborhood", "state", "logourl"];
     const headerMap: Record<string, keyof VendorFormValues> = {
         "name": "name", "cnpj": "cnpj", "address": "address", 
         "city": "city", "neighborhood": "neighborhood", "state": "state", "logourl": "logoUrl"
@@ -104,7 +100,6 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
             hasErrorInRow = true;
         }
 
-
         if (!hasErrorInRow) {
             vendorsData.push(vendorRow);
         }
@@ -119,7 +114,9 @@ export default function ManageVendorsPage() {
   const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
 
   const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
+  const [isVendorViewDialogOpen, setIsVendorViewDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [viewingVendor, setViewingVendor] = useState<Vendor | null>(null);
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
 
   const [isSalespersonDialogOpen, setIsSalespersonDialogOpen] = useState(false);
@@ -153,15 +150,18 @@ export default function ManageVendorsPage() {
 
   const handleAddNewVendor = () => {
     setEditingVendor(null);
+    setViewingVendor(null);
     vendorForm.reset({
       name: '', cnpj: '', address: '', city: '', neighborhood: '', state: '',
       logoUrl: 'https://placehold.co/120x60.png?text=NovoLogo',
     });
     setIsVendorDialogOpen(true);
+    setIsVendorViewDialogOpen(false);
   };
 
   const handleEditVendor = (vendor: Vendor) => {
     setEditingVendor(vendor);
+    setViewingVendor(null);
     vendorForm.reset({
       name: vendor.name,
       cnpj: formatCNPJ(vendor.cnpj),
@@ -172,7 +172,25 @@ export default function ManageVendorsPage() {
       logoUrl: vendor.logoUrl,
     });
     setIsVendorDialogOpen(true);
+    setIsVendorViewDialogOpen(false);
   };
+  
+  const handleViewVendor = (vendor: Vendor) => {
+    setViewingVendor(vendor);
+    setEditingVendor(null);
+    vendorForm.reset({
+      name: vendor.name,
+      cnpj: formatCNPJ(vendor.cnpj),
+      address: vendor.address,
+      city: vendor.city,
+      neighborhood: vendor.neighborhood,
+      state: vendor.state,
+      logoUrl: vendor.logoUrl,
+    });
+    setIsVendorViewDialogOpen(true);
+    setIsVendorDialogOpen(false);
+  };
+
 
   const confirmDeleteVendor = (vendor: Vendor) => {
     setVendorToDelete(vendor);
@@ -222,8 +240,9 @@ export default function ManageVendorsPage() {
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
     
-    if (!editingVendor) { /* Dialog stays open */ } 
-    else { 
+    // Dialog stays open for new vendor to add salespeople
+    // Close only if it was an edit.
+    if (editingVendor && !viewingVendor) { 
         vendorForm.reset();
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
@@ -423,11 +442,12 @@ export default function ManageVendorsPage() {
     }
   };
 
+  const currentVendorInDialog = editingVendor || viewingVendor;
 
-  const salespeopleForCurrentEditingVendor = useMemo(() => {
-    if (!editingVendor) return [];
-    return salespeople.filter(sp => sp.vendorId === editingVendor.id);
-  }, [salespeople, editingVendor]);
+  const salespeopleForCurrentVendorInDialog = useMemo(() => {
+    if (!currentVendorInDialog) return [];
+    return salespeople.filter(sp => sp.vendorId === currentVendorInDialog.id);
+  }, [salespeople, currentVendorInDialog]);
 
   return (
     <div className="animate-fadeIn space-y-6 sm:space-y-8">
@@ -447,54 +467,71 @@ export default function ManageVendorsPage() {
         }
       />
 
-      {/* Vendor Edit/Add Dialog */}
-      <Dialog open={isVendorDialogOpen} onOpenChange={(isOpen) => {
-          setIsVendorDialogOpen(isOpen);
-          if (!isOpen) { setEditingVendor(null); vendorForm.reset(); }
-      }}>
+      <Dialog 
+        open={isVendorDialogOpen || isVendorViewDialogOpen} 
+        onOpenChange={(openState) => {
+            if (!openState) {
+                setIsVendorDialogOpen(false);
+                setIsVendorViewDialogOpen(false);
+                setEditingVendor(null);
+                setViewingVendor(null);
+                vendorForm.reset();
+            }
+        }}
+        >
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>{editingVendor ? 'Editar Fornecedor' : 'Adicionar Novo Fornecedor'}</DialogTitle>
-            <DialogDescription>{editingVendor ? 'Atualize os detalhes e gerencie vendedores.' : 'Preencha os detalhes.'}</DialogDescription>
+            <DialogTitle>
+                {editingVendor ? 'Editar Fornecedor' : 
+                (viewingVendor ? 'Visualizar Fornecedor' : 'Adicionar Novo Fornecedor')}
+            </DialogTitle>
+            <DialogDescription>
+                {editingVendor ? 'Atualize os detalhes e gerencie vendedores.' : 
+                (viewingVendor ? 'Detalhes do fornecedor e seus vendedores.' : 'Preencha os detalhes.')}
+            </DialogDescription>
           </DialogHeader>
           <Form {...vendorForm}>
             <form onSubmit={vendorForm.handleSubmit(onVendorSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
               <Card>
                 <CardHeader><CardTitle className="text-lg sm:text-xl">Informações do Fornecedor</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
-                  <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (<FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua das Indústrias, 789" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (<FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua das Indústrias, 789" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!viewingVendor}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                  <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
                 </CardContent>
               </Card>
-              {editingVendor && ( 
+              {currentVendorInDialog && ( 
                 <Card className="mt-4 sm:mt-6">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div><CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
-                    <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(editingVendor.id)} className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
+                    {!viewingVendor && (
+                        <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(currentVendorInDialog.id)} className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
+                    )}
                   </CardHeader>
                   <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
-                    {salespeopleForCurrentEditingVendor.length > 0 ? (
+                    {salespeopleForCurrentVendorInDialog.length > 0 ? (
                       <div className="overflow-x-auto">
                         <Table><TableHeader><TableRow>
                             <TableHead className="px-2 py-3 sm:px-4">Nome</TableHead>
                             <TableHead className="px-2 py-3 sm:px-4">Email (Login)</TableHead>
                             <TableHead className="hidden sm:table-cell px-2 py-3 sm:px-4">Telefone</TableHead>
-                            <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>
+                            {!viewingVendor && <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>}
                         </TableRow></TableHeader>
-                        <TableBody>{salespeopleForCurrentEditingVendor.map(sp => (
+                        <TableBody>{salespeopleForCurrentVendorInDialog.map(sp => (
                             <TableRow key={sp.id}>
                                 <TableCell className="px-2 py-3 sm:px-4">{sp.name}</TableCell>
                                 <TableCell className="px-2 py-3 sm:px-4 break-words">{sp.email}</TableCell>
                                 <TableCell className="hidden sm:table-cell px-2 py-3 sm:px-4">{sp.phone}</TableCell>
-                                <TableCell className="text-right px-2 py-3 sm:px-4">
-                                    <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
-                                    <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button>
-                                </TableCell>
+                                {!viewingVendor && (
+                                    <TableCell className="text-right px-2 py-3 sm:px-4">
+                                        <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))}</TableBody>
                       </Table>
@@ -503,16 +540,21 @@ export default function ManageVendorsPage() {
                   </CardContent>
                 </Card>)}
               <DialogFooter className="pt-3 sm:pt-4">
-                <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setIsVendorDialogOpen(false); setEditingVendor(null); vendorForm.reset();}}>Fechar</Button></DialogClose>
-                <Button type="submit" disabled={vendorForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingVendor ? 'Salvar Alterações' : 'Cadastrar'}</Button>
+                <DialogClose asChild>
+                    <Button type="button" variant="outline">
+                        {viewingVendor ? 'Fechar' : 'Cancelar'}
+                    </Button>
+                </DialogClose>
+                {!viewingVendor && (
+                    <Button type="submit" disabled={vendorForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingVendor ? 'Salvar Alterações' : 'Cadastrar'}</Button>
+                )}
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
-       {/* Salesperson Edit/Add Dialog */}
-      <Dialog open={isSalespersonDialogOpen} onOpenChange={(isOpen) => {
+       <Dialog open={isSalespersonDialogOpen} onOpenChange={(isOpen) => {
           setIsSalespersonDialogOpen(isOpen);
           if (!isOpen) { setEditingSalesperson(null); salespersonForm.reset(); }
       }}>
@@ -536,7 +578,6 @@ export default function ManageVendorsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Vendor Import Dialog */}
       <Dialog open={isImportDialogOpen} onOpenChange={(isOpen) => {
         setIsImportDialogOpen(isOpen);
         if (!isOpen) {
@@ -596,7 +637,6 @@ export default function ManageVendorsPage() {
       </Dialog>
 
 
-      {/* Alert Dialogs for Deletion Confirmation */}
       <AlertDialog open={!!vendorToDelete} onOpenChange={(open) => !open && setVendorToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Excluir "{vendorToDelete?.name}"? Esta ação também removerá vendedores e logins vinculados.</AlertDialogDescription></AlertDialogHeader>
@@ -610,7 +650,6 @@ export default function ManageVendorsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Main Table of Vendors */}
       <Card className="shadow-lg mt-6 sm:mt-8">
         <CardHeader className="px-4 py-5 sm:p-6">
             <CardTitle>Fornecedores Cadastrados</CardTitle>
@@ -641,6 +680,7 @@ export default function ManageVendorsPage() {
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.state}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                      <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleViewVendor(vendor)}><Eye className="h-4 w-4" /><span className="sr-only">Visualizar</span></Button>
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteVendor(vendor)}><Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span></Button>
                     </TableCell>
@@ -654,14 +694,4 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
-    
-
-    
-
-
-
-
-
-
-
 

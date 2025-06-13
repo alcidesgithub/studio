@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download } from 'lucide-react';
+import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -39,7 +39,6 @@ const storeRegistrationSchema = z.object({
 
 type StoreRegistrationFormValues = z.infer<typeof storeRegistrationSchema>;
 
-// For CSV parsing, allow more flexibility initially
 type StoreCSVData = {
   code?: string;
   razaoSocial?: string;
@@ -72,7 +71,6 @@ const getDisplayState = (stateValue?: string) => {
   return stateObj ? stateObj.label.split(' (')[0] : stateValue; 
 };
 
-// Helper function to parse CSV content for Stores
 function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: string[] } {
     const allLines = csvText.trim().split(/\r\n|\n/);
     if (allLines.length < 2) {
@@ -81,7 +79,6 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
 
     const headerLine = allLines[0].toLowerCase();
     const headers = headerLine.split(',').map(h => h.trim());
-    const expectedHeaders = ["code", "razaosocial", "cnpj", "address", "city", "neighborhood", "state", "phone", "ownername", "responsiblename", "email", "password"];
     const headerMap: Record<string, keyof StoreCSVData> = {
         "code": "code", "razaosocial": "razaoSocial", "cnpj": "cnpj", "address": "address", 
         "city": "city", "neighborhood": "neighborhood", "state": "state", "phone": "phone",
@@ -116,7 +113,6 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
             hasErrorInRow = true;
         }
 
-
         if (!hasErrorInRow) {
             storesData.push(storeRow);
         }
@@ -129,7 +125,9 @@ export default function ManageStoresPage() {
   const { toast } = useToast();
   const [stores, setStores] = useState<Store[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
+  const [viewingStore, setViewingStore] = useState<Store | null>(null);
 
   const [isImportStoreDialogOpen, setIsImportStoreDialogOpen] = useState(false);
   const [csvStoreFile, setCsvStoreFile] = useState<File | null>(null);
@@ -162,6 +160,7 @@ export default function ManageStoresPage() {
 
   const handleAddNew = () => {
     setEditingStore(null);
+    setViewingStore(null);
     form.reset({
         code: '',
         razaoSocial: '',
@@ -177,10 +176,12 @@ export default function ManageStoresPage() {
         password: '',
     });
     setIsDialogOpen(true);
+    setIsViewDialogOpen(false);
   };
 
   const handleEdit = (store: Store) => {
     setEditingStore(store);
+    setViewingStore(null);
     form.reset({
       code: store.code,
       razaoSocial: store.name,
@@ -196,6 +197,28 @@ export default function ManageStoresPage() {
       password: '', 
     });
     setIsDialogOpen(true);
+    setIsViewDialogOpen(false);
+  };
+
+  const handleView = (store: Store) => {
+    setViewingStore(store);
+    setEditingStore(null);
+    form.reset({
+      code: store.code,
+      razaoSocial: store.name,
+      cnpj: formatCNPJ(store.cnpj),
+      address: store.address || '',
+      city: store.city || '',
+      neighborhood: store.neighborhood || '',
+      state: store.state || undefined,
+      phone: store.phone || '',
+      ownerName: store.ownerName || '',
+      responsibleName: store.responsibleName || '',
+      email: store.email || '',
+      password: '',
+    });
+    setIsViewDialogOpen(true);
+    setIsDialogOpen(false);
   };
 
   const handleDelete = (storeId: string) => {
@@ -366,7 +389,7 @@ export default function ManageStoresPage() {
           const storeInputData = {
             code: ps.code || "",
             razaoSocial: ps.razaoSocial || "",
-            cnpj: cleanedCsvCnpj, // Pass cleaned CNPJ for Zod validation
+            cnpj: cleanedCsvCnpj, 
             address: ps.address || "",
             city: ps.city || "",
             neighborhood: ps.neighborhood || "",
@@ -375,7 +398,7 @@ export default function ManageStoresPage() {
             ownerName: ps.ownerName || "",
             responsibleName: ps.responsibleName || "",
             email: ps.email || "",
-            password: ps.password, // Optional
+            password: ps.password, 
           };
           
           const validationResult = storeRegistrationSchema.safeParse(storeInputData);
@@ -405,7 +428,7 @@ export default function ManageStoresPage() {
             id: `store_csv_${Date.now()}_${i}`,
             code: validatedData.code,
             name: validatedData.razaoSocial,
-            cnpj: validatedData.cnpj, // Already cleaned by Zod
+            cnpj: validatedData.cnpj,
             address: validatedData.address,
             city: validatedData.city,
             neighborhood: validatedData.neighborhood,
@@ -420,7 +443,6 @@ export default function ManageStoresPage() {
           };
           newStoresToSave.push(newStore);
 
-          // User creation if email and password are provided and user doesn't exist
           const existingUser = currentLocalUsers.find(u => u.email === validatedData.email);
           if (!existingUser && validatedData.password) {
             const newUserForStore: User = {
@@ -433,7 +455,7 @@ export default function ManageStoresPage() {
             newUsersToSave.push(newUserForStore);
           }
           importedCount++;
-        } catch (error) { // Catch any unexpected error during processing a row
+        } catch (error) { 
             validationErrors.push(`Linha ${i + 2} (Loja ${ps.code || 'sem nome'}): Erro inesperado - ${(error as Error).message}`);
         }
       }
@@ -441,12 +463,11 @@ export default function ManageStoresPage() {
       if (newStoresToSave.length > 0) {
         const updatedStoreList = [...currentLocalStores, ...newStoresToSave];
         saveStores(updatedStoreList);
-        setStores(updatedStoreList); // Update UI
+        setStores(updatedStoreList); 
       }
       if (newUsersToSave.length > 0) {
         const updatedUserList = [...currentLocalUsers, ...newUsersToSave];
         saveUsers(updatedUserList); 
-        // No direct UI update needed here for users, but it's saved.
       }
       
       setImportStoreErrors(validationErrors);
@@ -494,13 +515,27 @@ export default function ManageStoresPage() {
         }
       />
 
-      {/* Store Add/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog 
+        open={isDialogOpen || isViewDialogOpen} 
+        onOpenChange={(openState) => {
+            if (!openState) {
+                setIsDialogOpen(false);
+                setIsViewDialogOpen(false);
+                setEditingStore(null);
+                setViewingStore(null);
+                form.reset();
+            }
+        }}
+        >
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>{editingStore ? 'Editar Loja' : 'Adicionar Nova Loja'}</DialogTitle>
+            <DialogTitle>
+                {editingStore ? 'Editar Loja' : 
+                (viewingStore ? 'Visualizar Loja' : 'Adicionar Nova Loja')}
+            </DialogTitle>
             <DialogDescription>
-              {editingStore ? 'Atualize os detalhes desta loja.' : 'Preencha os detalhes para a nova loja.'}
+              {editingStore ? 'Atualize os detalhes desta loja.' : 
+              (viewingStore ? 'Detalhes da loja.' : 'Preencha os detalhes para a nova loja.')}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -509,28 +544,28 @@ export default function ManageStoresPage() {
                 <CardHeader><CardTitle className="text-lg sm:text-xl">Informações da Loja</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
                   <FormField control={form.control} name="code" render={({ field }) => (
-                      <FormItem><FormLabel>Código da Loja</FormLabel><FormControl><Input placeholder="Ex: LJ001" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Código da Loja</FormLabel><FormControl><Input placeholder="Ex: LJ001" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="razaoSocial" render={({ field }) => (
-                      <FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Hiperfarma Medicamentos Ltda." {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Hiperfarma Medicamentos Ltda." {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="cnpj" render={({ field }) => (
-                      <FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>CNPJ</FormLabel><FormControl><Input placeholder="00.000.000/0000-00" {...field} value={field.value ? formatCNPJ(field.value) : ''} onChange={e => field.onChange(formatCNPJ(e.target.value))} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="address" render={({ field }) => (
-                      <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Principal, 123" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Principal, 123" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="city" render={({ field }) => (
-                      <FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="neighborhood" render={({ field }) => (
-                      <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Centro" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Centro" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="state" render={({ field }) => (
-                      <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!viewingStore}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="phone" render={({ field }) => (
-                      <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                 </CardContent>
               </Card>
@@ -538,29 +573,34 @@ export default function ManageStoresPage() {
                 <CardHeader><CardTitle className="text-lg sm:text-xl">Contato e Login (Usuário da Loja)</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
                   <FormField control={form.control} name="ownerName" render={({ field }) => (
-                      <FormItem><FormLabel>Nome do Proprietário(a)</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Nome do Proprietário(a)</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="responsibleName" render={({ field }) => (
-                      <FormItem><FormLabel>Nome do Responsável (login sistema)</FormLabel><FormControl><Input placeholder="Ex: Maria Oliveira" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Nome do Responsável (login sistema)</FormLabel><FormControl><Input placeholder="Ex: Maria Oliveira" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="email" render={({ field }) => (
-                      <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="password" render={({ field }) => (
-                      <FormItem><FormLabel>Senha de Login {editingStore ? '(Deixe em branco para não alterar se o usuário já existir)' : ''}</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Senha de Login {editingStore ? '(Deixe em branco para não alterar se o usuário já existir)' : (viewingStore ? '(Não exibida)' : '')}</FormLabel><FormControl><Input type="password" placeholder={viewingStore ? "" : "••••••••"} {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                 </CardContent>
               </Card>
               <DialogFooter className="pt-3 sm:pt-4">
-                <DialogClose asChild><Button type="button" variant="outline" onClick={() => { setEditingStore(null); form.reset(); setIsDialogOpen(false); }}>Cancelar</Button></DialogClose>
-                <Button type="submit" disabled={form.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingStore ? 'Salvar Alterações' : 'Cadastrar Loja'}</Button>
+                <DialogClose asChild>
+                    <Button type="button" variant="outline">
+                        {viewingStore ? 'Fechar' : 'Cancelar'}
+                    </Button>
+                </DialogClose>
+                {!viewingStore && (
+                    <Button type="submit" disabled={form.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingStore ? 'Salvar Alterações' : 'Cadastrar Loja'}</Button>
+                )}
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
-      {/* Store Import Dialog */}
       <Dialog open={isImportStoreDialogOpen} onOpenChange={(isOpen) => {
         setIsImportStoreDialogOpen(isOpen);
         if (!isOpen) {
@@ -569,7 +609,7 @@ export default function ManageStoresPage() {
           setImportStoreErrors([]);
         }
       }}>
-        <DialogContent className="sm:max-w-xl"> {/* Increased max-width */}
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Importar Lojas (CSV)</DialogTitle>
             <DialogDescription>
@@ -652,6 +692,9 @@ export default function ManageStoresPage() {
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.city || 'N/A'}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{getDisplayState(store.state)}</TableCell>
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                      <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleView(store)}>
+                        <Eye className="h-4 w-4" /><span className="sr-only">Visualizar</span>
+                      </Button>
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(store)}>
                         <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
                       </Button>
@@ -669,14 +712,4 @@ export default function ManageStoresPage() {
     </div>
   );
 }
-    
-
-    
-
-
-
-
-
-
-
 
