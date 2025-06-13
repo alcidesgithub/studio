@@ -118,6 +118,7 @@ export default function VendorPositivacaoPage() {
         checkString(store.code) ||
         checkCnpj(store.cnpj) ||
         checkString(store.ownerName) ||
+        checkString(store.responsibleName) || // Added responsibleName to search
         checkString(store.city) ||
         checkString(store.neighborhood) ||
         checkString(store.state)
@@ -157,7 +158,7 @@ export default function VendorPositivacaoPage() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input 
           type="text"
-          placeholder="Buscar por nome, código, CNPJ, proprietário, local..."
+          placeholder="Buscar por nome, código, CNPJ, proprietário, responsável, local..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -193,7 +194,7 @@ export default function VendorPositivacaoPage() {
             <Card key={store.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <StoreIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+                  <StoreIcon className="h-5 w-5 sm:h-6 sm:w-6 text-secondary flex-shrink-0" />
                   <span className="truncate">{store.name} ({store.code})</span>
                 </CardTitle>
               </CardHeader>
@@ -213,6 +214,13 @@ export default function VendorPositivacaoPage() {
                         <User className="h-3.5 w-3.5 flex-shrink-0" />
                         <span className="font-medium">Proprietário:</span>
                         <span className="truncate">{store.ownerName}</span>
+                    </div>
+                )}
+                 {store.responsibleName && (
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <User className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="font-medium">Responsável:</span>
+                        <span className="truncate">{store.responsibleName}</span>
                     </div>
                 )}
                 <div className="flex items-center gap-1.5 text-muted-foreground">
