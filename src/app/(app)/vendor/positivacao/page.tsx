@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { loadStores, saveStores, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, Event as EventType, Vendor, PositivationDetail } from '@/types';
-import { ThumbsUp, Store as StoreIcon, CheckCircle, Search, User, MapPin, BuildingIcon, Globe } from 'lucide-react';
+import { ThumbsUp, Store as StoreIcon, CheckCircle, Search, User, MapPin, Building as BuildingIcon, Globe } from 'lucide-react'; // Changed Building to BuildingIcon to avoid conflict
 import { useState, useMemo, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -92,11 +92,38 @@ export default function VendorPositivacaoPage() {
   };
 
   const filteredStores = useMemo(() => {
-    return allStores.filter(store => 
-      store.participating && 
-      (store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-       store.code.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const cleanedSearchTermForCnpj = searchTerm.replace(/\D/g, '');
+
+    return allStores.filter(store => {
+      if (!store.participating) return false;
+
+      const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
+      
+      const checkCnpj = (cnpjValue?: string) => { // cnpjValue is the raw, unformatted one from store data
+        if (!cnpjValue) return false;
+        // 1. Check if the raw unformatted store.cnpj contains the numeric-only search term
+        if (cleanedSearchTermForCnpj.length > 0 && cnpjValue.includes(cleanedSearchTermForCnpj)) {
+          return true;
+        }
+        // 2. Check if the formatted version of store.cnpj contains the original (case-insensitive) search term
+        // This allows searching for "12.345" or "/0001-"
+        if (formatDisplayCNPJ(cnpjValue).toLowerCase().includes(lowerSearchTerm)) {
+            return true;
+        }
+        return false;
+      };
+
+      return (
+        checkString(store.name) ||
+        checkString(store.code) ||
+        checkCnpj(store.cnpj) ||
+        checkString(store.ownerName) ||
+        checkString(store.city) ||
+        checkString(store.neighborhood) ||
+        checkString(store.state)
+      );
+    });
   }, [searchTerm, allStores]);
 
   if (!currentEvent || !currentVendorCompany) {
@@ -126,7 +153,7 @@ export default function VendorPositivacaoPage() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input 
           type="text"
-          placeholder="Buscar por nome ou código da loja..."
+          placeholder="Buscar por nome, código, CNPJ, etc..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
