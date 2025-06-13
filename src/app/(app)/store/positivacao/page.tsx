@@ -237,7 +237,7 @@ export default function StorePositivacaoPage() {
                         <AvatarImage src={vendor.logoUrl} alt={vendor.name} className="object-contain" />
                         <AvatarFallback>{vendor.name.substring(0, 2)}</AvatarFallback>
                       </Avatar>
-                      <p className="text-xs sm:text-sm font-semibold text-center w-full text-white">
+                      <p className={`text-xs sm:text-sm font-semibold text-center w-full ${isPositivated ? 'text-white' : 'text-white/60 group-hover:text-white transition-opacity duration-300'}`}>
                         {vendor.name}
                       </p>
                     </div>
