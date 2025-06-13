@@ -185,19 +185,8 @@ export default function LandingPage() {
       {/* Footer / CTA Section */}
       <footer className="w-full bg-card/50 border-t border-border py-10 sm:py-16">
         <div className="container mx-auto px-4 text-center">
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 mb-8">
-            <Button asChild size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground w-full sm:w-auto">
-              <Link href="/login">GUIA DO FORNECEDOR</Link>
-            </Button>
-            <Button asChild size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground w-full sm:w-auto">
-              <Link href="/login">GUIA DO FARMACÊUTICO</Link>
-            </Button>
-             <Button asChild size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground w-full sm:w-auto">
-              <Link href="/login">CONDIÇÕES NEGOCIADAS</Link>
-            </Button>
-          </div>
-
-          <div className="space-y-2 text-lg sm:text-xl text-foreground mb-8 max-w-md mx-auto">
+          {/* Botões removidos */}
+          <div className="space-y-2 text-lg sm:text-xl text-foreground mb-8 mt-8 max-w-md mx-auto"> {/* Adicionado mt-8 para espaçamento */}
             <p className="flex items-center justify-center gap-2 font-medium">Conectar para <ArrowRight className="h-5 w-5 text-accent inline-block" /></p>
             <p className="flex items-center justify-center gap-2 font-bold text-accent text-2xl sm:text-3xl"><Sparkles className="h-6 w-6 sm:h-7 sm:w-7 inline-block"/> crescer <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 inline-block"/></p>
             <p className="flex items-center justify-center gap-2 font-medium">negociar <Repeat className="h-5 w-5 text-secondary inline-block" /></p>
@@ -219,3 +208,4 @@ export default function LandingPage() {
       </footer>
     </div>
   );
+}
