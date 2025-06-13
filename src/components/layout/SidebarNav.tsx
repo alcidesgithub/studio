@@ -62,7 +62,7 @@ export function SidebarNav() {
   };
 
   const getLogoLink = () => {
-    if (!user) return "/login"; // Changed from /dashboard for logged out state
+    if (!user) return "/login"; 
     switch (user.role) {
       case 'store':
         return "/store/positivacao";
@@ -80,7 +80,6 @@ export function SidebarNav() {
           href={getLogoLink()} 
           className="flex items-center gap-2" 
           onClick={handleLinkClick}
-          id="mobile-sidebar-title" // Added ID for aria-labelledby
         >
           <Building className="h-8 w-8 text-primary" />
           <Image
