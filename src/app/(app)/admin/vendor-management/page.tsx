@@ -612,7 +612,10 @@ export default function ManageVendorsPage() {
 
       {/* Main Table of Vendors */}
       <Card className="shadow-lg mt-6 sm:mt-8">
-        <CardHeader><CardTitle>Fornecedores Cadastrados</CardTitle><CardDescription>Lista de todos os fornecedores no sistema.</CardDescription></CardHeader>
+        <CardHeader className="px-4 py-5 sm:p-6">
+            <CardTitle>Fornecedores Cadastrados</CardTitle>
+            <CardDescription>Lista de todos os fornecedores no sistema.</CardDescription>
+        </CardHeader>
         <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
           <div className="overflow-x-auto">
             <Table>
@@ -654,6 +657,8 @@ export default function ManageVendorsPage() {
     
 
     
+
+
 
 
 

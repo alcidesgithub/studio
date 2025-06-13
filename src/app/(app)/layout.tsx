@@ -3,7 +3,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SheetTitle } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/layout/SidebarNav';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
@@ -90,7 +90,7 @@ export default function AppLayout({
           <SidebarTrigger className="sm:hidden" /> 
           <h1 className="font-headline text-lg font-semibold">Hiperfarma BMM</h1>
         </header>
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 overflow-auto">
           {children}
         </main>
       </SidebarInset>

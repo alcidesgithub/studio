@@ -621,7 +621,7 @@ export default function ManageStoresPage() {
 
 
       <Card className="shadow-lg mt-6 sm:mt-8">
-        <CardHeader>
+        <CardHeader className="px-4 py-5 sm:p-6">
           <CardTitle>Lojas Cadastradas</CardTitle>
           <CardDescription>Lista de todas as lojas no sistema.</CardDescription>
         </CardHeader>
@@ -672,6 +672,7 @@ export default function ManageStoresPage() {
     
 
     
+
 
 
 

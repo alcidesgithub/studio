@@ -269,7 +269,7 @@ export default function AdminAwardsPage() {
       </Dialog>
 
       <Card className="shadow-lg">
-        <CardHeader>
+        <CardHeader className="px-4 py-5 sm:p-6">
           <CardTitle>Faixas de Premiação Configurada</CardTitle>
           <CardDescription>Lista das faixas de premiação atuais e seus critérios por estado. A ordem aqui será refletida na tela de sorteios.</CardDescription>
         </CardHeader>

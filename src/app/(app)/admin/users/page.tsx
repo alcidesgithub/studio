@@ -264,7 +264,7 @@ export default function AdminUsersPage() {
       </Dialog>
 
       <Card className="shadow-lg">
-        <CardHeader>
+        <CardHeader className="px-4 py-5 sm:p-6">
           <CardTitle>Administradores e Gerentes Cadastrados</CardTitle>
           <CardDescription>Lista de administradores e gerentes no sistema.</CardDescription>
         </CardHeader>

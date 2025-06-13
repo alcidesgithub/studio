@@ -232,7 +232,7 @@ export default function AdminTieredSweepstakesPage() {
       </div>
 
       <Card className="shadow-xl mt-6 sm:mt-8">
-        <CardHeader>
+        <CardHeader className="px-4 py-5 sm:p-6">
           <CardTitle>Log de Vencedores do Sorteio</CardTitle>
           <CardDescription>Histórico de todos os vencedores sorteados em todas as faixas e slots de prêmios.</CardDescription>
         </CardHeader>
