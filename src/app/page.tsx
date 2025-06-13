@@ -87,14 +87,14 @@ export default function LandingPage() {
           
           <Link href="/login">
             <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-base sm:text-lg px-8 py-6 mb-10">
-              <LogIn className="mr-2 h-5 w-5" /> Acessar Sistema
+              <LogIn className="mr-2 h-5 w-5" /> Acessar
             </Button>
           </Link>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 sm:py-12 flex-grow w-full">
-        <section id="quando-onde-section" aria-labelledby="quando-onde-heading" className="mt-4 sm:mt-6 mb-12 sm:mb-16">
+        <section id="quando-onde-section" aria-labelledby="quando-onde-heading" className="mt-0 sm:mt-2 mb-12 sm:mb-16">
            <div className="relative text-center mb-8">
             <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-secondary/30"></div>
             <div className="absolute inset-x-0 top-[calc(50%+4px)] transform -translate-y-1/2 h-0.5 bg-accent/30"></div>
