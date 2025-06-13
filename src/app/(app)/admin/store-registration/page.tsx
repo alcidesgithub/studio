@@ -562,7 +562,7 @@ export default function ManageStoresPage() {
                 <CardHeader><CardTitle className="text-lg sm:text-xl">Informações da Loja</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
                   <FormField control={form.control} name="code" render={({ field }) => (
-                      <FormItem><FormLabel>Código da Loja</FormLabel><FormControl><Input placeholder="Ex: LJ001" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Código da Loja</FormLabel><FormControl><Input placeholder="Ex: 001" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="razaoSocial" render={({ field }) => (
                       <FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Hiperfarma Medicamentos Ltda." {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
@@ -744,3 +744,5 @@ export default function ManageStoresPage() {
   );
 }
 
+
+    
