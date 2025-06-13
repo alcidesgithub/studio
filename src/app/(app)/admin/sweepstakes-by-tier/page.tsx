@@ -148,7 +148,7 @@ export default function AdminTieredSweepstakesPage() {
         iconClassName="text-secondary"
         actions={
           <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
-            <Download className="mr-2 h-4 w-4 text-secondary" /> Exportar Log (CSV)
+            <Download className="mr-2 h-4 w-4" /> Exportar Log (CSV)
           </Button>
         }
       />
