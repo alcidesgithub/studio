@@ -1,13 +1,15 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react'; // Adicionado useState
 import { useRouter, usePathname } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SheetTitle } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/layout/SidebarNav';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { loadEvent } from '@/lib/localStorageUtils'; // Importado loadEvent
+import type { Event } from '@/types'; // Importado tipo Event
 
 export default function AppLayout({
   children,
@@ -17,12 +19,20 @@ export default function AppLayout({
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [currentEvent, setCurrentEvent] = useState<Event | null>(null); // Estado para o evento
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/login');
     }
   }, [user, isLoading, router]);
+
+  useEffect(() => {
+    // Carrega detalhes do evento
+    const eventDetails = loadEvent();
+    setCurrentEvent(eventDetails);
+  }, []);
+
 
   if (isLoading) {
     return (
@@ -33,8 +43,8 @@ export default function AppLayout({
   }
 
   if (!user) {
-    // This case should ideally be handled by the useEffect redirect,
-    // but as a fallback:
+    // Este caso idealmente é tratado pelo redirect do useEffect,
+    // mas como fallback:
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4">
         <p className="mb-4">Redirecionando para o login...</p>
@@ -43,7 +53,7 @@ export default function AppLayout({
     );
   }
   
-  // Check role-based access for admin routes
+  // Verifica acesso baseado em role para rotas admin
   if (pathname.startsWith('/admin') && !['admin', 'manager'].includes(user.role)) {
      return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4">
@@ -54,7 +64,7 @@ export default function AppLayout({
       );
   }
 
-  // Check role-based access for store routes
+  // Verifica acesso baseado em role para rotas de loja
   const allowedStorePaths = ['/event', '/store/positivacao']; 
   if (user.role === 'store' && !allowedStorePaths.includes(pathname) && !pathname.startsWith('/_next/')) {
       return (
@@ -66,7 +76,7 @@ export default function AppLayout({
         );
   }
 
-  // Check role-based access for vendor routes
+  // Verifica acesso baseado em role para rotas de vendedor
   const allowedVendorPaths = ['/event', '/vendor/positivacao'];
   if (user.role === 'vendor' && !allowedVendorPaths.includes(pathname) && !pathname.startsWith('/_next/')) {
     return (
@@ -78,6 +88,8 @@ export default function AppLayout({
     );
   }
 
+  // Determina o título do cabeçalho móvel
+  const mobileHeaderTitle = currentEvent?.name ? currentEvent.name : "Menu";
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -88,7 +100,7 @@ export default function AppLayout({
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4 md:hidden">
           {/* Mobile Sidebar Trigger */}
           <SidebarTrigger className="sm:hidden" /> 
-          <h1 className="font-headline text-lg font-semibold">Hiperfarma BMM</h1>
+          <h1 className="font-headline text-lg font-semibold truncate" title={mobileHeaderTitle}>{mobileHeaderTitle}</h1>
         </header>
         <main className="flex-1 p-4 sm:p-6 overflow-auto">
           {children}
