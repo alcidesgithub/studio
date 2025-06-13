@@ -17,12 +17,18 @@ export default function LandingPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     const loadedEvent = loadEventClient();
     setEvent(loadedEvent);
-    if (loadedEvent && loadedEvent.name) {
-      document.title = `${loadedEvent.name} - Hiperfarma`;
+    if (loadedEvent) {
+      if (loadedEvent.name) {
+        document.title = `${loadedEvent.name} - Hiperfarma`;
+      }
+      if (loadedEvent.date && isValid(parseISO(loadedEvent.date))) {
+        setCurrentYear(parseISO(loadedEvent.date).getFullYear());
+      }
     } else {
       document.title = 'Encontro de Negócios Hiperfarma';
     }
@@ -32,7 +38,6 @@ export default function LandingPage() {
   }, []);
 
   if (isLoading || !event) {
-    // Basic skeleton for loading state, can be expanded
     return (
       <div className="dark min-h-screen bg-background flex flex-col items-center animate-fadeIn p-4">
         <Skeleton className="h-16 w-48 mx-auto my-8" />
@@ -47,22 +52,20 @@ export default function LandingPage() {
 
   return (
     <div className="dark min-h-screen bg-background text-foreground flex flex-col items-center font-body animate-fadeIn">
-      {/* Header Section */}
       <header className="w-full py-8 sm:py-12">
         <div className="container mx-auto px-4 text-center">
           <div className="mb-6 sm:mb-10 flex justify-center">
             <Image
-              src="https://i.imgur.com/qlwlELF.png" // Current logo
+              src="https://i.imgur.com/qlwlELF.png" 
               alt="Encontro de Negócios Hiperfarma"
               width={300} 
               height={75} 
-              className="rounded-md"
               style={{ objectFit: "contain" }}
               data-ai-hint="event logo"
               priority
             />
           </div>
-          <p className="text-sm uppercase tracking-wider text-muted-foreground mb-4">EM {format(eventDate, 'yyyy', { locale: ptBR })}, CADA ENCONTRO TEM PROPÓSITO:</p>
+          <p className="text-sm uppercase tracking-wider text-muted-foreground mb-4">EM {currentYear}, CADA ENCONTRO TEM PROPÓSITO:</p>
           <div className="inline-block bg-accent text-accent-foreground font-semibold py-3 px-6 rounded-md text-xl sm:text-2xl md:text-3xl mb-6">
             <h1 className="flex items-center justify-center gap-2">
               <Target className="h-6 w-6 sm:h-8 sm:w-8 hidden sm:inline-block" />
@@ -80,7 +83,7 @@ export default function LandingPage() {
             </div>
             <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 py-6 rounded-lg text-center">
               <Store className="h-10 w-10 text-accent mx-auto mb-3" />
-              <div className="text-2xl sm:text-3xl font-bold">+{vendors.length > 30 ? vendors.length : '40'}</div> {/* Dynamic or static */}
+              <div className="text-2xl sm:text-3xl font-bold">+{vendors.length > 30 ? vendors.length : '40'}</div>
               <p className="text-sm text-accent">STANDS</p>
             </div>
             <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 py-6 rounded-lg text-center">
@@ -93,7 +96,7 @@ export default function LandingPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8 sm:py-12 flex-grow w-full">
-        {/* Mapa dos Stands Section */}
+        
         <section id="mapa-stands-section" aria-labelledby="mapa-stands-heading" className="my-12 sm:my-16">
           <div className="relative text-center mb-8">
             <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-accent/30"></div>
@@ -112,7 +115,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Fornecedores Section */}
         {vendors.length > 0 && (
           <section id="fornecedores-section" aria-labelledby="fornecedores-heading" className="my-12 sm:my-16 py-10 sm:py-12 bg-accent/10 rounded-lg">
             <h2 id="fornecedores-heading" className="text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-10 text-accent uppercase tracking-wider">FORNECEDORES</h2>
@@ -133,7 +135,6 @@ export default function LandingPage() {
           </section>
         )}
 
-        {/* Nossa Galeria Section */}
         <section id="galeria-section" aria-labelledby="galeria-heading" className="my-12 sm:my-16">
           <h2 id="galeria-heading" className="text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-10 text-foreground uppercase tracking-wider">NOSSA GALERIA</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -145,15 +146,14 @@ export default function LandingPage() {
               { src: "https://placehold.co/400x300.png", alt: "Foto do evento 5", hint: "event stage" },
               { src: "https://placehold.co/400x300.png", alt: "Foto do evento 6", hint: "happy attendees" },
             ].map((img, index) => (
-              <div key={index} className="aspect-w-4 aspect-h-3">
+              <div key={index} className="aspect-w-4 aspect-h-3 relative">
                 <Image src={img.src} alt={img.alt} layout="fill" objectFit="cover" className="rounded-lg shadow-lg" data-ai-hint={img.hint}/>
               </div>
             ))}
           </div>
-           <p className="text-center text-sm text-muted-foreground mt-4">A galeria de fotos do evento de {format(eventDate, 'yyyy', { locale: ptBR })}.</p>
+           <p className="text-center text-sm text-muted-foreground mt-4">A galeria de fotos do evento de {currentYear}.</p>
         </section>
 
-        {/* Quando & Onde Section */}
         <section id="quando-onde-section" aria-labelledby="quando-onde-heading" className="my-12 sm:my-16">
            <div className="relative text-center mb-8">
             <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-secondary/30"></div>
@@ -182,11 +182,9 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Footer / CTA Section */}
       <footer className="w-full bg-card/50 border-t border-border py-10 sm:py-16">
         <div className="container mx-auto px-4 text-center">
-          {/* Botões removidos */}
-          <div className="space-y-2 text-lg sm:text-xl text-foreground mb-8 mt-8 max-w-md mx-auto"> {/* Adicionado mt-8 para espaçamento */}
+          <div className="space-y-2 text-lg sm:text-xl text-foreground mb-8 mt-8 max-w-md mx-auto">
             <p className="flex items-center justify-center gap-2 font-medium">Conectar para <ArrowRight className="h-5 w-5 text-accent inline-block" /></p>
             <p className="flex items-center justify-center gap-2 font-bold text-accent text-2xl sm:text-3xl"><Sparkles className="h-6 w-6 sm:h-7 sm:w-7 inline-block"/> crescer <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 inline-block"/></p>
             <p className="flex items-center justify-center gap-2 font-medium">negociar <Repeat className="h-5 w-5 text-secondary inline-block" /></p>
@@ -195,7 +193,7 @@ export default function LandingPage() {
           
           <div className="flex justify-center mb-4">
              <Image
-              src="https://i.imgur.com/qlwlELF.png" // Using main logo, scaled down
+              src="https://i.imgur.com/qlwlELF.png" 
               alt="Negócios Hiperfarma"
               width={180}
               height={45}
@@ -203,7 +201,7 @@ export default function LandingPage() {
               data-ai-hint="company logo small"
             />
           </div>
-          <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} Rede Hiperfarma. Todos os direitos reservados.</p>
+          <p className="text-xs text-muted-foreground">&copy; {currentYear} Rede Hiperfarma. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
