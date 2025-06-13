@@ -273,7 +273,7 @@ export default function StorePositivacaoPage() {
             </div>
           )}
           {positivacoesCount === 0 && allVendors.length > 0 && (
-            <p className="mt-6 sm:mt-8 text-center text-base sm:text-lg text-white/80">
+            <p className="mt-6 sm:mt-8 text-center text-base sm:text-lg text-white/50">
               Ainda não há selos (positivações). Positive com os fornecedores para recebê-los!
             </p>
           )}
