@@ -166,6 +166,7 @@ export default function DashboardPage() {
         title="Painel do evento"
         description=""
         icon={LayoutDashboard}
+        iconClassName="text-secondary" 
       />
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
