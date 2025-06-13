@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { loadStores, saveStores, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, Event as EventType, Vendor, PositivationDetail } from '@/types';
-import { ThumbsUp, Store as StoreIcon, CheckCircle, Search, User, MapPin, Building as BuildingIcon, Globe } from 'lucide-react'; 
+import { ThumbsUp, Store as StoreIcon, CheckCircle, Search, User, MapPin, Building as BuildingIcon } from 'lucide-react'; 
 import { useState, useMemo, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -103,7 +103,7 @@ export default function VendorPositivacaoPage() {
       const checkCnpj = (cnpjValue?: string) => { 
         if (!cnpjValue) return false;
         
-        if (cleanedSearchTermForCnpj.length > 0 && cnpjValue.includes(cleanedSearchTermForCnpj)) {
+        if (cleanedSearchTermForCnpj.length > 0 && cleanCNPJ(cnpjValue).includes(cleanedSearchTermForCnpj)) {
           return true;
         }
         
@@ -124,6 +124,11 @@ export default function VendorPositivacaoPage() {
       );
     });
   }, [searchTerm, allStores]);
+
+  const cleanCNPJ = (cnpj: string = '') => {
+      return cnpj.replace(/\D/g, '');
+  };
+
 
   if (!currentEvent || !currentVendorCompany) {
     return (
@@ -193,7 +198,7 @@ export default function VendorPositivacaoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-grow space-y-1.5 text-xs sm:text-sm">
-                <p className="text-muted-foreground mb-2 text-sm">
+                <p className="text-secondary mb-2 text-sm">
                   Confirme a positivação dessa loja.
                 </p>
                 {store.cnpj && (
@@ -238,6 +243,7 @@ export default function VendorPositivacaoPage() {
                               alt={`Logo ${currentVendorCompany.name}`}
                               layout="fill"
                               objectFit="contain"
+                              data-ai-hint="vendor logo"
                             />
                           </div>
                         ) : (
@@ -256,4 +262,3 @@ export default function VendorPositivacaoPage() {
   );
 }
     
-
