@@ -212,7 +212,7 @@ export default function StorePositivacaoPage() {
 
       <Card className="shadow-xl mb-6 sm:mb-8 bg-[#2d2d2d]">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-2xl sm:text-3xl text-[#c3f45d]">Cartela de positivação</CardTitle>
+          <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-[#c3f45d]">Cartela de positivação</CardTitle>
           <CardDescription className="text-white">Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -233,7 +233,7 @@ export default function StorePositivacaoPage() {
                     `}
                   >
                     <div className="flex flex-col items-center">
-                      <Avatar className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-2 transition-opacity duration-300">
+                      <Avatar className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-2 transition-opacity duration-300 ${!isPositivated ? 'opacity-60 group-hover:opacity-100' : ''}`}>
                         <AvatarImage src={vendor.logoUrl} alt={vendor.name} className="object-contain" />
                         <AvatarFallback>{vendor.name.substring(0, 2)}</AvatarFallback>
                       </Avatar>
