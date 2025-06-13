@@ -553,7 +553,7 @@ export default function ManageStoresPage() {
             </DialogTitle>
             <DialogDescription>
               {editingStore ? 'Atualize os detalhes desta loja.' : 
-              (viewingStore ? 'Detalhes da loja.' : 'Preencha os detalhes para a nova loja.')}
+              (viewingStore ? 'Detalhes da loja.' : 'Preencha os detalhes da loja.')}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
