@@ -39,7 +39,7 @@ const salespersonSchema = z.object({
   name: z.string().min(3, "Nome do vendedor é obrigatório."),
   phone: z.string().min(10, "Telefone é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(),
+  // password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(), // Removed
 });
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
@@ -51,19 +51,19 @@ const applyCnpjMask = (value: string = ''): string => {
   if (cleaned.length > 5) parts.push(cleaned.substring(5, 8));
   if (cleaned.length > 8) parts.push(cleaned.substring(8, 12));
   if (cleaned.length > 12) parts.push(cleaned.substring(12, 14));
-  
+
   let masked = parts.shift() || "";
   if (parts.length > 0) masked += "." + parts.shift();
   if (parts.length > 0) masked += "." + parts.shift();
   if (parts.length > 0) masked += "/" + parts.shift();
   if (parts.length > 0) masked += "-" + parts.shift();
-  
+
   return masked;
 };
 
 const formatDisplayCNPJ = (cnpj: string = '') => {
   const cleaned = cnpj.replace(/\D/g, '');
-  if (cleaned.length !== 14) return cnpj; 
+  if (cleaned.length !== 14) return cnpj;
   return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 };
 
@@ -78,16 +78,16 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
     }
 
     const headerLine = allLines[0].toLowerCase();
-    const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, '')); // Remove aspas dos cabeçalhos
-    
+    const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, ''));
+
     const headerMap: Record<string, keyof VendorFormValues> = {
-        "nome": "name", "cnpj": "cnpj", "endereco": "address", 
+        "nome": "name", "cnpj": "cnpj", "endereco": "address",
         "cidade": "city", "bairro": "neighborhood", "estado": "state", "urllogo": "logoUrl"
     };
-    
+
     const expectedHeaders = Object.keys(headerMap);
     const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
-    
+
     if (missingHeaders.length > 0) {
         return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${expectedHeaders.join(', ')}`] };
     }
@@ -97,9 +97,9 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
 
     for (let i = 1; i < allLines.length; i++) {
         const line = allLines[i];
-        if (!line.trim()) continue; 
+        if (!line.trim()) continue;
 
-        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, '')); // Remove aspas das extremidades dos valores
+        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
         const vendorRow: Partial<VendorFormValues> = {};
         let hasErrorInRow = false;
 
@@ -109,7 +109,7 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
                 (vendorRow as any)[mappedKey] = values[index];
             }
         });
-        
+
         if (vendorRow.cnpj) {
             // O CNPJ no CSV pode vir formatado ou não. A validação Zod cuidará disso.
         } else {
@@ -166,7 +166,7 @@ export default function ManageVendorsPage() {
 
   const salespersonForm = useForm<SalespersonFormValues>({
     resolver: zodResolver(salespersonSchema),
-    defaultValues: { name: '', phone: '', email: '', password: '' },
+    defaultValues: { name: '', phone: '', email: '' /* password removed */ },
   });
 
   const handleAddNewVendor = () => {
@@ -195,7 +195,7 @@ export default function ManageVendorsPage() {
     setIsVendorDialogOpen(true);
     setIsVendorViewDialogOpen(false);
   };
-  
+
   const handleViewVendor = (vendor: Vendor) => {
     setViewingVendor(vendor);
     setEditingVendor(null);
@@ -226,7 +226,7 @@ export default function ManageVendorsPage() {
     const emailsOfSalespeopleToDelete = salespeopleOfVendor.map(sp => sp.email);
     const usersToKeep = currentUsers.filter(u => !(emailsOfSalespeopleToDelete.includes(u.email) && u.role === 'vendor'));
     if (usersToKeep.length < currentUsers.length) usersModified = true;
-    
+
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
     if(usersModified) saveUsers(usersToKeep);
@@ -239,13 +239,13 @@ export default function ManageVendorsPage() {
       description: `O fornecedor "${vendorToDelete.name}" e seus vendedores (e logins) vinculados foram removidos.`,
       variant: "destructive"
     });
-    setVendorToDelete(null); 
+    setVendorToDelete(null);
   };
 
   const onVendorSubmit = (data: VendorFormValues) => {
     let updatedVendors;
     const rawCnpj = cleanCNPJ(data.cnpj);
-    const initialEditingVendor = editingVendor; 
+    const initialEditingVendor = editingVendor;
 
     if (initialEditingVendor) {
       updatedVendors = vendors.map(v =>
@@ -258,15 +258,15 @@ export default function ManageVendorsPage() {
       const newVendorId = `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
       const newVendor: Vendor = { id: newVendorId, ...data, cnpj: rawCnpj };
       updatedVendors = [...vendors, newVendor];
-      setEditingVendor(newVendor); 
+      setEditingVendor(newVendor);
       toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.` });
-      vendorForm.reset(data); 
+      vendorForm.reset(data);
     }
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
-    
-    if (initialEditingVendor && !viewingVendor && vendorForm.formState.isDirty) { 
-        vendorForm.reset(); 
+
+    if (initialEditingVendor && !viewingVendor && vendorForm.formState.isDirty) {
+        vendorForm.reset();
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
     } else if (!initialEditingVendor) {
@@ -279,14 +279,14 @@ export default function ManageVendorsPage() {
   const handleAddNewSalesperson = (vendorId: string) => {
     setCurrentVendorIdForSalesperson(vendorId);
     setEditingSalesperson(null);
-    salespersonForm.reset({ name: '', phone: '', email: '', password: '' });
+    salespersonForm.reset({ name: '', phone: '', email: '' /* password removed */ });
     setIsSalespersonDialogOpen(true);
   };
 
   const handleEditSalesperson = (salesperson: Salesperson) => {
     setCurrentVendorIdForSalesperson(salesperson.vendorId);
     setEditingSalesperson(salesperson);
-    salespersonForm.reset({ name: salesperson.name, phone: salesperson.phone, email: salesperson.email, password: '' });
+    salespersonForm.reset({ name: salesperson.name, phone: salesperson.phone, email: salesperson.email /* password removed */ });
     setIsSalespersonDialogOpen(true);
   };
 
@@ -306,7 +306,7 @@ export default function ManageVendorsPage() {
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
     toast({ title: "Vendedor Excluído!", description: `O vendedor "${salespersonToDelete.name}" foi removido.`, variant: "destructive" });
-    setSalespersonToDelete(null); 
+    setSalespersonToDelete(null);
   };
 
   const onSalespersonSubmit = (data: SalespersonFormValues) => {
@@ -329,32 +329,22 @@ export default function ManageVendorsPage() {
     const currentUsers = loadUsers();
     const userIndex = currentUsers.findIndex(u => u.email === data.email && (u.role === 'vendor' || (editingSalesperson && u.email === editingSalesperson.email)));
 
-    if (userIndex > -1) { 
-      currentUsers[userIndex].name = data.name; 
-      currentUsers[userIndex].role = 'vendor'; 
+    if (userIndex > -1) {
+      currentUsers[userIndex].name = data.name;
+      currentUsers[userIndex].role = 'vendor';
       currentUsers[userIndex].storeName = vendorForSalesperson.name;
-       if (data.password && data.password.trim() !== "") {
-        currentUsers[userIndex].password = data.password;
-        toast({
-          title: "Senha do Usuário Atualizada!",
-          description: `A senha para ${data.email} foi atualizada.`,
-        });
-      }
-    } else { 
-      if (data.password) {
-        const newUserForSalesperson: User = { 
-            id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`, 
-            email: data.email, 
-            role: 'vendor', 
-            name: data.name, 
-            storeName: vendorForSalesperson.name,
-            password: data.password, // Salva a senha para o novo usuário
-        };
-        currentUsers.push(newUserForSalesperson);
-        toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`});
-      } else if (!editingSalesperson) {
-        toast({ title: "Senha Necessária", description: `Usuário (login) para ${data.email} não foi criado.`, variant: "destructive"});
-      }
+       // Password logic removed
+    } else {
+      const newUserForSalesperson: User = {
+          id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
+          email: data.email,
+          role: 'vendor',
+          name: data.name,
+          storeName: vendorForSalesperson.name,
+          // password field removed
+      };
+      currentUsers.push(newUserForSalesperson);
+      toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`});
     }
     saveUsers(currentUsers);
     salespersonForm.reset();
@@ -367,7 +357,7 @@ export default function ManageVendorsPage() {
     if (file) {
       setCsvFile(file);
       setCsvFileName(file.name);
-      setImportErrors([]); 
+      setImportErrors([]);
     } else {
       setCsvFile(null);
       setCsvFileName("");
@@ -403,15 +393,15 @@ export default function ManageVendorsPage() {
         try {
           const validatedData = vendorSchema.parse({
             name: pv.name || '',
-            cnpj: pv.cnpj || '', 
+            cnpj: pv.cnpj || '',
             address: pv.address || '',
             city: pv.city || '',
             neighborhood: pv.neighborhood || '',
             state: pv.state || '',
             logoUrl: pv.logoUrl || 'https://placehold.co/120x60.png?text=Import',
           });
-          
-          const rawCsvCnpj = cleanCNPJ(pv.cnpj || ''); 
+
+          const rawCsvCnpj = cleanCNPJ(pv.cnpj || '');
           if (currentVendors.some(v => v.cnpj === rawCsvCnpj) || newVendorsToSave.some(v => v.cnpj === rawCsvCnpj)) {
             validationErrors.push(`Linha ${i + 2}: CNPJ ${pv.cnpj} já existe e foi ignorado.`);
             continue;
@@ -419,8 +409,8 @@ export default function ManageVendorsPage() {
 
           newVendorsToSave.push({
             id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}_${i}`,
-            ...validatedData, 
-            cnpj: rawCsvCnpj, 
+            ...validatedData,
+            cnpj: rawCsvCnpj,
           });
           importedCount++;
         } catch (error) {
@@ -438,7 +428,7 @@ export default function ManageVendorsPage() {
         saveVendors(updatedVendorList);
         setVendors(updatedVendorList);
       }
-      
+
       setImportErrors(validationErrors);
       setImportLoading(false);
 
@@ -472,7 +462,7 @@ export default function ManageVendorsPage() {
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    if (link.download !== undefined) { 
+    if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
       link.setAttribute("download", "exemplo_fornecedores.csv");
@@ -509,8 +499,8 @@ export default function ManageVendorsPage() {
         }
       />
 
-      <Dialog 
-        open={isVendorDialogOpen || isVendorViewDialogOpen} 
+      <Dialog
+        open={isVendorDialogOpen || isVendorViewDialogOpen}
         onOpenChange={(openState) => {
             if (!openState) {
                 setIsVendorDialogOpen(false);
@@ -524,11 +514,11 @@ export default function ManageVendorsPage() {
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>
-                {editingVendor ? 'Editar Fornecedor' : 
+                {editingVendor ? 'Editar Fornecedor' :
                 (viewingVendor ? 'Visualizar Fornecedor' : 'Adicionar Novo Fornecedor')}
             </DialogTitle>
             <DialogDescription>
-                {editingVendor ? 'Atualize os detalhes e gerencie vendedores.' : 
+                {editingVendor ? 'Atualize os detalhes e gerencie vendedores.' :
                 (viewingVendor ? 'Detalhes do fornecedor e seus vendedores.' : 'Preencha os detalhes do fornecedor.')}
             </DialogDescription>
           </DialogHeader>
@@ -542,11 +532,11 @@ export default function ManageVendorsPage() {
                     <FormItem>
                       <FormLabel>CNPJ</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="00.000.000/0000-00" 
-                          {...field} 
-                          value={field.value} 
-                          onChange={e => field.onChange(applyCnpjMask(e.target.value))} 
+                        <Input
+                          placeholder="00.000.000/0000-00"
+                          {...field}
+                          value={field.value}
+                          onChange={e => field.onChange(applyCnpjMask(e.target.value))}
                           disabled={!!viewingVendor}
                           maxLength={18}
                         />
@@ -561,7 +551,7 @@ export default function ManageVendorsPage() {
                   <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
                 </CardContent>
               </Card>
-              {currentVendorInDialog && ( 
+              {currentVendorInDialog && (
                 <Card className="mt-4 sm:mt-6">
                   <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div><CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
@@ -625,7 +615,7 @@ export default function ManageVendorsPage() {
                     <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={salespersonForm.control} name="password" render={({ field }) => (<FormItem><FormLabel>Senha de Login {editingSalesperson ? '(Não alterar)' : ''}</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    {/* Password FormField removed */}
                     <DialogFooter className="pt-3 sm:pt-4">
                         <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                         <Button type="submit" disabled={salespersonForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingSalesperson ? 'Salvar' : 'Cadastrar'}</Button>
@@ -656,11 +646,11 @@ export default function ManageVendorsPage() {
           <div className="space-y-3 sm:space-y-4 py-4">
              <div>
                <label htmlFor="csv-upload" className="block text-sm font-medium mb-1">Arquivo CSV</label>
-              <Input 
+              <Input
                 id="csv-upload"
-                type="file" 
-                accept=".csv" 
-                onChange={handleFileSelect} 
+                type="file"
+                accept=".csv"
+                onChange={handleFileSelect}
                 className="h-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
               />
             </div>
@@ -751,6 +741,3 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
-
-
-

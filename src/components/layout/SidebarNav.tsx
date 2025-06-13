@@ -2,17 +2,16 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; 
-import Image from 'next/image'; 
-import { useState } from 'react'; // Added useState
+import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { useState } from 'react';
 import {
   SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar, TooltipProvider, Tooltip, TooltipTrigger, TooltipContent
-} from '@/components/ui/sidebar'; 
+} from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'; // Added Dialog components
-import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm'; // Added ChangePasswordForm
-import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, Store, Star, ListChecks, Download, UserCog, Trophy, Edit3, Briefcase, Dice6, BadgeCheck, Stamp, KeyRound } from 'lucide-react'; // Added KeyRound
+// Dialog components for ChangePasswordForm removed
+import { LogOut, MapPin, Settings, UserCircle, LayoutDashboard, Building, Store, Star, ListChecks, Download, UserCog, Trophy, Edit3, Briefcase, Dice6, BadgeCheck, Stamp } from 'lucide-react'; // KeyRound removed
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ROLES_TRANSLATIONS } from '@/lib/constants';
@@ -37,7 +36,7 @@ const navItemsByRole = {
   ],
   vendor: [
     { href: '/event', label: 'Info Evento', icon: MapPin },
-    { href: '/vendor/positivacao', label: 'Positivar Loja', icon: BadgeCheck }, 
+    { href: '/vendor/positivacao', label: 'Positivar Loja', icon: BadgeCheck },
   ],
   store: [
     { href: '/event', label: 'Info Evento', icon: MapPin },
@@ -48,9 +47,9 @@ const navItemsByRole = {
 export function SidebarNav() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { setOpenMobile, state: sidebarState, isMobile } = useSidebar(); 
-  const router = useRouter(); 
-  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
+  const { setOpenMobile, state: sidebarState, isMobile } = useSidebar();
+  const router = useRouter();
+  // isChangePasswordDialogOpen state removed
 
   const navItems = user?.role ? navItemsByRole[user.role] : [];
 
@@ -62,11 +61,11 @@ export function SidebarNav() {
 
   const handleLogout = () => {
     logout();
-    router.push('/login'); 
+    router.push('/login');
   };
 
   const getLogoLink = () => {
-    if (!user) return "/login"; 
+    if (!user) return "/login";
     switch (user.role) {
       case 'store':
         return "/store/positivacao";
@@ -80,17 +79,17 @@ export function SidebarNav() {
   return (
     <>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <Link 
-          href={getLogoLink()} 
-          className="flex items-center gap-2" 
+        <Link
+          href={getLogoLink()}
+          className="flex items-center gap-2"
           onClick={handleLinkClick}
         >
           <Building className="h-8 w-8 text-primary" />
           <Image
             src="https://i.imgur.com/qlwlELF.png"
             alt="Logo Hiperfarma BMM"
-            width={128} 
-            height={32}  
+            width={128}
+            height={32}
             className="object-contain group-data-[collapsible=icon]:hidden"
             data-ai-hint="event logo"
             priority
@@ -114,7 +113,7 @@ export function SidebarNav() {
                           variant="default"
                           size="default"
                           isActive={pathname === item.href}
-                          onItemClick={handleLinkClick} 
+                          onItemClick={handleLinkClick}
                           className="justify-start"
                         >
                           {item.icon && <item.icon className="h-5 w-5" />}
@@ -145,31 +144,7 @@ export function SidebarNav() {
             </div>
           </div>
         )}
-        <Dialog open={isChangePasswordDialogOpen} onOpenChange={setIsChangePasswordDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-sidebar-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center hover:bg-sidebar-accent hover:text-sidebar-accent-foreground mb-2"
-            >
-              <KeyRound className="h-4 w-4 group-data-[collapsible=icon]:mx-auto" />
-              <span className="ml-2 group-data-[collapsible=icon]:hidden">Alterar Senha</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Alterar Senha</DialogTitle>
-              <DialogDescription>
-                Preencha os campos abaixo para alterar sua senha.
-                <span className="block mt-1 text-xs text-destructive/80">
-                  Atenção: A verificação de senha atual é simulada. Em produção, esta seria uma operação segura com backend.
-                </span>
-              </DialogDescription>
-            </DialogHeader>
-            <ChangePasswordForm onSuccess={() => setIsChangePasswordDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
-
+        {/* Change Password Dialog and Trigger Button Removed */}
         <Button
           variant="ghost"
           size="sm"

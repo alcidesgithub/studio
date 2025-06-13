@@ -12,8 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ROLES, ROLES_TRANSLATIONS } from '@/lib/constants';
-import { loadUsers, saveUsers } from '@/lib/localStorageUtils'; 
-import type { User, UserRole } from '@/types'; 
+import { loadUsers, saveUsers } from '@/lib/localStorageUtils';
+import type { User, UserRole } from '@/types';
 import { UserCog, PlusCircle, Edit, Trash2, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,8 +26,8 @@ const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'manager'];
 const userFormSchema = z.object({
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres." }),
   email: z.string().email({ message: "Endereço de email inválido." }),
-  password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres." }).optional(), // Opcional para edição
-  role: z.custom<UserRole>(val => ASSIGNABLE_ROLES.includes(val as UserRole), { 
+  // password field removed
+  role: z.custom<UserRole>(val => ASSIGNABLE_ROLES.includes(val as UserRole), {
     message: "Perfil deve ser 'admin' ou 'manager'.",
   }),
 });
@@ -49,8 +49,8 @@ export default function AdminUsersPage() {
     defaultValues: {
       name: '',
       email: '',
-      password: '',
-      role: 'manager', 
+      // password field removed
+      role: 'manager',
     },
   });
 
@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
     form.reset({
       name: '',
       email: '',
-      password: '',
+      // password field removed
       role: 'manager', // Default para novo usuário (admin ou manager)
     });
     setIsDialogOpen(true);
@@ -75,26 +75,26 @@ export default function AdminUsersPage() {
     form.reset({
         name: user.name,
         email: user.email,
-        password: '', 
+        // password field removed
         role: user.role,
     });
     setIsDialogOpen(true);
   };
-  
+
   const handleDelete = (userId: string) => {
     const userToDelete = users.find(u => u.id === userId);
-    
+
     // Proteção extra, embora o botão de delete já deva estar desabilitado para store/vendor
     if (!userToDelete || (userToDelete.role !== 'admin' && userToDelete.role !== 'manager')) {
         toast({ title: "Ação não permitida", description: "Este tipo de usuário não pode ser excluído aqui.", variant: "default"});
         return;
     }
-    
+
     if (userToDelete.role === 'admin' && users.filter(u => u.role === 'admin').length === 1) {
       toast({ title: "Ação não permitida", description: "Não é possível excluir o último administrador.", variant: "destructive"});
       return;
     }
-    
+
     const updatedUsers = users.filter(u => u.id !== userId);
     setUsers(updatedUsers);
     saveUsers(updatedUsers);
@@ -118,15 +118,13 @@ export default function AdminUsersPage() {
         updatedUsers = users.map(u => {
           if (u.id === editingUser.id) {
             const updatedUserEntry: User = {
-              ...editingUser, 
+              ...editingUser,
               name: data.name,
               email: data.email,
               role: data.role, // role aqui será admin ou manager, validado pelo schema e pelo select
               storeName: undefined, // Admins/Managers não têm storeName
             };
-            if (data.password && data.password.trim() !== "") {
-              updatedUserEntry.password = data.password;
-            }
+            // Password logic removed
             return updatedUserEntry;
           }
           return u;
@@ -142,17 +140,14 @@ export default function AdminUsersPage() {
             toast({ title: "Erro", description: "Email já cadastrado.", variant: "destructive" });
             return;
         }
-        if (!data.password) { 
-             form.setError("password", { type: "manual", message: "Senha é obrigatória para novos usuários." });
-             return;
-        }
+        // Password logic removed
         const newUser: User = {
           id: `user_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
           name: data.name,
           email: data.email,
           role: data.role, // Aqui, data.role será 'admin' ou 'manager'
-          password: data.password, // Salva a senha para o novo usuário
-          storeName: undefined, 
+          // password field removed
+          storeName: undefined,
         };
         updatedUsers = [...users, newUser];
         toast({
@@ -160,7 +155,7 @@ export default function AdminUsersPage() {
           description: `Usuário ${ROLES_TRANSLATIONS[data.role]} ${data.name} foi criado.`,
         });
     }
-    
+
     setUsers(updatedUsers);
     saveUsers(updatedUsers);
     form.reset();
@@ -220,29 +215,17 @@ export default function AdminUsersPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Senha {editingUser ? '(Deixe em branco para não alterar)' : ''}</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Password FormField removed */}
               <FormField
                 control={form.control}
                 name="role"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Perfil</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      value={field.value} 
-                      disabled={false} 
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={false}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -301,10 +284,10 @@ export default function AdminUsersPage() {
                         <Edit className="h-4 w-4" />
                         <span className="sr-only">Editar</span>
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8"
                         disabled={(user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 && user.id === users.find(u => u.role === 'admin')?.id)}
                         title={
                           (user.role === 'admin' && users.filter(u => u.role === 'admin').length === 1 ? "Não é possível excluir o último administrador" : "Excluir")
@@ -327,4 +310,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-

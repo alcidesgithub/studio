@@ -7,7 +7,7 @@ export interface User {
   role: UserRole;
   name: string;
   storeName?: string; // For store users (vendor's company name) or store's own name
-  password?: string; // MOCK ONLY - DO NOT USE IN PRODUCTION
+  // password?: string; // Removed
 }
 
 export interface Event {
@@ -96,7 +96,7 @@ export interface Salesperson { // Represents the individual salesperson User
   name: string;
   phone: string;
   email: string;
-  password?: string;
+  // password?: string; // Removed
 }
 
 export interface SweepstakeWinnerRecord {
@@ -107,4 +107,3 @@ export interface SweepstakeWinnerRecord {
   storeName: string;
   drawnAt: Date | string;
 }
-
