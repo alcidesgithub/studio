@@ -204,22 +204,21 @@ export default function AdminTieredSweepstakesPage() {
                       </div>
                       {!isSlotDrawn && (
                         <Button
-                          size="sm"
+                          size="lg"
                           onClick={() => handleDrawWinner(tier)}
                           disabled={!canDrawForThisSlot || isLoadingDraw === tier.id}
-                          variant={canDrawForThisSlot ? "default" : "outline"}
-                          className="w-24 sm:w-28 ml-2 text-xs sm:text-sm"
+                          variant="default"
                         >
                           {isLoadingDraw === tier.id ? (
-                            <PlayCircle className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin text-secondary" />
+                            <PlayCircle className="h-4 w-4 animate-spin" />
                           ) : (
-                            <PlayCircle className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-secondary" />
+                            <PlayCircle className="h-4 w-4" />
                           )}
                           {isLoadingDraw === tier.id ? "Sorteando..." : "Sortear"}
                         </Button>
                       )}
                        {isSlotDrawn && (
-                        <div className="w-24 sm:w-28 text-right ml-2">
+                        <div className="w-24 sm:w-28 text-right ml-2"> {/* Mantém a largura para alinhamento caso o botão seja grande */}
                             <span className="text-xs text-green-600 font-bold">PREMIADO</span>
                         </div>
                        )}
