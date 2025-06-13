@@ -590,7 +590,7 @@ export default function ManageStoresPage() {
                       <FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="neighborhood" render={({ field }) => (
-                      <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Centro" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
                   )}/>
                   <FormField control={form.control} name="state" render={({ field }) => (
                       <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!viewingStore}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
