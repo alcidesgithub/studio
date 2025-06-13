@@ -144,7 +144,7 @@ export default function LandingPage() {
                     alt={vendor.name}
                     layout="fill"
                     objectFit="contain"
-                    className="border-2 border-white rounded-md"
+                    className="border-2 border-white rounded-full" 
                     data-ai-hint="vendor logo"
                   />
                 </div>
