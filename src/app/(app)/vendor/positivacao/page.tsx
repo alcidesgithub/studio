@@ -158,7 +158,7 @@ export default function VendorPositivacaoPage() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input 
           type="text"
-          placeholder="Buscar por nome, código, CNPJ, proprietário, responsável, local..."
+          placeholder="Buscar por nome, código, CNPJ, proprietário, local..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -199,7 +199,7 @@ export default function VendorPositivacaoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-grow space-y-1.5 text-xs sm:text-sm">
-                <p className="text-secondary mb-2 text-sm">
+                <p className="text-secondary mb-2 text-sm font-semibold">
                   Confirme a positivação dessa loja.
                 </p>
                 {store.cnpj && (
