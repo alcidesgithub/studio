@@ -228,7 +228,7 @@ export default function StorePositivacaoPage() {
                   <div
                     key={vendor.id}
                     className={`
-                      flex flex-col items-center p-3 sm:p-4 rounded-lg transition-all duration-300 ease-in-out
+                      flex flex-col items-center p-3 sm:p-4 rounded-lg 
                        text-center min-h-[160px] sm:min-h-[180px] justify-between
                     `}
                   >
@@ -273,7 +273,7 @@ export default function StorePositivacaoPage() {
             </div>
           )}
           {positivacoesCount === 0 && allVendors.length > 0 && (
-            <p className="mt-6 sm:mt-8 text-center text-base sm:text-lg text-muted-foreground">
+            <p className="mt-6 sm:mt-8 text-center text-base sm:text-lg text-white/80">
               Ainda não há selos (positivações). Positive com os fornecedores para recebê-los!
             </p>
           )}
