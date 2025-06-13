@@ -506,7 +506,7 @@ export default function ManageStoresPage() {
         actions={
           <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={() => setIsImportStoreDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
-              <UploadCloud className="mr-2 h-4 w-4" /> Importar Lojas (CSV)
+              <UploadCloud className="mr-2 h-4 w-4" /> Importar (CSV)
             </Button>
             <Button onClick={handleAddNew} className="w-full sm:w-auto">
               <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Loja
