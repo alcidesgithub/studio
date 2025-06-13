@@ -243,18 +243,18 @@ export default function AdminTieredSweepstakesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="px-2 py-3 sm:px-4">Faixa</TableHead>
-                    <TableHead className="px-2 py-3 sm:px-4">Prêmio</TableHead>
-                    <TableHead className="px-2 py-3 sm:px-4">Loja Vencedora (Código - Razão Social - CNPJ - Estado)</TableHead>
-                    <TableHead className="text-right px-2 py-3 sm:px-4">Sorteado Em</TableHead>
+                    <TableHead className="hidden sm:table-cell px-2 py-3 sm:px-4">Prêmio</TableHead>
+                    <TableHead className="px-2 py-3 sm:px-4">Loja Vencedora</TableHead>
+                    <TableHead className="hidden md:table-cell text-right px-2 py-3 sm:px-4">Sorteado Em</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {drawnWinners.sort((a,b) => new Date(b.drawnAt).getTime() - new Date(a.drawnAt).getTime()).map((record, index) => (
                     <TableRow key={`${record.tierId}-${record.storeId}-${index}`}>
                       <TableCell className="font-medium px-2 py-3 sm:px-4">{record.tierName}</TableCell>
-                      <TableCell className="px-2 py-3 sm:px-4 break-words">{record.prizeName}</TableCell>
+                      <TableCell className="hidden sm:table-cell px-2 py-3 sm:px-4 break-words">{record.prizeName}</TableCell>
                       <TableCell className="font-semibold px-2 py-3 sm:px-4 break-words">{record.storeName}</TableCell>
-                      <TableCell className="text-right text-xs px-2 py-3 sm:px-4">{format(new Date(record.drawnAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}</TableCell>
+                      <TableCell className="hidden md:table-cell text-right text-xs px-2 py-3 sm:px-4">{format(new Date(record.drawnAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -268,3 +268,4 @@ export default function AdminTieredSweepstakesPage() {
     </div>
   );
 }
+

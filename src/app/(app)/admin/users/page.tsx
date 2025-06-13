@@ -274,7 +274,7 @@ export default function AdminUsersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Nome</TableHead>
-                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Email</TableHead>
+                  <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Email</TableHead>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Perfil</TableHead>
                   <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ações</TableHead>
                 </TableRow>
@@ -283,7 +283,7 @@ export default function AdminUsersPage() {
                 {displayUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{user.name}</TableCell>
-                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{user.email}</TableCell>
+                    <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{user.email}</TableCell>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(user)}>
@@ -316,3 +316,4 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+

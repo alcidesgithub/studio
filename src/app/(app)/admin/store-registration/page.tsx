@@ -632,10 +632,10 @@ export default function ManageStoresPage() {
                 <TableRow>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Código</TableHead>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Razão Social</TableHead>
-                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">CNPJ</TableHead>
-                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Email (Login)</TableHead>
-                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Município</TableHead>
-                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Estado</TableHead>
+                  <TableHead className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">CNPJ</TableHead>
+                  <TableHead className="hidden lg:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Email (Login)</TableHead>
+                  <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Município</TableHead>
+                  <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Estado</TableHead>
                   <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -647,10 +647,10 @@ export default function ManageStoresPage() {
                   <TableRow key={store.id}>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.code}</TableCell>
                     <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.name}</TableCell>
-                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatCNPJ(store.cnpj)}</TableCell>
-                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{store.email || 'N/A'}</TableCell>
-                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.city || 'N/A'}</TableCell>
-                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{getDisplayState(store.state)}</TableCell>
+                    <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatCNPJ(store.cnpj)}</TableCell>
+                    <TableCell className="hidden lg:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{store.email || 'N/A'}</TableCell>
+                    <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.city || 'N/A'}</TableCell>
+                    <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{getDisplayState(store.state)}</TableCell>
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(store)}>
                         <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
@@ -672,6 +672,7 @@ export default function ManageStoresPage() {
     
 
     
+
 
 
 
