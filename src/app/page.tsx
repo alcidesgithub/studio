@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { EventMap } from '@/components/event/EventMap';
 import { loadEvent as loadEventClient, loadVendors as loadVendorsClient } from '@/lib/localStorageUtils';
 import type { Event, Vendor } from '@/types';
-import { CalendarDays, Clock, MapPin as MapPinIcon, Users, Building, Target, Trophy, Store, ArrowRight, Sparkles, Repeat, ChevronsRight, LogIn, Briefcase } from 'lucide-react';
+import { CalendarDays, Clock, MapPin as MapPinIcon, Users, Building, LogIn, Briefcase } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Image from 'next/image';
@@ -42,7 +42,6 @@ export default function LandingPage() {
       <div className="dark min-h-screen bg-background flex flex-col items-center animate-fadeIn p-4">
         <Skeleton className="h-16 w-48 mx-auto my-8" />
         <Skeleton className="h-8 w-3/4 mx-auto mb-4" />
-        <Skeleton className="h-40 w-full max-w-2xl mx-auto mb-8" />
         <Skeleton className="h-64 w-full max-w-4xl mx-auto" />
       </div>
     );
@@ -75,15 +74,6 @@ export default function LandingPage() {
             </Button>
           </Link>
 
-          {vendors.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-1 gap-4 sm:gap-6 max-w-xs mx-auto">
-                <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 py-6 rounded-lg text-center">
-                <Briefcase className="h-10 w-10 text-accent mx-auto mb-3" />
-                <div className="text-2xl sm:text-3xl font-bold">{vendors.length}</div>
-                <p className="text-sm text-accent">FORNECEDORES CONFIRMADOS</p>
-                </div>
-            </div>
-          )}
         </div>
       </header>
 
