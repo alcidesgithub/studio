@@ -78,15 +78,18 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
     }
 
     const headerLine = allLines[0].toLowerCase();
-    const headers = headerLine.split(',').map(h => h.trim());
+    const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, '')); // Remove aspas dos cabeçalhos
+    
     const headerMap: Record<string, keyof VendorFormValues> = {
-        "name": "name", "cnpj": "cnpj", "address": "address", 
-        "city": "city", "neighborhood": "neighborhood", "state": "state", "logourl": "logoUrl"
+        "nome": "name", "cnpj": "cnpj", "endereco": "address", 
+        "cidade": "city", "bairro": "neighborhood", "estado": "state", "urllogo": "logoUrl"
     };
     
-    const missingHeaders = Object.keys(headerMap).filter(eh => !headers.includes(eh));
+    const expectedHeaders = Object.keys(headerMap);
+    const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
+    
     if (missingHeaders.length > 0) {
-        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${Object.keys(headerMap).join(', ')}`] };
+        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${expectedHeaders.join(', ')}`] };
     }
 
     const vendorsData: Partial<VendorFormValues>[] = [];
@@ -96,7 +99,7 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
         const line = allLines[i];
         if (!line.trim()) continue; 
 
-        const values = line.split(',').map(v => v.trim());
+        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, '')); // Remove aspas das extremidades dos valores
         const vendorRow: Partial<VendorFormValues> = {};
         let hasErrorInRow = false;
 
@@ -108,8 +111,7 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
         });
         
         if (vendorRow.cnpj) {
-            // No CSV, o CNPJ pode vir formatado ou não. A validação Zod cuidará disso.
-            // A função `applyCnpjMask` não é usada aqui, pois é para input interativo.
+            // O CNPJ no CSV pode vir formatado ou não. A validação Zod cuidará disso.
         } else {
             errors.push(`Linha ${i + 1}: CNPJ não fornecido.`);
             hasErrorInRow = true;
@@ -263,10 +265,14 @@ export default function ManageVendorsPage() {
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
     
-    if (initialEditingVendor && !viewingVendor) { 
+    if (initialEditingVendor && !viewingVendor && vendorForm.formState.isDirty) { 
         vendorForm.reset(); 
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
+    } else if (!initialEditingVendor) {
+        // Se for um novo fornecedor, não feche o diálogo automaticamente
+        // mas resete o estado de 'isDirty'
+        vendorForm.reset(data); // Reseta para os valores atuais, tornando o form não 'dirty'
     }
   };
 
@@ -380,8 +386,6 @@ export default function ManageVendorsPage() {
       for (let i = 0; i < parsedVendors.length; i++) {
         const pv = parsedVendors[i];
         try {
-          // O schema Zod já possui um refine que limpa o CNPJ antes de validar o tamanho.
-          // Portanto, passamos o CNPJ como está (pv.cnpj) para a validação.
           const validatedData = vendorSchema.parse({
             name: pv.name || '',
             cnpj: pv.cnpj || '', 
@@ -392,7 +396,7 @@ export default function ManageVendorsPage() {
             logoUrl: pv.logoUrl || 'https://placehold.co/120x60.png?text=Import',
           });
           
-          const rawCsvCnpj = cleanCNPJ(pv.cnpj || ''); // Limpamos para checagem de duplicidade e para salvar
+          const rawCsvCnpj = cleanCNPJ(pv.cnpj || ''); 
           if (currentVendors.some(v => v.cnpj === rawCsvCnpj) || newVendorsToSave.some(v => v.cnpj === rawCsvCnpj)) {
             validationErrors.push(`Linha ${i + 2}: CNPJ ${pv.cnpj} já existe e foi ignorado.`);
             continue;
@@ -400,8 +404,8 @@ export default function ManageVendorsPage() {
 
           newVendorsToSave.push({
             id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}_${i}`,
-            ...validatedData, // validatedData.cnpj é o valor que passou no Zod (pode ter máscara)
-            cnpj: rawCsvCnpj, // Garantimos que o CNPJ salvo seja o limpo
+            ...validatedData, 
+            cnpj: rawCsvCnpj, 
           });
           importedCount++;
         } catch (error) {
@@ -446,7 +450,7 @@ export default function ManageVendorsPage() {
   };
 
   const handleDownloadSampleCSV = () => {
-    const csvHeader = "name,cnpj,address,city,neighborhood,state,logoUrl\n";
+    const csvHeader = "nome,cnpj,endereco,cidade,bairro,estado,urllogo\n";
     const csvExampleRow1 = `"Exemplo Fornecedor Ltda.","12345678000199","Rua Exemplo, 123","Exemplópolis","Centro","SP","https://placehold.co/120x60.png?text=Exemplo1"\n`;
     const csvExampleRow2 = `"Outro Fornecedor S.A.","98765432000100","Avenida Modelo, 456","Modelândia","Bairro Novo","PR","https://placehold.co/120x60.png?text=Exemplo2"\n`;
     const csvContent = csvHeader + csvExampleRow1 + csvExampleRow2;
@@ -630,7 +634,7 @@ export default function ManageVendorsPage() {
             <DialogDescription>
               Selecione um arquivo CSV para importar fornecedores em massa.
               O arquivo deve conter as seguintes colunas na primeira linha (cabeçalho):
-              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">name,cnpj,address,city,neighborhood,state,logoUrl</code>
+              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">nome,cnpj,endereco,cidade,bairro,estado,urllogo</code>
               Certifique-se que o CNPJ esteja formatado corretamente ou apenas com números.
             </DialogDescription>
           </DialogHeader>
@@ -732,4 +736,5 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
+
 

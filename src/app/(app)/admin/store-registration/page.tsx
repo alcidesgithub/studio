@@ -28,7 +28,7 @@ const storeRegistrationSchema = z.object({
   }, { message: "CNPJ deve ter 14 dígitos (após remover formatação)." }),
   address: z.string().min(5, "Endereço é obrigatório."),
   city: z.string().min(2, "Cidade é obrigatória."),
-  neighborhood: z.string().min(2, "Bairro é obrigatória."),
+  neighborhood: z.string().min(2, "Bairro é obrigatório."),
   state: z.enum(STATES.map(s => s.value) as [string, ...string[]], { required_error: "Estado é obrigatório." }),
   phone: z.string().min(10, "Telefone é obrigatório."),
   ownerName: z.string().min(3, "Nome do proprietário é obrigatório."),
@@ -95,16 +95,19 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
     }
 
     const headerLine = allLines[0].toLowerCase();
-    const headers = headerLine.split(',').map(h => h.trim());
+    const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, '')); // Remove aspas dos cabeçalhos
+    
     const headerMap: Record<string, keyof StoreCSVData> = {
-        "code": "code", "razaosocial": "razaoSocial", "cnpj": "cnpj", "address": "address", 
-        "city": "city", "neighborhood": "neighborhood", "state": "state", "phone": "phone",
-        "ownername": "ownerName", "responsiblename": "responsibleName", "email": "email", "password": "password"
+        "codigo": "code", "razaosocial": "razaoSocial", "cnpj": "cnpj", "endereco": "address", 
+        "cidade": "city", "bairro": "neighborhood", "estado": "state", "telefone": "phone",
+        "nomeproprietario": "ownerName", "nomeresponsavel": "responsibleName", "email": "email", "senha": "password"
     };
     
-    const missingHeaders = Object.keys(headerMap).filter(eh => !headers.includes(eh));
+    const expectedHeaders = Object.keys(headerMap);
+    const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
+    
     if (missingHeaders.length > 0) {
-        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${Object.keys(headerMap).join(', ')}`] };
+        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${expectedHeaders.join(', ')}`] };
     }
 
     const storesData: StoreCSVData[] = [];
@@ -114,7 +117,7 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
         const line = allLines[i];
         if (!line.trim()) continue; 
 
-        const values = line.split(',').map(v => v.trim());
+        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, '')); // Remove aspas das extremidades dos valores
         const storeRow: StoreCSVData = {};
         let hasErrorInRow = false;
 
@@ -354,7 +357,7 @@ export default function ManageStoresPage() {
   };
 
   const handleDownloadSampleStoreCSV = () => {
-    const csvHeader = "code,razaoSocial,cnpj,address,city,neighborhood,state,phone,ownerName,responsibleName,email,password\n";
+    const csvHeader = "codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email,senha\n";
     const csvExampleRow1 = `"LJ998","Farmácia Exemplo Sul Ltda.","11222333000188","Rua Modelo Sul, 789","Curitiba","Portão","PR","(41) 99999-0001","Carlos Exemplo","Ana Modelo","loja.exsul@example.com","senha123"\n`;
     const csvExampleRow2 = `"LJ999","Drogaria Boa Saúde Oeste S.A.","44555666000199","Avenida Teste Oeste, 1011","Joinville","Centro","SC","(47) 98888-0002","Fernanda Teste","Ricardo Boa","loja.bsoeste@example.com","outrasenha"\n`;
     const csvContent = csvHeader + csvExampleRow1 + csvExampleRow2;
@@ -646,8 +649,8 @@ export default function ManageStoresPage() {
             <DialogDescription>
               Selecione um arquivo CSV para importar lojas em massa.
               A primeira linha (cabeçalho) deve conter:
-              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">code,razaoSocial,cnpj,address,city,neighborhood,state,phone,ownerName,responsibleName,email,password</code>
-              O campo 'password' é usado para criar um novo login para a loja se o email não existir.
+              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email,senha</code>
+              O campo 'senha' é usado para criar um novo login para a loja se o email não existir.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 sm:space-y-4 py-4">
@@ -746,4 +749,5 @@ export default function ManageStoresPage() {
 
 
     
+
 
