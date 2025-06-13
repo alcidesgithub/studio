@@ -477,7 +477,7 @@ export default function ManageVendorsPage() {
                     <div><CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
                     <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(editingVendor.id)} className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
                     {salespeopleForCurrentEditingVendor.length > 0 ? (
                       <div className="overflow-x-auto">
                         <Table><TableHeader><TableRow>
@@ -613,7 +613,7 @@ export default function ManageVendorsPage() {
       {/* Main Table of Vendors */}
       <Card className="shadow-lg mt-6 sm:mt-8">
         <CardHeader><CardTitle>Fornecedores Cadastrados</CardTitle><CardDescription>Lista de todos os fornecedores no sistema.</CardDescription></CardHeader>
-        <CardContent>
+        <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -654,6 +654,7 @@ export default function ManageVendorsPage() {
     
 
     
+
 
 
 

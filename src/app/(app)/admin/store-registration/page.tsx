@@ -625,7 +625,7 @@ export default function ManageStoresPage() {
           <CardTitle>Lojas Cadastradas</CardTitle>
           <CardDescription>Lista de todas as lojas no sistema.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -672,6 +672,7 @@ export default function ManageStoresPage() {
     
 
     
+
 
 
 

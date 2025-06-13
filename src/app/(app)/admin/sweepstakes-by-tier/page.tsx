@@ -236,7 +236,7 @@ export default function AdminTieredSweepstakesPage() {
           <CardTitle>Log de Vencedores do Sorteio</CardTitle>
           <CardDescription>Histórico de todos os vencedores sorteados em todas as faixas e slots de prêmios.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
           {drawnWinners.length > 0 ? (
             <div className="overflow-x-auto">
               <Table>
@@ -252,7 +252,7 @@ export default function AdminTieredSweepstakesPage() {
                   {drawnWinners.sort((a,b) => new Date(b.drawnAt).getTime() - new Date(a.drawnAt).getTime()).map((record, index) => (
                     <TableRow key={`${record.tierId}-${record.storeId}-${index}`}>
                       <TableCell className="font-medium px-2 py-3 sm:px-4">{record.tierName}</TableCell>
-                      <TableCell className="px-2 py-3 sm:px-4">{record.prizeName}</TableCell>
+                      <TableCell className="px-2 py-3 sm:px-4 break-words">{record.prizeName}</TableCell>
                       <TableCell className="font-semibold px-2 py-3 sm:px-4 break-words">{record.storeName}</TableCell>
                       <TableCell className="text-right text-xs px-2 py-3 sm:px-4">{format(new Date(record.drawnAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}</TableCell>
                     </TableRow>

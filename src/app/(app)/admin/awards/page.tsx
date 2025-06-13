@@ -273,24 +273,24 @@ export default function AdminAwardsPage() {
           <CardTitle>Faixas de Premiação Configurada</CardTitle>
           <CardDescription>Lista das faixas de premiação atuais e seus critérios por estado. A ordem aqui será refletida na tela de sorteios.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-2 py-3 sm:px-4">Ordem</TableHead>
-                  <TableHead className="px-2 py-3 sm:px-4">Nome da Faixa</TableHead>
-                  <TableHead className="px-2 py-3 sm:px-4">Prêmio</TableHead>
-                  <TableHead className="text-right px-2 py-3 sm:px-4">Quantidade</TableHead>
-                  <TableHead className="text-right px-2 py-3 sm:px-4">Positivações PR</TableHead>
-                  <TableHead className="text-right px-2 py-3 sm:px-4">Positivações SC</TableHead>
-                  <TableHead className="text-center px-2 py-3 sm:px-4">Ações</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ordem</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Nome da Faixa</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Prêmio</TableHead>
+                  <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Quantidade</TableHead>
+                  <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Positivações PR</TableHead>
+                  <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Positivações SC</TableHead>
+                  <TableHead className="text-center px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tiers.map((tier, index) => (
                   <TableRow key={tier.id}>
-                    <TableCell className="w-20 sm:w-24 px-2 py-3 sm:px-4">
+                    <TableCell className="w-20 sm:w-24 px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <div className="flex items-center gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveTier(tier.id, 'up')} disabled={index === 0}>
                           <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="sr-only">Mover para Cima</span>
@@ -300,12 +300,12 @@ export default function AdminAwardsPage() {
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium px-2 py-3 sm:px-4">{tier.name}</TableCell>
-                    <TableCell className="px-2 py-3 sm:px-4">{tier.rewardName}</TableCell>
-                    <TableCell className="text-right px-2 py-3 sm:px-4">{tier.quantityAvailable}</TableCell>
-                    <TableCell className="text-right px-2 py-3 sm:px-4">{tier.positivacoesRequired.PR}</TableCell>
-                    <TableCell className="text-right px-2 py-3 sm:px-4">{tier.positivacoesRequired.SC}</TableCell>
-                    <TableCell className="text-right px-2 py-3 sm:px-4">
+                    <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{tier.name}</TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{tier.rewardName}</TableCell>
+                    <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{tier.quantityAvailable}</TableCell>
+                    <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{tier.positivacoesRequired.PR}</TableCell>
+                    <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{tier.positivacoesRequired.SC}</TableCell>
+                    <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(tier)}>
                         <Edit className="h-4 w-4" />
                         <span className="sr-only">Editar</span>
