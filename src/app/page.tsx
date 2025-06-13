@@ -3,9 +3,9 @@
 
 import { useEffect, useState } from 'react';
 import { EventMap } from '@/components/event/EventMap';
-import { loadEvent as loadEventClient, loadVendors as loadVendorsClient } from '@/lib/localStorageUtils'; 
+import { loadEvent as loadEventClient, loadVendors as loadVendorsClient } from '@/lib/localStorageUtils';
 import type { Event, Vendor } from '@/types';
-import { CalendarDays, Clock, MapPin as MapPinIcon, Users, Building, Target, Trophy, Store, ArrowRight, Sparkles, Repeat, ChevronsRight } from 'lucide-react';
+import { CalendarDays, Clock, MapPin as MapPinIcon, Users, Building, Target, Trophy, Store, ArrowRight, Sparkles, Repeat, ChevronsRight, LogIn } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Image from 'next/image';
@@ -32,7 +32,7 @@ export default function LandingPage() {
     } else {
       document.title = 'Encontro de Negócios Hiperfarma';
     }
-    
+
     setVendors(loadVendorsClient().sort((a,b) => a.name.localeCompare(b.name)));
     setIsLoading(false);
   }, []);
@@ -56,10 +56,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="mb-6 sm:mb-10 flex justify-center">
             <Image
-              src="https://i.imgur.com/qlwlELF.png" 
+              src="https://i.imgur.com/qlwlELF.png"
               alt="Encontro de Negócios Hiperfarma"
-              width={300} 
-              height={75} 
+              width={300}
+              height={75}
               style={{ objectFit: "contain" }}
               data-ai-hint="event logo"
               priority
@@ -72,9 +72,14 @@ export default function LandingPage() {
               Conectar para Crescer & Negociar para Avançar.
             </h1>
           </div>
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground mb-10">
+          <p className="max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground mb-8">
             Participe do principal encontro de negócios do setor farmacêutico. Uma oportunidade única para networking, aprendizado e fechamento de grandes negócios. Prepare-se para inovar e expandir seus horizontes!
           </p>
+          <Link href="/login" passHref legacyBehavior>
+            <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold text-base sm:text-lg px-8 py-6 mb-10">
+              <LogIn className="mr-2 h-5 w-5" /> Acessar Sistema
+            </Button>
+          </Link>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
             <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 py-6 rounded-lg text-center">
               <Trophy className="h-10 w-10 text-accent mx-auto mb-3" />
@@ -96,7 +101,7 @@ export default function LandingPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8 sm:py-12 flex-grow w-full">
-        
+
         <section id="mapa-stands-section" aria-labelledby="mapa-stands-heading" className="my-12 sm:my-16">
           <div className="relative text-center mb-8">
             <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-accent/30"></div>
@@ -124,8 +129,8 @@ export default function LandingPage() {
                   <Image
                     src={vendor.logoUrl}
                     alt={vendor.name}
-                    width={150} 
-                    height={80} 
+                    width={150}
+                    height={80}
                     style={{ objectFit: "contain" }}
                     className="max-h-full max-w-full"
                   />
@@ -190,10 +195,10 @@ export default function LandingPage() {
             <p className="flex items-center justify-center gap-2 font-medium">negociar <Repeat className="h-5 w-5 text-secondary inline-block" /></p>
             <p className="flex items-center justify-center gap-2 font-bold text-secondary text-2xl sm:text-3xl">para avançar <ChevronsRight className="h-6 w-6 sm:h-7 sm:w-7 inline-block"/></p>
           </div>
-          
+
           <div className="flex justify-center mb-4">
              <Image
-              src="https://i.imgur.com/qlwlELF.png" 
+              src="https://i.imgur.com/qlwlELF.png"
               alt="Negócios Hiperfarma"
               width={180}
               height={45}
