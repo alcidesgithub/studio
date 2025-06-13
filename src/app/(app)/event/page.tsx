@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import type { Event, Vendor } from '@/types';
 import { EventMap } from '@/components/event/EventMap';
-import { CalendarDays, Clock, MapPin as MapPinIcon, Users } from 'lucide-react';
+import { CalendarDays, Clock, MapPin as MapPinIcon, Briefcase } from 'lucide-react'; // Changed Users to Briefcase
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
@@ -77,7 +77,7 @@ export default function EventInfoPage() {
             </CardContent>
           </Card>
         </div>
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 h-full">
           <EventMap embedUrl={currentEvent.mapEmbedUrl} address={currentEvent.address} />
         </div>
       </div>
@@ -85,7 +85,7 @@ export default function EventInfoPage() {
       <Card className="shadow-lg mt-8 sm:mt-12">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-headline">
-            <Users className="h-6 w-6 sm:h-7 sm:w-7 text-primary" /> Fornecedores Participantes
+            <Briefcase className="h-6 w-6 sm:h-7 sm:w-7 text-primary" /> Fornecedores Participantes {/* Changed Users to Briefcase */}
           </CardTitle>
           <CardDescription>Conheça os fornecedores que estarão presentes no evento.</CardDescription>
         </CardHeader>
