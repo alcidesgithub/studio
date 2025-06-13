@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import type { Event, Vendor } from '@/types';
 import { EventMap } from '@/components/event/EventMap';
-import { CalendarDays, Clock, MapPin as MapPinIcon, Building, Users } from 'lucide-react';
+import { CalendarDays, Clock, MapPin as MapPinIcon, Users } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
@@ -25,7 +25,7 @@ export default function EventInfoPage() {
   if (!currentEvent) {
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
-        <PageHeader title="Informações do evento" icon={Building} />
+        <PageHeader title="Informações do evento" icon={MapPinIcon} />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Carregando informações do evento...
@@ -42,7 +42,7 @@ export default function EventInfoPage() {
       <PageHeader
         title="Informações do evento"
         description={`Detalhes para ${currentEvent.name}`}
-        icon={Building}
+        icon={MapPinIcon}
       />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-6">
