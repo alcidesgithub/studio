@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { loadStores, saveStores, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, Event as EventType, Vendor, PositivationDetail } from '@/types';
-import { ThumbsUp, Store as StoreIcon, CheckCircle, Search, User, MapPin, Building as BuildingIcon, Globe } from 'lucide-react'; // Changed Building to BuildingIcon to avoid conflict
+import { ThumbsUp, Store as StoreIcon, CheckCircle, Search, User, MapPin, Building as BuildingIcon, Globe } from 'lucide-react'; 
 import { useState, useMemo, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,7 @@ export default function VendorPositivacaoPage() {
 
   const currentVendorCompany = useMemo(() => {
     if (!user || user.role !== 'vendor' || !user.storeName) return null; 
-    return allVendors.find(v => v.name === user.storeName); // user.storeName is the Vendor company name for a vendor user
+    return allVendors.find(v => v.name === user.storeName); 
   }, [user, allVendors]);
 
   const handlePositivar = (storeId: string, storeName: string) => {
@@ -70,8 +70,8 @@ export default function VendorPositivacaoPage() {
       vendorName: currentVendorCompany.name,
       vendorLogoUrl: currentVendorCompany.logoUrl,
       date: new Date().toISOString(),
-      salespersonId: user.id, // ID of the logged-in salesperson (User object)
-      salespersonName: user.name, // Name of the logged-in salesperson
+      salespersonId: user.id, 
+      salespersonName: user.name, 
     };
 
     const updatedStore = {
@@ -100,14 +100,13 @@ export default function VendorPositivacaoPage() {
 
       const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
       
-      const checkCnpj = (cnpjValue?: string) => { // cnpjValue is the raw, unformatted one from store data
+      const checkCnpj = (cnpjValue?: string) => { 
         if (!cnpjValue) return false;
-        // 1. Check if the raw unformatted store.cnpj contains the numeric-only search term
+        
         if (cleanedSearchTermForCnpj.length > 0 && cnpjValue.includes(cleanedSearchTermForCnpj)) {
           return true;
         }
-        // 2. Check if the formatted version of store.cnpj contains the original (case-insensitive) search term
-        // This allows searching for "12.345" or "/0001-"
+        
         if (formatDisplayCNPJ(cnpjValue).toLowerCase().includes(lowerSearchTerm)) {
             return true;
         }
@@ -153,7 +152,7 @@ export default function VendorPositivacaoPage() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input 
           type="text"
-          placeholder="Buscar por nome, código, CNPJ, etc..."
+          placeholder="Buscar por nome, código, CNPJ, proprietário, local..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -179,7 +178,7 @@ export default function VendorPositivacaoPage() {
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredStores.map((store: Store) => {
           const isPositivatedByThisVendorForSession = sessionPositivatedStores.has(store.id);
-          // Check if *this vendor company* has already positivada this store
+          
           const isPersistentlyPositivatedByThisVendorCompany = store.positivationsDetails.some(
             detail => detail.vendorId === currentVendorCompany.id 
           );
@@ -194,7 +193,7 @@ export default function VendorPositivacaoPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-grow space-y-1.5 text-xs sm:text-sm">
-                <p className="text-muted-foreground mb-2">
+                <p className="text-muted-foreground mb-2 text-sm">
                   Confirme a positivação dessa loja.
                 </p>
                 {store.cnpj && (
@@ -257,3 +256,4 @@ export default function VendorPositivacaoPage() {
   );
 }
     
+
