@@ -229,15 +229,15 @@ export default function StorePositivacaoPage() {
                     key={vendor.id}
                     className={`
                       flex flex-col items-center p-3 sm:p-4 rounded-lg transition-all duration-300 ease-in-out
-                       text-center min-h-[160px] sm:min-h-[180px] justify-between group
+                       text-center min-h-[160px] sm:min-h-[180px] justify-between
                     `}
                   >
                     <div className="flex flex-col items-center">
-                      <Avatar className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-2 transition-opacity duration-300 ${!isPositivated ? 'opacity-60 group-hover:opacity-100' : ''}`}>
+                      <Avatar className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-2 ${!isPositivated ? 'opacity-60' : ''}`}>
                         <AvatarImage src={vendor.logoUrl} alt={vendor.name} className="object-contain" />
                         <AvatarFallback>{vendor.name.substring(0, 2)}</AvatarFallback>
                       </Avatar>
-                      <p className={`text-xs sm:text-sm font-semibold text-center w-full ${isPositivated ? 'text-white' : 'text-white/60 group-hover:text-white transition-opacity duration-300'}`}>
+                      <p className={`text-xs sm:text-sm font-semibold text-center w-full ${isPositivated ? 'text-white' : 'text-white/60'}`}>
                         {vendor.name}
                       </p>
                     </div>
