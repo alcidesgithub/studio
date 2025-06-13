@@ -212,7 +212,7 @@ export default function StorePositivacaoPage() {
 
       <Card className="shadow-xl mb-6 sm:mb-8">
         <CardHeader>
-          <CardTitle className="font-headline text-xl sm:text-2xl">Sua Cartela de Selos</CardTitle>
+          <CardTitle className="font-headline text-xl sm:text-2xl">Cartela de positivação</CardTitle>
           <CardDescription>Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -330,3 +330,4 @@ export default function StorePositivacaoPage() {
     </div>
   );
 }
+
