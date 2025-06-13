@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { EventMap } from '@/components/event/EventMap';
 import { loadEvent as loadEventClient, loadVendors as loadVendorsClient } from '@/lib/localStorageUtils';
 import type { Event, Vendor } from '@/types';
-import { CalendarDays, Clock, MapPin as MapPinIcon, Users, Building, LogIn, Briefcase } from 'lucide-react';
+import { CalendarDays, Clock, MapPin as MapPinIcon, Users, LogIn, Briefcase } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Image from 'next/image';
@@ -40,9 +40,30 @@ export default function LandingPage() {
   if (isLoading || !event) {
     return (
       <div className="dark min-h-screen bg-background flex flex-col items-center animate-fadeIn p-4">
-        <Skeleton className="h-16 w-48 mx-auto my-8" />
-        <Skeleton className="h-8 w-3/4 mx-auto mb-4" />
-        <Skeleton className="h-64 w-full max-w-4xl mx-auto" />
+        <div className="container mx-auto px-4 text-center py-8 sm:py-12">
+            <Skeleton className="h-16 w-48 mx-auto mb-6" />
+            <Skeleton className="h-10 w-3/4 mx-auto mb-10" />
+            <Skeleton className="h-8 w-40 mx-auto mb-10" />
+        </div>
+        <div className="container mx-auto px-4 py-8 sm:py-12 flex-grow w-full">
+            <Skeleton className="h-10 w-1/2 mx-auto mb-8" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 items-center mb-12">
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+            </div>
+            <Skeleton className="h-10 w-1/2 mx-auto mb-8" />
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+            </div>
+            <Skeleton className="h-64 w-full" />
+        </div>
+        <footer className="w-full bg-card/50 border-t border-border py-10 sm:py-16 mt-12">
+            <div className="container mx-auto px-4 text-center">
+                <Skeleton className="h-10 w-36 mx-auto mb-4" />
+                <Skeleton className="h-4 w-1/3 mx-auto" />
+            </div>
+        </footer>
       </div>
     );
   }
@@ -64,7 +85,7 @@ export default function LandingPage() {
               priority
             />
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-6">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-10">
             {event.name}
           </h1>
           
@@ -106,20 +127,20 @@ export default function LandingPage() {
             <h2 id="quando-onde-heading" className="relative inline-block bg-background px-4 text-2xl sm:text-3xl font-semibold text-foreground uppercase tracking-wider">LOCALIZAÇÃO E DETALHES DO EVENTO</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8 text-center">
-            <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 sm:p-6 rounded-lg">
+            <div className="bg-accent/20 border border-accent/30 p-4 sm:p-6 rounded-lg">
               <CalendarDays className="h-8 w-8 text-accent mx-auto mb-2" />
-              <h3 className="text-lg font-semibold mb-1">DATA</h3>
-              <p className="text-base">{format(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+              <h3 className="text-lg font-semibold mb-1 uppercase text-foreground">DATA</h3>
+              <p className="text-base text-white">{format(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
             </div>
-            <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 sm:p-6 rounded-lg">
+            <div className="bg-accent/20 border border-accent/30 p-4 sm:p-6 rounded-lg">
               <Clock className="h-8 w-8 text-accent mx-auto mb-2" />
-              <h3 className="text-lg font-semibold mb-1">HORÁRIO</h3>
-              <p className="text-base">{event.time}</p>
+              <h3 className="text-lg font-semibold mb-1 uppercase text-foreground">HORÁRIO</h3>
+              <p className="text-base text-white">{event.time}</p>
             </div>
-            <div className="bg-accent/20 border border-accent/30 text-accent-foreground p-4 sm:p-6 rounded-lg">
+            <div className="bg-accent/20 border border-accent/30 p-4 sm:p-6 rounded-lg">
               <MapPinIcon className="h-8 w-8 text-accent mx-auto mb-2" />
-              <h3 className="text-lg font-semibold mb-1">LOCAL</h3>
-              <p className="text-base">{event.location}</p>
+              <h3 className="text-lg font-semibold mb-1 uppercase text-foreground">LOCAL</h3>
+              <p className="text-base text-white">{event.location}</p>
             </div>
           </div>
           {event.mapEmbedUrl && event.mapEmbedUrl.trim() !== "" ? (
