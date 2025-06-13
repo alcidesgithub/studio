@@ -264,7 +264,7 @@ export default function StorePositivacaoPage() {
                           </p>
                          </>
                       ) : (
-                        <p className="text-white/60">Ainda não positivado</p>
+                        <p className="text-white/50">Ainda não positivado</p>
                       )}
                     </div>
                   </div>
