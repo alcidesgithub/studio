@@ -309,12 +309,20 @@ export default function ManageStoresPage() {
     saveStores(updatedStores);
 
     const currentUsers = loadUsers();
-    const userIndex = currentUsers.findIndex(u => u.email === data.email);
+    const userIndex = currentUsers.findIndex(u => u.email === data.email && (u.role === 'store' || (editingStore && u.email === editingStore.email)));
+
 
     if (userIndex > -1) { 
       currentUsers[userIndex].name = data.responsibleName;
       currentUsers[userIndex].role = 'store';
       currentUsers[userIndex].storeName = data.razaoSocial;
+      if (data.password && data.password.trim() !== "") {
+        currentUsers[userIndex].password = data.password;
+        toast({
+          title: "Senha do Usuário Atualizada!",
+          description: `A senha para ${data.email} foi atualizada.`,
+        });
+      }
     } else { 
       if (data.password) { 
         const newUserForStore: User = {
@@ -323,6 +331,7 @@ export default function ManageStoresPage() {
           role: 'store',
           name: data.responsibleName, 
           storeName: data.razaoSocial,
+          password: data.password, // Salva a senha para o novo usuário
         };
         currentUsers.push(newUserForStore);
          toast({
@@ -471,6 +480,7 @@ export default function ManageStoresPage() {
               role: 'store',
               name: validatedData.responsibleName,
               storeName: validatedData.razaoSocial,
+              password: validatedData.password, // Salva a senha do CSV para o novo usuário
             };
             newUsersToSave.push(newUserForStore);
           }
@@ -749,5 +759,6 @@ export default function ManageStoresPage() {
 
 
     
+
 
 

@@ -327,14 +327,29 @@ export default function ManageVendorsPage() {
     saveSalespeople(updatedSalespeople);
 
     const currentUsers = loadUsers();
-    const userIndex = currentUsers.findIndex(u => u.email === data.email);
+    const userIndex = currentUsers.findIndex(u => u.email === data.email && (u.role === 'vendor' || (editingSalesperson && u.email === editingSalesperson.email)));
+
     if (userIndex > -1) { 
       currentUsers[userIndex].name = data.name; 
       currentUsers[userIndex].role = 'vendor'; 
       currentUsers[userIndex].storeName = vendorForSalesperson.name;
+       if (data.password && data.password.trim() !== "") {
+        currentUsers[userIndex].password = data.password;
+        toast({
+          title: "Senha do Usuário Atualizada!",
+          description: `A senha para ${data.email} foi atualizada.`,
+        });
+      }
     } else { 
       if (data.password) {
-        const newUserForSalesperson: User = { id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`, email: data.email, role: 'vendor', name: data.name, storeName: vendorForSalesperson.name };
+        const newUserForSalesperson: User = { 
+            id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`, 
+            email: data.email, 
+            role: 'vendor', 
+            name: data.name, 
+            storeName: vendorForSalesperson.name,
+            password: data.password, // Salva a senha para o novo usuário
+        };
         currentUsers.push(newUserForSalesperson);
         toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`});
       } else if (!editingSalesperson) {
@@ -736,5 +751,6 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
+
 
 
