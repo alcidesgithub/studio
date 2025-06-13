@@ -210,10 +210,10 @@ export default function StorePositivacaoPage() {
         </Card>
       </div>
 
-      <Card className="shadow-xl mb-6 sm:mb-8">
-        <CardHeader>
-          <CardTitle className="font-headline text-xl sm:text-2xl">Cartela de positivação</CardTitle>
-          <CardDescription>Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
+      <Card className="shadow-xl mb-6 sm:mb-8 bg-[#2d2d2d]">
+        <CardHeader className="text-center">
+          <CardTitle className="font-headline text-xl sm:text-2xl text-[#c3f45d]">Cartela de positivação</CardTitle>
+          <CardDescription className="text-white">Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
         </CardHeader>
         <CardContent>
           {allVendors.length === 0 ? (
@@ -229,8 +229,8 @@ export default function StorePositivacaoPage() {
                     key={vendor.id}
                     className={`
                       flex flex-col items-center p-3 sm:p-4 rounded-lg transition-all duration-300 ease-in-out border
-                      ${isPositivated ? 'border-secondary shadow-lg' : 'border-muted opacity-75 hover:opacity-100'}
-                      bg-card hover:shadow-md text-center min-h-[160px] sm:min-h-[180px] justify-between group
+                      ${isPositivated ? 'border-secondary shadow-lg bg-card' : 'border-muted opacity-75 hover:opacity-100 bg-card/80'}
+                      hover:shadow-md text-center min-h-[160px] sm:min-h-[180px] justify-between group
                     `}
                   >
                     <div className="flex flex-col items-center">
