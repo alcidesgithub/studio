@@ -508,7 +508,7 @@ export default function ManageVendorsPage() {
             </DialogTitle>
             <DialogDescription>
                 {editingVendor ? 'Atualize os detalhes e gerencie vendedores.' : 
-                (viewingVendor ? 'Detalhes do fornecedor e seus vendedores.' : 'Preencha os detalhes.')}
+                (viewingVendor ? 'Detalhes do fornecedor e seus vendedores.' : 'Preencha os detalhes do fornecedor.')}
             </DialogDescription>
           </DialogHeader>
           <Form {...vendorForm}>
