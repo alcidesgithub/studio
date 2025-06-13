@@ -228,8 +228,8 @@ export default function StorePositivacaoPage() {
                   <div
                     key={vendor.id}
                     className={`
-                      flex flex-col items-center p-3 sm:p-4 rounded-lg transition-all duration-300 ease-in-out border
-                      ${isPositivated ? 'border-secondary shadow-lg bg-card' : 'border-muted opacity-75 hover:opacity-100 bg-card/80'}
+                      flex flex-col items-center p-3 sm:p-4 rounded-lg transition-all duration-300 ease-in-out
+                      ${isPositivated ? 'shadow-lg' : 'opacity-75 hover:opacity-100'}
                       hover:shadow-md text-center min-h-[160px] sm:min-h-[180px] justify-between group
                     `}
                   >
@@ -238,35 +238,34 @@ export default function StorePositivacaoPage() {
                         <AvatarImage src={vendor.logoUrl} alt={vendor.name} className="object-contain" />
                         <AvatarFallback>{vendor.name.substring(0, 2)}</AvatarFallback>
                       </Avatar>
-                      <p className={`
-                        text-xs sm:text-sm font-semibold text-center w-full
-                        ${isPositivated ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}
-                      `}>{vendor.name}</p>
+                      <p className="text-xs sm:text-sm font-semibold text-center w-full text-white">
+                        {vendor.name}
+                      </p>
                     </div>
 
                     <div className="text-xs mt-2 w-full">
                       {isPositivated && positivation?.salespersonName && positivation.date && isValid(parseISO(positivation.date)) ? (
                         <>
-                          <p className="text-secondary flex items-center justify-center">
+                          <p className="text-white flex items-center justify-center">
                             <BadgeCheck className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
                             <span className="font-semibold">Positivado por: {positivation.salespersonName}</span>
                           </p>
-                          <p className="text-muted-foreground mt-0.5">
+                          <p className="text-white/80 mt-0.5">
                             Em: {format(parseISO(positivation.date), "dd/MM HH:mm", { locale: ptBR })}
                           </p>
                         </>
                       ) : isPositivated && positivation && positivation.date && isValid(parseISO(positivation.date)) ? (
                          <>
-                          <p className="text-secondary flex items-center justify-center">
+                          <p className="text-white flex items-center justify-center">
                             <BadgeCheck className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
                             <span className="font-semibold">Positivado!</span>
                           </p>
-                          <p className="text-muted-foreground mt-0.5">
+                          <p className="text-white/80 mt-0.5">
                             Em: {format(parseISO(positivation.date), "dd/MM HH:mm", { locale: ptBR })}
                           </p>
                          </>
                       ) : (
-                        <p className="text-muted-foreground">Ainda não positivado</p>
+                        <p className="text-white/80">Ainda não positivado</p>
                       )}
                     </div>
                   </div>
