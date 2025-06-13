@@ -658,7 +658,7 @@ export default function ManageStoresPage() {
                 type="file" 
                 accept=".csv" 
                 onChange={handleStoreFileSelect} 
-                className="mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                className="mt-1 h-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
               />
             </div>
             {csvStoreFileName && (
@@ -746,3 +746,4 @@ export default function ManageStoresPage() {
 
 
     
+
