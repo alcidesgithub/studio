@@ -4,7 +4,7 @@ export default function AuthLayout({
   params, // Explicitly acknowledge params prop
 }: {
   children: React.ReactNode;
-  params: { [key: string]: string | string[] | undefined }; // Define a general type for params
+  params: {}; // Changed to empty object for static routes
 }) {
   // While this layout is for static routes (so params would be {}),
   // acknowledging it here. The error "params are being enumerated"
@@ -18,3 +18,4 @@ export default function AuthLayout({
     </div>
   );
 }
+
