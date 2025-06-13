@@ -1,15 +1,14 @@
-
 "use client";
 
-import { useEffect, useState } from 'react'; // Adicionado useState
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SheetTitle } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { SidebarNav } from '@/components/layout/SidebarNav';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { loadEvent } from '@/lib/localStorageUtils'; // Importado loadEvent
-import type { Event } from '@/types'; // Importado tipo Event
+import { loadEvent } from '@/lib/localStorageUtils';
+import type { Event } from '@/types';
 
 export default function AppLayout({
   children,
@@ -19,7 +18,7 @@ export default function AppLayout({
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [currentEvent, setCurrentEvent] = useState<Event | null>(null); // Estado para o evento
+  const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -28,11 +27,9 @@ export default function AppLayout({
   }, [user, isLoading, router]);
 
   useEffect(() => {
-    // Carrega detalhes do evento
     const eventDetails = loadEvent();
     setCurrentEvent(eventDetails);
   }, []);
-
 
   if (isLoading) {
     return (
@@ -43,8 +40,6 @@ export default function AppLayout({
   }
 
   if (!user) {
-    // Este caso idealmente é tratado pelo redirect do useEffect,
-    // mas como fallback:
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4">
         <p className="mb-4">Redirecionando para o login...</p>
@@ -53,7 +48,6 @@ export default function AppLayout({
     );
   }
   
-  // Verifica acesso baseado em role para rotas admin
   if (pathname.startsWith('/admin') && !['admin', 'manager'].includes(user.role)) {
      return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4">
@@ -64,7 +58,6 @@ export default function AppLayout({
       );
   }
 
-  // Verifica acesso baseado em role para rotas de loja
   const allowedStorePaths = ['/event', '/store/positivacao']; 
   if (user.role === 'store' && !allowedStorePaths.includes(pathname) && !pathname.startsWith('/_next/')) {
       return (
@@ -76,7 +69,6 @@ export default function AppLayout({
         );
   }
 
-  // Verifica acesso baseado em role para rotas de vendedor
   const allowedVendorPaths = ['/event', '/vendor/positivacao'];
   if (user.role === 'vendor' && !allowedVendorPaths.includes(pathname) && !pathname.startsWith('/_next/')) {
     return (
@@ -88,7 +80,6 @@ export default function AppLayout({
     );
   }
 
-  // Determina o título do cabeçalho móvel
   const mobileHeaderTitle = currentEvent?.name ? currentEvent.name : "Menu";
 
   return (
@@ -98,7 +89,6 @@ export default function AppLayout({
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4 md:hidden">
-          {/* Mobile Sidebar Trigger */}
           <SidebarTrigger className="sm:hidden" /> 
           <h1 className="font-headline text-lg font-semibold truncate" title={mobileHeaderTitle}>{mobileHeaderTitle}</h1>
         </header>

@@ -1,23 +1,11 @@
-"use client";
-
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect } from 'react';
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => console.log('Service Worker registrado com escopo:', registration.scope))
-        .catch((error) => console.log('Falha ao registrar Service Worker:', error));
-    }
-  }, []);
-
+}) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
