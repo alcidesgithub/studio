@@ -143,7 +143,7 @@ export default function AdminTieredSweepstakesPage() {
     <div className="animate-fadeIn space-y-6 sm:space-y-8">
       <PageHeader
         title="Sorteios por faixa"
-        description={`Sorteie vencedores para cada faixa de premiação no ${currentEvent.name}. Cada loja pode ganhar apenas uma vez. A ordem das faixas abaixo respeita a configuração da tela de Gerenciamento de Faixas.`}
+        description="Sorteie vencedores para cada faixa de premiação. Cada loja pode ganhar apenas uma vez."
         icon={Dice6}
         actions={
           <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
