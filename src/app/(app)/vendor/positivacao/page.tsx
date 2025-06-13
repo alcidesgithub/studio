@@ -233,19 +233,19 @@ export default function VendorPositivacaoPage() {
               </CardContent>
               <CardFooter>
                 <Button 
-                  className="w-full h-[70px] sm:h-[80px] text-sm sm:text-lg"
+                  className="w-full py-6 text-sm sm:text-lg"
                   onClick={() => handlePositivar(store.id, store.name)}
                   disabled={isDisabled}
                 >
                   {isDisabled ? (
                     <>
                       <CheckCircle className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6" /> 
-                      <span className="truncate min-w-0 ml-2">Positivada por {currentVendorCompany.name}</span>
+                      <span className="truncate min-w-0">Positivada por {currentVendorCompany.name}</span>
                     </>
                   ) : (
                     <>
                       {currentVendorCompany.logoUrl ? (
-                          <div className="relative w-[70px] h-[40px] sm:w-[90px] sm:h-[60px] flex-shrink-0 mr-2 sm:mr-3">
+                          <div className="relative w-[70px] h-[40px] sm:w-[90px] sm:h-[60px] flex-shrink-0">
                             <Image
                               src={currentVendorCompany.logoUrl}
                               alt={`Logo ${currentVendorCompany.name}`}
@@ -255,7 +255,7 @@ export default function VendorPositivacaoPage() {
                             />
                           </div>
                         ) : (
-                          <BadgeCheck className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" /> 
+                          <BadgeCheck className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6" /> 
                         )}
                       <span className="truncate min-w-0">Positivar Loja</span>
                     </>
