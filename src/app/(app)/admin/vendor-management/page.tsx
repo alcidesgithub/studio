@@ -243,29 +243,32 @@ export default function ManageVendorsPage() {
   const onVendorSubmit = (data: VendorFormValues) => {
     let updatedVendors;
     const rawCnpj = cleanCNPJ(data.cnpj);
+    const initialEditingVendor = editingVendor; // Capture state at the beginning of the function
 
-    if (editingVendor) {
+    if (initialEditingVendor) {
       updatedVendors = vendors.map(v =>
-        v.id === editingVendor.id ? { ...editingVendor, ...data, cnpj: rawCnpj } : v
+        v.id === initialEditingVendor.id ? { ...initialEditingVendor, ...data, cnpj: rawCnpj } : v
       );
-      toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.` });
+      if (vendorForm.formState.isDirty) {
+        toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.` });
+      }
     } else {
       const newVendorId = `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
       const newVendor: Vendor = { id: newVendorId, ...data, cnpj: rawCnpj };
       updatedVendors = [...vendors, newVendor];
       setEditingVendor(newVendor); 
       toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.` });
+      vendorForm.reset(data); // Reset form with new data to clear dirty state
     }
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
     
-    // Dialog stays open for new vendor to add salespeople
-    // Close only if it was an edit.
-    if (editingVendor && !viewingVendor) { 
-        vendorForm.reset();
+    if (initialEditingVendor && !viewingVendor) { // If it was an edit from the start
+        vendorForm.reset(); // Full reset
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
     }
+    // If it was a new vendor (!initialEditingVendor), dialog stays open. Form was reset above.
   };
 
   const handleAddNewSalesperson = (vendorId: string) => {
