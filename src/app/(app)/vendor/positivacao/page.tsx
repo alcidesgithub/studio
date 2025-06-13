@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { loadStores, saveStores, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, Event as EventType, Vendor, PositivationDetail } from '@/types';
-import { ThumbsUp, Store as StoreIcon, CheckCircle, Search, User, MapPin, Building as BuildingIcon } from 'lucide-react'; 
+import { BadgeCheck, Store as StoreIcon, CheckCircle, Search, User, MapPin, Building as BuildingIcon } from 'lucide-react'; 
 import { useState, useMemo, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -134,7 +134,7 @@ export default function VendorPositivacaoPage() {
   if (!currentEvent || !currentVendorCompany) {
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
-        <PageHeader title="Positivar Lojas" icon={ThumbsUp} iconClassName="text-secondary" />
+        <PageHeader title="Positivar Lojas" icon={BadgeCheck} iconClassName="text-secondary" />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             { !currentEvent ? "Carregando dados do evento..." : "Dados da empresa fornecedora não encontrados. Faça login como vendedor."}
@@ -150,7 +150,7 @@ export default function VendorPositivacaoPage() {
       <PageHeader
         title={`Positivar Lojas (${currentVendorCompany.name})`}
         description={`Interaja com as lojas no ${currentEvent.name}. Você (${user?.name}) pode positivar cada loja uma vez em nome de ${currentVendorCompany.name}.`}
-        icon={ThumbsUp}
+        icon={BadgeCheck}
         iconClassName="text-secondary"
       />
 
@@ -255,7 +255,7 @@ export default function VendorPositivacaoPage() {
                             />
                           </div>
                         ) : (
-                          <ThumbsUp className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" /> 
+                          <BadgeCheck className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" /> 
                         )}
                       <span className="truncate min-w-0">Positivar Loja</span>
                     </>
@@ -269,4 +269,6 @@ export default function VendorPositivacaoPage() {
     </div>
   );
 }
+    
+
     
