@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { loadStores, loadEvent, loadAwardTiers, loadVendors, loadDrawnWinners } from '@/lib/localStorageUtils';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
 import type { Store, Event, AwardTier, Vendor, SweepstakeWinnerRecord } from '@/types';
-import { Users, BadgeCheck, Trophy, LayoutDashboard, Briefcase } from 'lucide-react';
+import { Store as StoreIcon, BadgeCheck, Trophy, LayoutDashboard, Briefcase } from 'lucide-react'; // Changed Users to StoreIcon
 import { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -172,7 +172,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Lojas Participantes</CardTitle>
-            <Users className="h-6 w-6 text-secondary" /> 
+            <StoreIcon className="h-6 w-6 text-secondary" /> 
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{participatingStoresCount}</div>
@@ -256,3 +256,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
