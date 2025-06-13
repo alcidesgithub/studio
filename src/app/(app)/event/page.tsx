@@ -54,21 +54,21 @@ export default function EventInfoPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">
-                <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-primary mt-1 flex-shrink-0" />
+                <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-secondary mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-sm sm:text-base">Data</h3>
                   <p className="text-muted-foreground text-sm sm:text-base">{format(eventDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-primary mt-1 flex-shrink-0" />
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-secondary mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-sm sm:text-base">Horário</h3>
                   <p className="text-muted-foreground text-sm sm:text-base">{currentEvent.time}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <MapPinIcon className="h-5 w-5 sm:h-6 sm:w-6 text-primary mt-1 flex-shrink-0" />
+                <MapPinIcon className="h-5 w-5 sm:h-6 sm:w-6 text-secondary mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-sm sm:text-base">Localização</h3>
                   <p className="text-muted-foreground text-sm sm:text-base">{currentEvent.location}</p>
@@ -86,7 +86,7 @@ export default function EventInfoPage() {
       <Card className="shadow-lg mt-8 sm:mt-12">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-headline">
-            <Briefcase className="h-6 w-6 sm:h-7 sm:w-7 text-primary" /> Fornecedores Participantes {/* Changed Users to Briefcase */}
+            <Briefcase className="h-6 w-6 sm:h-7 sm:w-7 text-secondary" /> Fornecedores Participantes {/* Changed Users to Briefcase */}
           </CardTitle>
           <CardDescription>Conheça os fornecedores que estarão presentes no evento.</CardDescription>
         </CardHeader>
