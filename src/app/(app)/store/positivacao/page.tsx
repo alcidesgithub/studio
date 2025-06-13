@@ -10,7 +10,7 @@ import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localS
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
-import { Star, Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react';
+import { Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState, useMemo } from 'react';
@@ -212,7 +212,7 @@ export default function StorePositivacaoPage() {
 
       <Card className="shadow-xl mb-6 sm:mb-8 bg-[#2d2d2d]">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-xl sm:text-2xl text-[#c3f45d]">Cartela de positivação</CardTitle>
+          <CardTitle className="font-headline text-2xl sm:text-3xl text-[#c3f45d]">Cartela de positivação</CardTitle>
           <CardDescription className="text-white">Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -229,7 +229,6 @@ export default function StorePositivacaoPage() {
                     key={vendor.id}
                     className={`
                       flex flex-col items-center p-3 sm:p-4 rounded-lg transition-all duration-300 ease-in-out
-                      ${isPositivated ? '' : 'opacity-75 hover:opacity-100'}
                        text-center min-h-[160px] sm:min-h-[180px] justify-between group
                     `}
                   >
