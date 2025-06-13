@@ -47,16 +47,16 @@ export default function LandingPage() {
         </div>
         <div className="container mx-auto px-4 py-8 sm:py-12 flex-grow w-full">
             <Skeleton className="h-10 w-1/2 mx-auto mb-8" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 items-center mb-12">
-                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-            </div>
-            <Skeleton className="h-10 w-1/2 mx-auto mb-8" />
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
                 <Skeleton className="h-32 w-full" />
                 <Skeleton className="h-32 w-full" />
                 <Skeleton className="h-32 w-full" />
             </div>
-            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full mb-8" />
+            <Skeleton className="h-10 w-1/2 mx-auto mb-8" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 items-center">
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+            </div>
         </div>
         <footer className="w-full bg-card/50 border-t border-border py-10 sm:py-16 mt-12">
             <div className="container mx-auto px-4 text-center">
@@ -99,27 +99,6 @@ export default function LandingPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8 sm:py-12 flex-grow w-full">
-
-        {vendors.length > 0 && (
-          <section id="fornecedores-section" aria-labelledby="fornecedores-heading" className="my-12 sm:my-16 py-10 sm:py-12 bg-accent/10 rounded-lg">
-            <h2 id="fornecedores-heading" className="text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-10 text-accent uppercase tracking-wider">FORNECEDORES PARTICIPANTES</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 items-center px-4">
-              {vendors.map(vendor => (
-                <div key={vendor.id} className="flex justify-center items-center h-20 p-2 bg-card/50 rounded shadow-md hover:shadow-lg transition-shadow">
-                  <Image
-                    src={vendor.logoUrl}
-                    alt={vendor.name}
-                    width={150}
-                    height={80}
-                    style={{ objectFit: "contain" }}
-                    className="max-h-full max-w-full"
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         <section id="quando-onde-section" aria-labelledby="quando-onde-heading" className="my-12 sm:my-16">
            <div className="relative text-center mb-8">
             <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-secondary/30"></div>
@@ -154,9 +133,30 @@ export default function LandingPage() {
             </div>
           )}
         </section>
+        
+        {vendors.length > 0 && (
+          <section id="fornecedores-section" aria-labelledby="fornecedores-heading" className="my-12 sm:my-16 py-10 sm:py-12 bg-accent/10 rounded-lg">
+            <h2 id="fornecedores-heading" className="text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-10 text-accent uppercase tracking-wider">FORNECEDORES PARTICIPANTES</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 items-center px-4">
+              {vendors.map(vendor => (
+                <div key={vendor.id} className="flex justify-center items-center h-20 p-2 bg-card/50 rounded shadow-md hover:shadow-lg transition-shadow">
+                  <Image
+                    src={vendor.logoUrl}
+                    alt={vendor.name}
+                    width={150}
+                    height={80}
+                    style={{ objectFit: "contain" }}
+                    className="max-h-full max-w-full"
+                    data-ai-hint="vendor logo"
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
-      <footer className="w-full bg-card/50 border-t border-border py-10 sm:py-16">
+      <footer className="w-full bg-card/50 border-t border-border py-10 sm:py-16 mt-auto">
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center mb-4">
              <Image
