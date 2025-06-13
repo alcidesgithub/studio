@@ -116,7 +116,7 @@ export default function StorePositivacaoPage() {
   if (!user || !currentEvent) {
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
-        <PageHeader title="Minhas Positivações" icon={BadgeCheck} />
+        <PageHeader title="Minhas Positivações" icon={BadgeCheck} iconClassName="text-secondary" />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Carregando dados...
@@ -129,7 +129,7 @@ export default function StorePositivacaoPage() {
   if (!currentStore) {
      return (
       <div className="animate-fadeIn p-4 sm:p-6">
-        <PageHeader title="Minhas Positivações" icon={BadgeCheck} />
+        <PageHeader title="Minhas Positivações" icon={BadgeCheck} iconClassName="text-secondary" />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Dados da loja não encontrados para o usuário {user.name}.
@@ -146,6 +146,7 @@ export default function StorePositivacaoPage() {
         title={`${currentStore.code} - ${currentStore.name} (${currentStore.state || 'N/A'})`}
         description={`Sua performance e selos recebidos no ${currentEvent.name}`}
         icon={BadgeCheck}
+        iconClassName="text-secondary"
       />
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
         <Card className="shadow-lg">
@@ -212,7 +213,7 @@ export default function StorePositivacaoPage() {
 
       <Card className="shadow-xl mb-6 sm:mb-8 bg-[#2d2d2d]">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-2xl sm:text-3xl md:text-4xl text-[#c3f45d]">Cartela de positivação</CardTitle>
+          <CardTitle className="font-headline text-3xl sm:text-4xl md:text-5xl text-[#c3f45d]">Cartela de positivação</CardTitle>
           <CardDescription className="text-white">Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
         </CardHeader>
         <CardContent>

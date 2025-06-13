@@ -25,7 +25,7 @@ export default function EventInfoPage() {
   if (!currentEvent) {
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
-        <PageHeader title="Informações do evento" icon={MapPinIcon} />
+        <PageHeader title="Informações do evento" icon={MapPinIcon} iconClassName="text-secondary" />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             Carregando informações do evento...
@@ -43,6 +43,7 @@ export default function EventInfoPage() {
         title="Informações do evento"
         description={`Detalhes para ${currentEvent.name}`}
         icon={MapPinIcon}
+        iconClassName="text-secondary"
       />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-6">

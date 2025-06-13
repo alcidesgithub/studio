@@ -101,7 +101,7 @@ export default function VendorPositivacaoPage() {
   if (!currentEvent || !currentVendorCompany) {
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
-        <PageHeader title="Positivar Lojas" icon={ThumbsUp} />
+        <PageHeader title="Positivar Lojas" icon={ThumbsUp} iconClassName="text-secondary" />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
             { !currentEvent ? "Carregando dados do evento..." : "Dados da empresa fornecedora não encontrados. Faça login como vendedor."}
@@ -118,6 +118,7 @@ export default function VendorPositivacaoPage() {
         title={`Positivar Lojas (${currentVendorCompany.name})`}
         description={`Interaja com as lojas no ${currentEvent.name}. Você (${user?.name}) pode positivar cada loja uma vez em nome de ${currentVendorCompany.name}.`}
         icon={ThumbsUp}
+        iconClassName="text-secondary"
       />
 
       <div className="mb-4 sm:mb-6 relative flex items-center max-w-full sm:max-w-sm">

@@ -475,6 +475,7 @@ export default function ManageVendorsPage() {
         title="Fornecedores"
         description="Adicione, edite ou remova fornecedores e gerencie seus vendedores."
         icon={Briefcase}
+        iconClassName="text-secondary"
         actions={
           <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={() => setIsImportDialogOpen(true)} variant="outline" className="w-full sm:w-auto">

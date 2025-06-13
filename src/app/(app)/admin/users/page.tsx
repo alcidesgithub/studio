@@ -166,6 +166,7 @@ export default function AdminUsersPage() {
         title="Admins e Gerentes"
         description="Gerencie contas de Administradores e Gerentes do sistema."
         icon={UserCog}
+        iconClassName="text-secondary"
         actions={
           <Button onClick={handleAddNew} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Admin/Gerente

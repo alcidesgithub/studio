@@ -82,6 +82,7 @@ export default function AdminEventManagementPage() {
         title="Gerenciar evento"
         description="Edite os detalhes principais do evento de negócios."
         icon={Edit3}
+        iconClassName="text-secondary"
       />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">

@@ -520,6 +520,7 @@ export default function ManageStoresPage() {
         title="Lojas"
         description="Adicione, edite ou remova lojas participantes."
         icon={StoreIcon}
+        iconClassName="text-secondary"
         actions={
           <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={() => setIsImportStoreDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
