@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Store as StoreIcon, CheckCircle, User, MapPin, Building as BuildingIcon, BadgeCheck } from 'lucide-react';
 import type { Store, Vendor } from '@/types';
 import { formatDisplayCNPJ } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 interface StorePositivationDisplayCardProps {
   store: Store;
@@ -71,10 +72,13 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
       </CardContent>
       <CardFooter>
         <Button
-          className="w-full h-16 text-base font-semibold"
+          className={cn(
+            "w-full h-16 text-base font-semibold",
+            "flex justify-center" // Explicitly ensure centering
+          )}
           onClick={() => onPositivar(store.id, store.name)}
           disabled={isDisabled}
-          size="lg" // Use lg for slightly larger default padding, h-16 overrides height
+          size="lg" 
         >
           {isDisabled ? (
             <>
@@ -86,7 +90,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
           ) : (
             <>
               {currentVendorCompany.logoUrl ? (
-                <div className="relative w-20 h-10"> {/* Adjusted size */}
+                <div className="relative w-20 h-10"> 
                   <Image
                     src={currentVendorCompany.logoUrl}
                     alt={`Logo ${currentVendorCompany.name}`}
@@ -107,4 +111,3 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   );
 });
 StorePositivationDisplayCard.displayName = 'StorePositivationDisplayCard';
-
