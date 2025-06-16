@@ -305,7 +305,7 @@ export default function DashboardPage() {
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader>
                   <CardTitle className="text-base font-semibold">Top Fornecedores por Positivações</CardTitle>
-                  <CardDescription className="text-xs">Fornecedores com mais selos recebidos de lojas participantes.</CardDescription>
+                  <CardDescription className="text-xs">Fornecedores que mais concederam selos (positivações) a lojas participantes.</CardDescription>
               </CardHeader>
               <CardContent>
                   {positivationsByVendorChartData.length > 0 ? (
