@@ -2,8 +2,6 @@
 // src/lib/localStorageUtils.ts
 "use client";
 import type { Event, AwardTier, Store, Vendor, Salesperson, User, SweepstakeWinnerRecord } from '@/types';
-// Mock constants are no longer imported for direct use in load functions here
-// import { MOCK_EVENT, MOCK_AWARD_TIERS, MOCK_STORES, MOCK_VENDORS, MOCK_SALESPEOPLE } from './constants';
 
 const EVENT_KEY = 'hiperfarma_event_details';
 const AWARD_TIERS_KEY = 'hiperfarma_award_tiers';
@@ -21,7 +19,9 @@ const defaultEvent: Event = {
   time: '09:00 - 18:00',
   location: 'Local a Definir',
   address: 'Endereço Completo a Definir',
-  mapEmbedUrl: ''
+  mapEmbedUrl: '',
+  vendorGuideUrl: '',
+  associateGuideUrl: '',
 };
 
 // Generic load function - removed mockDataFallback parameter

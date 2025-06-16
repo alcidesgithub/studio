@@ -21,7 +21,9 @@ const defaultEventSSR: Event = {
   time: '--:-- - --:--',
   location: 'Local (Carregando...)',
   address: 'Endereço (Carregando...)',
-  mapEmbedUrl: ''
+  mapEmbedUrl: '',
+  vendorGuideUrl: '',
+  associateGuideUrl: '',
 };
 
 // SSR-safe load function

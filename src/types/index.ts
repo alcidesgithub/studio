@@ -18,6 +18,8 @@ export interface Event {
   location: string;
   address: string; // For map
   mapEmbedUrl: string;
+  vendorGuideUrl?: string; // Data URL for vendor PDF guide
+  associateGuideUrl?: string; // Data URL for associate PDF guide
 }
 
 export interface PositivationDetail {
