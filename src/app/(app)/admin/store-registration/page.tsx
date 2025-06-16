@@ -200,12 +200,7 @@ function parseCSVToStores(csvText: string, existingStores: Store[]): { data: Sto
                 errors.push(`Linha ${i + 1} (Loja ${storeRow.code || 'sem código'}): 'matrixStoreCode' é obrigatório se 'isMatrix' é FALSE.`);
                 hasErrorInRow = true;
             } else {
-                const matrixExists = existingStores.some(s => s.code === storeRow.matrixStoreCode && s.isMatrix);
-                if (!matrixExists) {
-                    // This check is against existing stores before import. If matrix is also in CSV, it might be missed here.
-                    // Better to validate post-parsing against the full set of stores (existing + new).
-                    // For now, this is a basic check.
-                }
+                // Defer detailed matrix existence check to processing phase to handle matrices in same CSV.
             }
         }
         
@@ -389,7 +384,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
                 </Button>
             </DialogClose>
             {!viewingStore && (
-                <Button type="submit" disabled={isSubmitting || disableMatrixFields && !!editingStore}>
+                <Button type="submit" disabled={isSubmitting || (disableMatrixFields && !!editingStore)}>
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                   {editingStore ? 'Salvar Alterações' : 'Cadastrar Loja'}
                 </Button>
@@ -929,10 +924,10 @@ export default function ManageStoresPage() {
   };
 
   const handleSelectAllStores = () => {
-    if (selectedStoreIds.size === stores.length) {
+    if (selectedStoreIds.size === filteredStores.length) {
       setSelectedStoreIds(new Set());
     } else {
-      setSelectedStoreIds(new Set(stores.map(s => s.id)));
+      setSelectedStoreIds(new Set(filteredStores.map(s => s.id)));
     }
   };
 
@@ -1244,3 +1239,4 @@ export default function ManageStoresPage() {
     </div>
   );
 }
+
