@@ -4,23 +4,23 @@
 // It will fall back to empty/default data if window is undefined or no data is found.
 
 import type { Event, AwardTier, Store, Vendor, Salesperson, User, SweepstakeWinnerRecord } from '@/types';
-// MOCKs from constants.ts are no longer used for seeding runtime data.
 
 const EVENT_KEY = 'hiperfarma_event_details';
 const AWARD_TIERS_KEY = 'hiperfarma_award_tiers';
 const STORES_KEY = 'hiperfarma_stores';
 const VENDORS_KEY = 'hiperfarma_vendors';
-const USERS_KEY = 'hiperfarma_users'; // Added for consistency, though loadUsers SSR might not be common
-const DRAWN_WINNERS_KEY = 'hiperfarma_drawn_winners'; // Added for consistency
+const USERS_KEY = 'hiperfarma_users';
+const DRAWN_WINNERS_KEY = 'hiperfarma_drawn_winners';
 
-// Default empty states
-const defaultEvent: Event = {
-  id: 'evt_default_placeholder_ssr',
-  name: 'Nome do Evento (Configure na Admin)',
-  date: new Date(new Date().setHours(12,0,0,0)).toISOString(),
-  time: '09:00 - 18:00',
-  location: 'Local a Definir',
-  address: 'Endereço Completo a Definir',
+// Default empty/static states for SSR fallbacks
+// Ensures no dynamic calculations (like new Date()) are done during server-side processing or build time for these defaults.
+const defaultEventSSR: Event = {
+  id: 'evt_ssr_default',
+  name: 'Detalhes do Evento (Carregando...)',
+  date: '2024-01-01T12:00:00.000Z', // Static placeholder date
+  time: '--:-- - --:--',
+  location: 'Local (Carregando...)',
+  address: 'Endereço (Carregando...)',
   mapEmbedUrl: ''
 };
 
@@ -47,11 +47,11 @@ function loadDataSSR<T>(key: string, emptyDefault: T): T {
   }
 }
 
-export const loadEvent = (): Event => loadDataSSR<Event>(EVENT_KEY, defaultEvent);
+export const loadEvent = (): Event => loadDataSSR<Event>(EVENT_KEY, defaultEventSSR);
 export const loadVendors = (): Vendor[] => loadDataSSR<Vendor[]>(VENDORS_KEY, []);
 export const loadAwardTiers = (): AwardTier[] => loadDataSSR<AwardTier[]>(AWARD_TIERS_KEY, []);
 export const loadStores = (): Store[] => loadDataSSR<Store[]>(STORES_KEY, []);
-export const loadUsers = (): User[] => loadDataSSR<User[]>(USERS_KEY, []); // For SSR usage if needed
+export const loadUsers = (): User[] => loadDataSSR<User[]>(USERS_KEY, []);
 export const loadDrawnWinners = (): SweepstakeWinnerRecord[] => loadDataSSR<SweepstakeWinnerRecord[]>(DRAWN_WINNERS_KEY, []);
 
 // Save functions are not typically used in SSR context for localStorage,
@@ -70,3 +70,4 @@ export const saveStores = (stores: Store[]): void => saveDataSSR<Store[]>(STORES
 export const saveVendors = (vendors: Vendor[]): void => saveDataSSR<Vendor[]>(VENDORS_KEY, vendors);
 export const saveUsers = (users: User[]): void => saveDataSSR<User[]>(USERS_KEY, users);
 export const saveDrawnWinners = (winners: SweepstakeWinnerRecord[]): void => saveDataSSR<SweepstakeWinnerRecord[]>(DRAWN_WINNERS_KEY, winners);
+
