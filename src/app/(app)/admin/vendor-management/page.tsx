@@ -19,7 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound } from 'lucide-react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
-import { STATES } from '@/lib/constants';
+import { ALL_BRAZILIAN_STATES } from '@/lib/constants'; // Updated import
 import { loadVendors, saveVendors, loadSalespeople, saveSalespeople, loadUsers, saveUsers } from '@/lib/localStorageUtils';
 import type { Vendor, Salesperson, User } from '@/types';
 
@@ -33,7 +33,7 @@ const vendorSchema = z.object({
   address: z.string().min(5, "Endereço é obrigatório."),
   city: z.string().min(2, "Município é obrigatório."),
   neighborhood: z.string().min(2, "Bairro é obrigatório."),
-  state: z.string().min(2, "Estado é obrigatório."),
+  state: z.enum(ALL_BRAZILIAN_STATES.map(s => s.value) as [string, ...string[]], { required_error: "Estado é obrigatório." }),
   logoUrl: z.string().url("Deve ser uma URL válida para o logo."),
 });
 type VendorFormValues = z.infer<typeof vendorSchema>;
@@ -211,7 +211,18 @@ const DynamicVendorFormDialogContent = dynamic<VendorFormDialogContentProps>(() 
                 <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Roberto Faria, 180" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!viewingVendor}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={vendorForm.control} name="state" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Estado</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!!viewingVendor}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {ALL_BRAZILIAN_STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
                 <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
               </CardContent>
             </Card>
@@ -408,7 +419,7 @@ export default function ManageVendorsPage() {
   const vendorForm = useForm<VendorFormValues>({
     resolver: zodResolver(vendorSchema),
     defaultValues: {
-      name: '', cnpj: '', address: '', city: '', neighborhood: '', state: '',
+      name: '', cnpj: '', address: '', city: '', neighborhood: '', state: undefined,
       logoUrl: 'https://placehold.co/120x60.png?text=Logo',
     },
   });
@@ -422,7 +433,7 @@ export default function ManageVendorsPage() {
     setEditingVendor(null);
     setViewingVendor(null);
     vendorForm.reset({
-      name: '', cnpj: '', address: '', city: '', neighborhood: '', state: '',
+      name: '', cnpj: '', address: '', city: '', neighborhood: '', state: undefined,
       logoUrl: 'https://placehold.co/120x60.png?text=NovoLogo',
     });
     setIsVendorDialogOpen(true);
@@ -438,7 +449,7 @@ export default function ManageVendorsPage() {
       address: vendor.address,
       city: vendor.city,
       neighborhood: vendor.neighborhood,
-      state: vendor.state,
+      state: vendor.state || undefined,
       logoUrl: vendor.logoUrl,
     });
     setIsVendorDialogOpen(true);
@@ -454,7 +465,7 @@ export default function ManageVendorsPage() {
       address: vendor.address,
       city: vendor.city,
       neighborhood: vendor.neighborhood,
-      state: vendor.state,
+      state: vendor.state || undefined,
       logoUrl: vendor.logoUrl,
     });
     setIsVendorViewDialogOpen(true);
@@ -535,7 +546,7 @@ export default function ManageVendorsPage() {
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
     } else if (!initialEditingVendor) {
-        vendorForm.reset({...data, cnpj: formatDisplayCNPJ(rawCnpj)}); 
+        vendorForm.reset({...data, cnpj: formatDisplayCNPJ(rawCnpj), state: data.state || undefined}); 
     }
   };
 

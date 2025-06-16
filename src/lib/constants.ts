@@ -28,10 +28,10 @@ export const MOCK_VENDORS: Vendor[] = [
 ].sort((a,b) => a.name.localeCompare(b.name)); // Sort vendors alphabetically
 
 export const MOCK_SALESPEOPLE: Salesperson[] = [
-    { id: 'user_vendor_cs', vendorId: 'vendor_1', name: 'Carlos Silva', phone: '(11) 98765-4321', email: 'carlos.silva@farmacoop.com' },
-    { id: 'user_vendor_ap', vendorId: 'vendor_2', name: 'Ana Pereira', phone: '(41) 91234-5678', email: 'ana.pereira@saudemais.com' },
-    { id: 'user_vendor_bio', vendorId: 'vendor_3', name: 'Beatriz BioMed', phone: '(48) 99999-0003', email: 'beatriz.biomed@example.com' },
-    { id: 'user_vendor_nutri', vendorId: 'vendor_4', name: 'Nicolas Nutri', phone: '(51) 99999-0004', email: 'nicolas.nutri@example.com' },
+    { id: 'user_vendor_cs', vendorId: 'vendor_1', name: 'Carlos Silva', phone: '(11) 98765-4321', email: 'carlos.silva@farmacoop.com', password: 'password123' },
+    { id: 'user_vendor_ap', vendorId: 'vendor_2', name: 'Ana Pereira', phone: '(41) 91234-5678', email: 'ana.pereira@saudemais.com', password: 'password123' },
+    { id: 'user_vendor_bio', vendorId: 'vendor_3', name: 'Beatriz BioMed', phone: '(48) 99999-0003', email: 'beatriz.biomed@example.com', password: 'password123' },
+    { id: 'user_vendor_nutri', vendorId: 'vendor_4', name: 'Nicolas Nutri', phone: '(51) 99999-0004', email: 'nicolas.nutri@example.com', password: 'password123' },
 ];
 
 
@@ -94,6 +94,36 @@ export const ROLES_TRANSLATIONS: Record<UserRole, string> = {
 export const STATES = [
   { value: "PR", label: "Paraná (PR)" },
   { value: "SC", label: "Santa Catarina (SC)" },
+];
+
+export const ALL_BRAZILIAN_STATES = [
+  { value: "AC", label: "Acre (AC)" },
+  { value: "AL", label: "Alagoas (AL)" },
+  { value: "AP", label: "Amapá (AP)" },
+  { value: "AM", label: "Amazonas (AM)" },
+  { value: "BA", label: "Bahia (BA)" },
+  { value: "CE", label: "Ceará (CE)" },
+  { value: "DF", label: "Distrito Federal (DF)" },
+  { value: "ES", label: "Espírito Santo (ES)" },
+  { value: "GO", label: "Goiás (GO)" },
+  { value: "MA", label: "Maranhão (MA)" },
+  { value: "MT", label: "Mato Grosso (MT)" },
+  { value: "MS", label: "Mato Grosso do Sul (MS)" },
+  { value: "MG", label: "Minas Gerais (MG)" },
+  { value: "PA", label: "Pará (PA)" },
+  { value: "PB", label: "Paraíba (PB)" },
+  { value: "PR", label: "Paraná (PR)" },
+  { value: "PE", label: "Pernambuco (PE)" },
+  { value: "PI", label: "Piauí (PI)" },
+  { value: "RJ", label: "Rio de Janeiro (RJ)" },
+  { value: "RN", label: "Rio Grande do Norte (RN)" },
+  { value: "RS", label: "Rio Grande do Sul (RS)" },
+  { value: "RO", label: "Rondônia (RO)" },
+  { value: "RR", label: "Roraima (RR)" },
+  { value: "SC", label: "Santa Catarina (SC)" },
+  { value: "SP", label: "São Paulo (SP)" },
+  { value: "SE", label: "Sergipe (SE)" },
+  { value: "TO", label: "Tocantins (TO)" }
 ];
 
 
