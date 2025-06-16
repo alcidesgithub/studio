@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +12,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { loadAwardTiers, saveAwardTiers } from '@/lib/localStorageUtils';
 import type { AwardTier } from '@/types';
-import { Trophy, PlusCircle, Edit, Trash2, Save, ArrowUp, ArrowDown, Eye } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { Trophy, PlusCircle, Edit, Trash2, Save, ArrowUp, ArrowDown, Eye, Loader2 } from 'lucide-react';
+import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +32,121 @@ type AwardTierFormValues = z.infer<typeof awardTierSchema>;
 const reassignSortOrders = (tiersArray: AwardTier[]): AwardTier[] => {
   return tiersArray.map((tier, index) => ({ ...tier, sortOrder: index }));
 };
+
+interface AwardTierFormDialogContentProps {
+  form: UseFormReturn<AwardTierFormValues>;
+  onSubmit: (data: AwardTierFormValues) => void;
+  editingTier: AwardTier | null;
+  viewingTier: AwardTier | null;
+  isSubmitting: boolean;
+}
+
+const AwardTierFormDialogContentInternal = ({ form, onSubmit, editingTier, viewingTier, isSubmitting }: AwardTierFormDialogContentProps) => {
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>
+            {editingTier ? 'Editar Faixa de Premiação' : 
+            (viewingTier ? 'Visualizar Faixa de Premiação' : 'Adicionar Nova Faixa de Premiação')}
+        </DialogTitle>
+        <DialogDescription>
+          {editingTier ? 'Atualize os detalhes desta faixa de premiação.' : 
+          (viewingTier ? 'Detalhes da faixa de premiação.' : 'Preencha os detalhes para a nova faixa de premiação.')}
+        </DialogDescription>
+      </DialogHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome da Faixa</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: Bronze, Prata, Ouro" {...field} disabled={!!viewingTier} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="rewardName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome / Descrição do Prêmio</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: Cartão Presente R$100, Tablet XYZ" {...field} disabled={!!viewingTier} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="quantityAvailable"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Quantidade Disponível</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="Ex: 10" {...field} disabled={!!viewingTier} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <FormField
+                control={form.control}
+                name="positivacoesRequiredPR"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Positivações Req. (PR)</FormLabel>
+                    <FormControl>
+                    <Input type="number" placeholder="Ex: 5" {...field} disabled={!!viewingTier} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="positivacoesRequiredSC"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Positivações Req. (SC)</FormLabel>
+                    <FormControl>
+                    <Input type="number" placeholder="Ex: 5" {...field} disabled={!!viewingTier} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+          </div>
+          <DialogFooter className="pt-3 sm:pt-4">
+             <DialogClose asChild>
+               <Button type="button" variant="outline">
+                    {viewingTier ? 'Fechar' : 'Cancelar'}
+               </Button>
+            </DialogClose>
+            {!viewingTier && (
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                     {editingTier ? 'Salvar Alterações' : 'Criar Faixa'}
+                </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </Form>
+    </>
+  );
+};
+
+const DynamicAwardTierFormDialogContent = dynamic(() => Promise.resolve(AwardTierFormDialogContentInternal), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /> <p className="mt-2">Carregando formulário...</p></div>,
+});
+
 
 export default function AdminAwardsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -96,7 +212,7 @@ export default function AdminAwardsPage() {
   const handleView = (tier: AwardTier) => {
     setViewingTier(tier);
     setEditingTier(null);
-    form.reset({
+    form.reset({ // Reset with viewingTier data to ensure form is populated for viewing
       name: tier.name,
       rewardName: tier.rewardName,
       quantityAvailable: tier.quantityAvailable,
@@ -151,7 +267,7 @@ export default function AdminAwardsPage() {
         description: `A faixa de premiação "${data.name}" foi criada no armazenamento local.`,
       });
     }
-    updatedTiers.sort((a,b) => a.sortOrder - b.sortOrder);
+    updatedTiers.sort((a,b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
     updatedTiers = reassignSortOrders(updatedTiers);
     
     setTiers(updatedTiers);
@@ -206,99 +322,15 @@ export default function AdminAwardsPage() {
         }}
       >
         <DialogContent className="sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>
-                {editingTier ? 'Editar Faixa de Premiação' : 
-                (viewingTier ? 'Visualizar Faixa de Premiação' : 'Adicionar Nova Faixa de Premiação')}
-            </DialogTitle>
-            <DialogDescription>
-              {editingTier ? 'Atualize os detalhes desta faixa de premiação.' : 
-              (viewingTier ? 'Detalhes da faixa de premiação.' : 'Preencha os detalhes para a nova faixa de premiação.')}
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome da Faixa</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Bronze, Prata, Ouro" {...field} disabled={!!viewingTier} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="rewardName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome / Descrição do Prêmio</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Cartão Presente R$100, Tablet XYZ" {...field} disabled={!!viewingTier} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="quantityAvailable"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantidade Disponível</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="Ex: 10" {...field} disabled={!!viewingTier} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <FormField
-                    control={form.control}
-                    name="positivacoesRequiredPR"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Positivações Req. (PR)</FormLabel>
-                        <FormControl>
-                        <Input type="number" placeholder="Ex: 5" {...field} disabled={!!viewingTier} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="positivacoesRequiredSC"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Positivações Req. (SC)</FormLabel>
-                        <FormControl>
-                        <Input type="number" placeholder="Ex: 5" {...field} disabled={!!viewingTier} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-              </div>
-              <DialogFooter className="pt-3 sm:pt-4">
-                 <DialogClose asChild>
-                   <Button type="button" variant="outline">
-                        {viewingTier ? 'Fechar' : 'Cancelar'}
-                   </Button>
-                </DialogClose>
-                {!viewingTier && (
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                        <Save className="mr-2 h-4 w-4" /> {editingTier ? 'Salvar Alterações' : 'Criar Faixa'}
-                    </Button>
-                )}
-              </DialogFooter>
-            </form>
-          </Form>
+          {(isDialogOpen || isViewDialogOpen) && (
+             <DynamicAwardTierFormDialogContent
+                form={form}
+                onSubmit={onSubmit}
+                editingTier={editingTier}
+                viewingTier={viewingTier}
+                isSubmitting={form.formState.isSubmitting}
+             />
+          )}
         </DialogContent>
       </Dialog>
 

@@ -2,6 +2,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,13 +15,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download, Eye } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download, Eye, Loader2 } from 'lucide-react';
+import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
 import { loadVendors, saveVendors, loadSalespeople, saveSalespeople, loadUsers, saveUsers } from '@/lib/localStorageUtils';
 import type { Vendor, Salesperson, User } from '@/types';
-import Image from 'next/image';
+
 
 const vendorSchema = z.object({
   name: z.string().min(3, "Razão Social da empresa deve ter pelo menos 3 caracteres."),
@@ -39,7 +41,6 @@ const salespersonSchema = z.object({
   name: z.string().min(3, "Nome do vendedor é obrigatório."),
   phone: z.string().min(10, "Telefone é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
-  // password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(), // Removed
 });
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
@@ -111,7 +112,6 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
         });
 
         if (vendorRow.cnpj) {
-            // O CNPJ no CSV pode vir formatado ou não. A validação Zod cuidará disso.
         } else {
             errors.push(`Linha ${i + 1}: CNPJ não fornecido.`);
             hasErrorInRow = true;
@@ -127,6 +127,163 @@ function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[]
     }
     return { data: vendorsData, errors };
 }
+
+interface VendorFormDialogContentProps {
+  vendorForm: UseFormReturn<VendorFormValues>;
+  onVendorSubmit: (data: VendorFormValues) => void;
+  editingVendor: Vendor | null;
+  viewingVendor: Vendor | null;
+  currentVendorInDialog: Vendor | null;
+  salespeopleForCurrentVendorInDialog: Salesperson[];
+  handleAddNewSalesperson: (vendorId: string) => void;
+  handleEditSalesperson: (salesperson: Salesperson) => void;
+  confirmDeleteSalesperson: (salesperson: Salesperson) => void;
+  isSubmittingVendor: boolean;
+}
+
+const VendorFormDialogContentInternal = ({
+  vendorForm, onVendorSubmit, editingVendor, viewingVendor, currentVendorInDialog,
+  salespeopleForCurrentVendorInDialog, handleAddNewSalesperson, handleEditSalesperson,
+  confirmDeleteSalesperson, isSubmittingVendor
+}: VendorFormDialogContentProps) => {
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>
+            {editingVendor ? 'Editar Fornecedor' :
+            (viewingVendor ? 'Visualizar Fornecedor' : 'Adicionar Novo Fornecedor')}
+        </DialogTitle>
+        <DialogDescription>
+            {editingVendor ? 'Atualize os detalhes e gerencie vendedores.' :
+            (viewingVendor ? 'Detalhes do fornecedor e seus vendedores.' : 'Preencha os detalhes do fornecedor.')}
+        </DialogDescription>
+      </DialogHeader>
+      <Form {...vendorForm}>
+        <form onSubmit={vendorForm.handleSubmit(onVendorSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
+          <Card>
+            <CardHeader><CardTitle className="text-lg sm:text-xl">Informações do Fornecedor</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
+              <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CNPJ</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="00.000.000/0000-00"
+                      {...field}
+                      value={field.value}
+                      onChange={e => field.onChange(applyCnpjMask(e.target.value))}
+                      disabled={!!viewingVendor}
+                      maxLength={18}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Roberto Faria, 180" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!viewingVendor}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
+              <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
+            </CardContent>
+          </Card>
+          {currentVendorInDialog && (
+            <Card className="mt-4 sm:mt-6">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div><CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
+                {!viewingVendor && (
+                    <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(currentVendorInDialog.id)} className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
+                )}
+              </CardHeader>
+              <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
+                {salespeopleForCurrentVendorInDialog.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table><TableHeader><TableRow>
+                        <TableHead className="px-2 py-3 sm:px-4">Nome</TableHead>
+                        <TableHead className="px-2 py-3 sm:px-4">Email (Login)</TableHead>
+                        <TableHead className="hidden sm:table-cell px-2 py-3 sm:px-4">Telefone</TableHead>
+                        {!viewingVendor && <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>}
+                    </TableRow></TableHeader>
+                    <TableBody>{salespeopleForCurrentVendorInDialog.map(sp => (
+                        <TableRow key={sp.id}>
+                            <TableCell className="px-2 py-3 sm:px-4">{sp.name}</TableCell>
+                            <TableCell className="px-2 py-3 sm:px-4 break-words">{sp.email}</TableCell>
+                            <TableCell className="hidden sm:table-cell px-2 py-3 sm:px-4">{sp.phone}</TableCell>
+                            {!viewingVendor && (
+                                <TableCell className="text-right px-2 py-3 sm:px-4">
+                                    <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button>
+                                </TableCell>
+                            )}
+                        </TableRow>
+                    ))}</TableBody>
+                  </Table>
+                  </div>
+                ) : (<p className="text-sm text-muted-foreground text-center py-4">Nenhum vendedor cadastrado.</p>)}
+              </CardContent>
+            </Card>)}
+          <DialogFooter className="pt-3 sm:pt-4">
+            <DialogClose asChild>
+                <Button type="button" variant="outline">
+                    {viewingVendor ? 'Fechar' : 'Cancelar'}
+                </Button>
+            </DialogClose>
+            {!viewingVendor && (
+                <Button type="submit" disabled={isSubmittingVendor}>
+                  {isSubmittingVendor ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                   {editingVendor ? 'Salvar Alterações' : 'Cadastrar'}
+                </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </Form>
+    </>
+  );
+};
+
+const DynamicVendorFormDialogContent = dynamic(() => Promise.resolve(VendorFormDialogContentInternal), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /> <p className="mt-2">Carregando formulário...</p></div>,
+});
+
+
+interface SalespersonFormDialogContentProps {
+  salespersonForm: UseFormReturn<SalespersonFormValues>;
+  onSalespersonSubmit: (data: SalespersonFormValues) => void;
+  editingSalesperson: Salesperson | null;
+  currentVendorForSalespersonName: string;
+  isSubmittingSalesperson: boolean;
+}
+
+const SalespersonFormDialogContentInternal = ({ salespersonForm, onSalespersonSubmit, editingSalesperson, currentVendorForSalespersonName, isSubmittingSalesperson }: SalespersonFormDialogContentProps) => {
+  return (
+    <>
+      <DialogHeader>
+          <DialogTitle>{editingSalesperson ? 'Editar Vendedor' : 'Adicionar Novo Vendedor'}</DialogTitle>
+          <DialogDescription>{editingSalesperson ? `Atualize ${editingSalesperson.name}.` : `Adicione para ${currentVendorForSalespersonName}.`}</DialogDescription>
+      </DialogHeader>
+      <Form {...salespersonForm}>
+          <form onSubmit={salespersonForm.handleSubmit(onSalespersonSubmit)} className="space-y-3 sm:space-y-4 py-4">
+              <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <DialogFooter className="pt-3 sm:pt-4">
+                  <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                  <Button type="submit" disabled={isSubmittingSalesperson}>
+                    {isSubmittingSalesperson ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                    {editingSalesperson ? 'Salvar' : 'Cadastrar'}
+                  </Button>
+              </DialogFooter>
+          </form>
+      </Form>
+    </>
+  );
+};
+
+const DynamicSalespersonFormDialogContent = dynamic(() => Promise.resolve(SalespersonFormDialogContentInternal), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /> <p className="mt-2">Carregando formulário...</p></div>,
+});
 
 
 export default function ManageVendorsPage() {
@@ -166,7 +323,7 @@ export default function ManageVendorsPage() {
 
   const salespersonForm = useForm<SalespersonFormValues>({
     resolver: zodResolver(salespersonSchema),
-    defaultValues: { name: '', phone: '', email: '' /* password removed */ },
+    defaultValues: { name: '', phone: '', email: '' },
   });
 
   const handleAddNewVendor = () => {
@@ -258,9 +415,9 @@ export default function ManageVendorsPage() {
       const newVendorId = `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
       const newVendor: Vendor = { id: newVendorId, ...data, cnpj: rawCnpj };
       updatedVendors = [...vendors, newVendor];
-      setEditingVendor(newVendor);
+      setEditingVendor(newVendor); // Keep dialog open for adding salespeople
       toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.` });
-      vendorForm.reset(data);
+      // vendorForm.reset(data); // Reset with current data, so form is not dirty
     }
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
@@ -270,23 +427,22 @@ export default function ManageVendorsPage() {
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
     } else if (!initialEditingVendor) {
-        // Se for um novo fornecedor, não feche o diálogo automaticamente
-        // mas resete o estado de 'isDirty'
-        vendorForm.reset(data); // Reseta para os valores atuais, tornando o form não 'dirty'
+        // For new vendor, dialog stays open. Resetting form state to current makes it not dirty.
+        vendorForm.reset({...data, cnpj: formatDisplayCNPJ(rawCnpj)}); 
     }
   };
 
   const handleAddNewSalesperson = (vendorId: string) => {
     setCurrentVendorIdForSalesperson(vendorId);
     setEditingSalesperson(null);
-    salespersonForm.reset({ name: '', phone: '', email: '' /* password removed */ });
+    salespersonForm.reset({ name: '', phone: '', email: '' });
     setIsSalespersonDialogOpen(true);
   };
 
   const handleEditSalesperson = (salesperson: Salesperson) => {
     setCurrentVendorIdForSalesperson(salesperson.vendorId);
     setEditingSalesperson(salesperson);
-    salespersonForm.reset({ name: salesperson.name, phone: salesperson.phone, email: salesperson.email /* password removed */ });
+    salespersonForm.reset({ name: salesperson.name, phone: salesperson.phone, email: salesperson.email });
     setIsSalespersonDialogOpen(true);
   };
 
@@ -333,7 +489,6 @@ export default function ManageVendorsPage() {
       currentUsers[userIndex].name = data.name;
       currentUsers[userIndex].role = 'vendor';
       currentUsers[userIndex].storeName = vendorForSalesperson.name;
-       // Password logic removed
     } else {
       const newUserForSalesperson: User = {
           id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
@@ -341,7 +496,6 @@ export default function ManageVendorsPage() {
           role: 'vendor',
           name: data.name,
           storeName: vendorForSalesperson.name,
-          // password field removed
       };
       currentUsers.push(newUserForSalesperson);
       toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`});
@@ -512,92 +666,20 @@ export default function ManageVendorsPage() {
         }}
         >
         <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>
-                {editingVendor ? 'Editar Fornecedor' :
-                (viewingVendor ? 'Visualizar Fornecedor' : 'Adicionar Novo Fornecedor')}
-            </DialogTitle>
-            <DialogDescription>
-                {editingVendor ? 'Atualize os detalhes e gerencie vendedores.' :
-                (viewingVendor ? 'Detalhes do fornecedor e seus vendedores.' : 'Preencha os detalhes do fornecedor.')}
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...vendorForm}>
-            <form onSubmit={vendorForm.handleSubmit(onVendorSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
-              <Card>
-                <CardHeader><CardTitle className="text-lg sm:text-xl">Informações do Fornecedor</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
-                  <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CNPJ</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="00.000.000/0000-00"
-                          {...field}
-                          value={field.value}
-                          onChange={e => field.onChange(applyCnpjMask(e.target.value))}
-                          disabled={!!viewingVendor}
-                          maxLength={18}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Roberto Faria, 180" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="state" render={({ field }) => (<FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!viewingVendor}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} disabled={!!viewingVendor} /></FormControl><FormMessage /></FormItem>)} />
-                </CardContent>
-              </Card>
-              {currentVendorInDialog && (
-                <Card className="mt-4 sm:mt-6">
-                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                    <div><CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
-                    {!viewingVendor && (
-                        <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(currentVendorInDialog.id)} className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
-                    )}
-                  </CardHeader>
-                  <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
-                    {salespeopleForCurrentVendorInDialog.length > 0 ? (
-                      <div className="overflow-x-auto">
-                        <Table><TableHeader><TableRow>
-                            <TableHead className="px-2 py-3 sm:px-4">Nome</TableHead>
-                            <TableHead className="px-2 py-3 sm:px-4">Email (Login)</TableHead>
-                            <TableHead className="hidden sm:table-cell px-2 py-3 sm:px-4">Telefone</TableHead>
-                            {!viewingVendor && <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>}
-                        </TableRow></TableHeader>
-                        <TableBody>{salespeopleForCurrentVendorInDialog.map(sp => (
-                            <TableRow key={sp.id}>
-                                <TableCell className="px-2 py-3 sm:px-4">{sp.name}</TableCell>
-                                <TableCell className="px-2 py-3 sm:px-4 break-words">{sp.email}</TableCell>
-                                <TableCell className="hidden sm:table-cell px-2 py-3 sm:px-4">{sp.phone}</TableCell>
-                                {!viewingVendor && (
-                                    <TableCell className="text-right px-2 py-3 sm:px-4">
-                                        <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button>
-                                    </TableCell>
-                                )}
-                            </TableRow>
-                        ))}</TableBody>
-                      </Table>
-                      </div>
-                    ) : (<p className="text-sm text-muted-foreground text-center py-4">Nenhum vendedor cadastrado.</p>)}
-                  </CardContent>
-                </Card>)}
-              <DialogFooter className="pt-3 sm:pt-4">
-                <DialogClose asChild>
-                    <Button type="button" variant="outline">
-                        {viewingVendor ? 'Fechar' : 'Cancelar'}
-                    </Button>
-                </DialogClose>
-                {!viewingVendor && (
-                    <Button type="submit" disabled={vendorForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingVendor ? 'Salvar Alterações' : 'Cadastrar'}</Button>
-                )}
-              </DialogFooter>
-            </form>
-          </Form>
+          {(isVendorDialogOpen || isVendorViewDialogOpen) && (
+            <DynamicVendorFormDialogContent
+              vendorForm={vendorForm}
+              onVendorSubmit={onVendorSubmit}
+              editingVendor={editingVendor}
+              viewingVendor={viewingVendor}
+              currentVendorInDialog={currentVendorInDialog}
+              salespeopleForCurrentVendorInDialog={salespeopleForCurrentVendorInDialog}
+              handleAddNewSalesperson={handleAddNewSalesperson}
+              handleEditSalesperson={handleEditSalesperson}
+              confirmDeleteSalesperson={confirmDeleteSalesperson}
+              isSubmittingVendor={vendorForm.formState.isSubmitting}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -606,22 +688,15 @@ export default function ManageVendorsPage() {
           if (!isOpen) { setEditingSalesperson(null); salespersonForm.reset(); }
       }}>
         <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-                <DialogTitle>{editingSalesperson ? 'Editar Vendedor' : 'Adicionar Novo Vendedor'}</DialogTitle>
-                <DialogDescription>{editingSalesperson ? `Atualize ${editingSalesperson.name}.` : `Adicione para ${vendors.find(v => v.id === currentVendorIdForSalesperson)?.name || ''}.`}</DialogDescription>
-            </DialogHeader>
-            <Form {...salespersonForm}>
-                <form onSubmit={salespersonForm.handleSubmit(onSalespersonSubmit)} className="space-y-3 sm:space-y-4 py-4">
-                    <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    {/* Password FormField removed */}
-                    <DialogFooter className="pt-3 sm:pt-4">
-                        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                        <Button type="submit" disabled={salespersonForm.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingSalesperson ? 'Salvar' : 'Cadastrar'}</Button>
-                    </DialogFooter>
-                </form>
-            </Form>
+           {isSalespersonDialogOpen && (
+            <DynamicSalespersonFormDialogContent
+              salespersonForm={salespersonForm}
+              onSalespersonSubmit={onSalespersonSubmit}
+              editingSalesperson={editingSalesperson}
+              currentVendorForSalespersonName={vendors.find(v => v.id === currentVendorIdForSalesperson)?.name || ''}
+              isSubmittingSalesperson={salespersonForm.formState.isSubmitting}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -676,7 +751,7 @@ export default function ManageVendorsPage() {
               <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
             <Button onClick={handleProcessImport} disabled={!csvFile || importLoading}>
-              {importLoading ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+              {importLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
               {importLoading ? 'Importando...' : 'Importar Arquivo'}
             </Button>
           </DialogFooter>
@@ -741,3 +816,4 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
+

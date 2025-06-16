@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,8 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2 } from 'lucide-react';
+import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
 import { loadStores, saveStores, loadUsers, saveUsers } from '@/lib/localStorageUtils';
@@ -34,7 +35,6 @@ const storeRegistrationSchema = z.object({
   ownerName: z.string().min(3, "Nome do proprietário é obrigatório."),
   responsibleName: z.string().min(3, "Nome do responsável é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
-  // password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(), // Removed
 });
 
 type StoreRegistrationFormValues = z.infer<typeof storeRegistrationSchema>;
@@ -51,7 +51,6 @@ type StoreCSVData = {
   ownerName?: string;
   responsibleName?: string;
   email?: string;
-  // password?: string; // Removed
 };
 
 const applyCnpjMask = (value: string = ''): string => {
@@ -101,7 +100,6 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
         "codigo": "code", "razaosocial": "razaoSocial", "cnpj": "cnpj", "endereco": "address",
         "cidade": "city", "bairro": "neighborhood", "estado": "state", "telefone": "phone",
         "nomeproprietario": "ownerName", "nomeresponsavel": "responsibleName", "email": "email"
-        // "senha": "password" // Removed from headerMap
     };
 
     const expectedHeaders = Object.keys(headerMap);
@@ -141,6 +139,109 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
     return { data: storesData, errors };
 }
 
+interface StoreFormDialogContentProps {
+  form: UseFormReturn<StoreRegistrationFormValues>;
+  onSubmit: (data: StoreRegistrationFormValues) => void;
+  editingStore: Store | null;
+  viewingStore: Store | null;
+  isSubmitting: boolean;
+}
+
+const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingStore, isSubmitting }: StoreFormDialogContentProps) => {
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>
+            {editingStore ? 'Editar Loja' :
+            (viewingStore ? 'Visualizar Loja' : 'Adicionar Nova Loja')}
+        </DialogTitle>
+        <DialogDescription>
+          {editingStore ? 'Atualize os detalhes desta loja.' :
+          (viewingStore ? 'Detalhes da loja.' : 'Preencha os detalhes da loja.')}
+        </DialogDescription>
+      </DialogHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
+          <Card>
+            <CardHeader><CardTitle className="text-lg sm:text-xl">Informações da Loja</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
+              <FormField control={form.control} name="code" render={({ field }) => (
+                  <FormItem><FormLabel>Código da Loja</FormLabel><FormControl><Input placeholder="Ex: 001" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="razaoSocial" render={({ field }) => (
+                  <FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Hiperfarma Medicamentos Ltda." {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="cnpj" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CNPJ</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="00.000.000/0000-00"
+                        {...field}
+                        value={field.value}
+                        onChange={e => field.onChange(applyCnpjMask(e.target.value))}
+                        disabled={!!viewingStore}
+                        maxLength={18}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+              )}/>
+              <FormField control={form.control} name="address" render={({ field }) => (
+                  <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Roberto Faria, 180" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="city" render={({ field }) => (
+                  <FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="neighborhood" render={({ field }) => (
+                  <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="state" render={({ field }) => (
+                  <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!viewingStore}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="phone" render={({ field }) => (
+                  <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+              )}/>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-lg sm:text-xl">Contato e Login (Usuário da Loja)</CardTitle></CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
+              <FormField control={form.control} name="ownerName" render={({ field }) => (
+                  <FormItem><FormLabel>Nome do Proprietário(a)</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="responsibleName" render={({ field }) => (
+                  <FormItem><FormLabel>Nome do Responsável (login sistema)</FormLabel><FormControl><Input placeholder="Ex: Maria Oliveira" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+              )}/>
+              <FormField control={form.control} name="email" render={({ field }) => (
+                  <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+              )}/>
+            </CardContent>
+          </Card>
+          <DialogFooter className="pt-3 sm:pt-4">
+            <DialogClose asChild>
+                <Button type="button" variant="outline">
+                    {viewingStore ? 'Fechar' : 'Cancelar'}
+                </Button>
+            </DialogClose>
+            {!viewingStore && (
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                  {editingStore ? 'Salvar Alterações' : 'Cadastrar Loja'}
+                </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </Form>
+    </>
+  );
+};
+
+const DynamicStoreFormDialogContent = dynamic(() => Promise.resolve(StoreFormDialogContentInternal), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /> <p className="mt-2">Carregando formulário...</p></div>,
+});
+
 
 export default function ManageStoresPage() {
   const { toast } = useToast();
@@ -175,7 +276,6 @@ export default function ManageStoresPage() {
       ownerName: '',
       responsibleName: '',
       email: '',
-      // password: '', // Removed
     },
   });
 
@@ -194,7 +294,6 @@ export default function ManageStoresPage() {
         ownerName: '',
         responsibleName: '',
         email: '',
-        // password: '', // Removed
     });
     setIsDialogOpen(true);
     setIsViewDialogOpen(false);
@@ -215,7 +314,6 @@ export default function ManageStoresPage() {
       ownerName: store.ownerName || '',
       responsibleName: store.responsibleName || '',
       email: store.email || '',
-      // password: '', // Removed
     });
     setIsDialogOpen(true);
     setIsViewDialogOpen(false);
@@ -236,7 +334,6 @@ export default function ManageStoresPage() {
       ownerName: store.ownerName || '',
       responsibleName: store.responsibleName || '',
       email: store.email || '',
-      // password: '', // Removed
     });
     setIsViewDialogOpen(true);
     setIsDialogOpen(false);
@@ -317,7 +414,6 @@ export default function ManageStoresPage() {
       currentUsers[userIndex].name = data.responsibleName;
       currentUsers[userIndex].role = 'store';
       currentUsers[userIndex].storeName = data.razaoSocial;
-      // Password logic removed
     } else {
       const newUserForStore: User = {
         id: `user_store_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
@@ -325,7 +421,6 @@ export default function ManageStoresPage() {
         role: 'store',
         name: data.responsibleName,
         storeName: data.razaoSocial,
-        // password field removed
       };
       currentUsers.push(newUserForStore);
        toast({
@@ -353,9 +448,9 @@ export default function ManageStoresPage() {
   };
 
   const handleDownloadSampleStoreCSV = () => {
-    const csvHeader = "codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email\n"; // Removed 'senha'
-    const csvExampleRow1 = `"LJ998","Farmácia Exemplo Sul Ltda.","11222333000188","Rua Modelo Sul, 789","Curitiba","Portão","PR","(41) 99999-0001","Carlos Exemplo","Ana Modelo","loja.exsul@example.com"\n`; // Removed password
-    const csvExampleRow2 = `"LJ999","Drogaria Boa Saúde Oeste S.A.","44555666000199","Avenida Teste Oeste, 1011","Joinville","Centro","SC","(47) 98888-0002","Fernanda Teste","Ricardo Boa","loja.bsoeste@example.com"\n`; // Removed password
+    const csvHeader = "codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email\n";
+    const csvExampleRow1 = `"LJ998","Farmácia Exemplo Sul Ltda.","11222333000188","Rua Modelo Sul, 789","Curitiba","Portão","PR","(41) 99999-0001","Carlos Exemplo","Ana Modelo","loja.exsul@example.com"\n`;
+    const csvExampleRow2 = `"LJ999","Drogaria Boa Saúde Oeste S.A.","44555666000199","Avenida Teste Oeste, 1011","Joinville","Centro","SC","(47) 98888-0002","Fernanda Teste","Ricardo Boa","loja.bsoeste@example.com"\n`;
     const csvContent = csvHeader + csvExampleRow1 + csvExampleRow2;
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -414,12 +509,9 @@ export default function ManageStoresPage() {
             ownerName: ps.ownerName || "",
             responsibleName: ps.responsibleName || "",
             email: ps.email || "",
-            // password removed
           };
 
-          // Use storeRegistrationSchema without password for validation
-          const validationResult = storeRegistrationSchema.omit({ /* password field is already omitted in schema */ } ).safeParse(storeInputData);
-
+          const validationResult = storeRegistrationSchema.safeParse(storeInputData);
 
           if (!validationResult.success) {
             const fieldErrors = validationResult.error.errors.map(err => `Linha ${i + 2} (Loja ${ps.code || 'sem código'}): ${err.path.join('.')} - ${err.message}`).join('; ');
@@ -462,14 +554,13 @@ export default function ManageStoresPage() {
           newStoresToSave.push(newStore);
 
           const existingUser = currentLocalUsers.find(u => u.email === validatedData.email);
-          if (!existingUser) { // Password from CSV no longer used
+          if (!existingUser) {
             const newUserForStore: User = {
               id: `user_store_csv_${Date.now()}_${i}`,
               email: validatedData.email,
               role: 'store',
               name: validatedData.responsibleName,
               storeName: validatedData.razaoSocial,
-              // password field removed
             };
             newUsersToSave.push(newUserForStore);
           }
@@ -548,87 +639,15 @@ export default function ManageStoresPage() {
         }}
         >
         <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>
-                {editingStore ? 'Editar Loja' :
-                (viewingStore ? 'Visualizar Loja' : 'Adicionar Nova Loja')}
-            </DialogTitle>
-            <DialogDescription>
-              {editingStore ? 'Atualize os detalhes desta loja.' :
-              (viewingStore ? 'Detalhes da loja.' : 'Preencha os detalhes da loja.')}
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
-              <Card>
-                <CardHeader><CardTitle className="text-lg sm:text-xl">Informações da Loja</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
-                  <FormField control={form.control} name="code" render={({ field }) => (
-                      <FormItem><FormLabel>Código da Loja</FormLabel><FormControl><Input placeholder="Ex: 001" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-                  )}/>
-                  <FormField control={form.control} name="razaoSocial" render={({ field }) => (
-                      <FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Hiperfarma Medicamentos Ltda." {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-                  )}/>
-                  <FormField control={form.control} name="cnpj" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CNPJ</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="00.000.000/0000-00"
-                            {...field}
-                            value={field.value}
-                            onChange={e => field.onChange(applyCnpjMask(e.target.value))}
-                            disabled={!!viewingStore}
-                            maxLength={18}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                  )}/>
-                  <FormField control={form.control} name="address" render={({ field }) => (
-                      <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Roberto Faria, 180" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-                  )}/>
-                  <FormField control={form.control} name="city" render={({ field }) => (
-                      <FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-                  )}/>
-                  <FormField control={form.control} name="neighborhood" render={({ field }) => (
-                      <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-                  )}/>
-                  <FormField control={form.control} name="state" render={({ field }) => (
-                      <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!viewingStore}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
-                  )}/>
-                  <FormField control={form.control} name="phone" render={({ field }) => (
-                      <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-                  )}/>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle className="text-lg sm:text-xl">Contato e Login (Usuário da Loja)</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
-                  <FormField control={form.control} name="ownerName" render={({ field }) => (
-                      <FormItem><FormLabel>Nome do Proprietário(a)</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-                  )}/>
-                  <FormField control={form.control} name="responsibleName" render={({ field }) => (
-                      <FormItem><FormLabel>Nome do Responsável (login sistema)</FormLabel><FormControl><Input placeholder="Ex: Maria Oliveira" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-                  )}/>
-                  <FormField control={form.control} name="email" render={({ field }) => (
-                      <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-                  )}/>
-                  {/* Password FormField removed */}
-                </CardContent>
-              </Card>
-              <DialogFooter className="pt-3 sm:pt-4">
-                <DialogClose asChild>
-                    <Button type="button" variant="outline">
-                        {viewingStore ? 'Fechar' : 'Cancelar'}
-                    </Button>
-                </DialogClose>
-                {!viewingStore && (
-                    <Button type="submit" disabled={form.formState.isSubmitting}><Save className="mr-2 h-4 w-4" /> {editingStore ? 'Salvar Alterações' : 'Cadastrar Loja'}</Button>
-                )}
-              </DialogFooter>
-            </form>
-          </Form>
+           {(isDialogOpen || isViewDialogOpen) && (
+            <DynamicStoreFormDialogContent
+              form={form}
+              onSubmit={onSubmit}
+              editingStore={editingStore}
+              viewingStore={viewingStore}
+              isSubmitting={form.formState.isSubmitting}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
@@ -647,7 +666,6 @@ export default function ManageStoresPage() {
               Selecione um arquivo CSV para importar lojas em massa.
               A primeira linha (cabeçalho) deve conter:
               <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email</code>
-              {/* Senha removed from description */}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 sm:space-y-4 py-4">
@@ -683,7 +701,7 @@ export default function ManageStoresPage() {
               <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
             <Button onClick={handleProcessStoreImport} disabled={!csvStoreFile || importStoreLoading}>
-              {importStoreLoading ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+              {importStoreLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
               {importStoreLoading ? 'Importando...' : 'Importar Arquivo'}
             </Button>
           </DialogFooter>
@@ -743,3 +761,4 @@ export default function ManageStoresPage() {
     </div>
   );
 }
+
