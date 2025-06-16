@@ -1,19 +1,21 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2 } from 'lucide-react';
+import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2, Trash } from 'lucide-react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -257,6 +259,9 @@ export default function ManageStoresPage() {
   const [importStoreLoading, setImportStoreLoading] = useState(false);
   const [importStoreErrors, setImportStoreErrors] = useState<string[]>([]);
 
+  const [selectedStoreIds, setSelectedStoreIds] = useState<Set<string>>(new Set());
+  const [isDeleteSelectedConfirmOpen, setIsDeleteSelectedConfirmOpen] = useState(false);
+
 
   useEffect(() => {
     setStores(loadStores());
@@ -357,6 +362,11 @@ export default function ManageStoresPage() {
     const updatedStores = stores.filter(s => s.id !== storeId);
     setStores(updatedStores);
     saveStores(updatedStores);
+    setSelectedStoreIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(storeId);
+        return newSet;
+    });
     toast({
       title: "Loja Excluída!",
       description: "A loja foi removida do armazenamento local.",
@@ -606,6 +616,54 @@ export default function ManageStoresPage() {
     reader.readAsText(csvStoreFile);
   };
 
+  const handleSelectStore = (storeId: string) => {
+    setSelectedStoreIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(storeId)) {
+        newSet.delete(storeId);
+      } else {
+        newSet.add(storeId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllStores = () => {
+    if (selectedStoreIds.size === stores.length) {
+      setSelectedStoreIds(new Set());
+    } else {
+      setSelectedStoreIds(new Set(stores.map(s => s.id)));
+    }
+  };
+
+  const handleConfirmDeleteSelected = () => {
+    if (selectedStoreIds.size === 0) return;
+
+    const storesToDelete = stores.filter(s => selectedStoreIds.has(s.id));
+    const emailsOfStoresToDelete = storesToDelete.map(s => s.email).filter(Boolean) as string[];
+
+    const currentUsers = loadUsers();
+    const usersToKeep = currentUsers.filter(u => !(u.role === 'store' && u.email && emailsOfStoresToDelete.includes(u.email)));
+
+    if (usersToKeep.length < currentUsers.length) {
+      saveUsers(usersToKeep);
+    }
+
+    const updatedStores = stores.filter(s => !selectedStoreIds.has(s.id));
+    setStores(updatedStores);
+    saveStores(updatedStores);
+
+    toast({
+      title: `${selectedStoreIds.size} Loja(s) Excluída(s)!`,
+      description: "As lojas selecionadas e seus usuários associados foram removidos.",
+      variant: "destructive"
+    });
+    setSelectedStoreIds(new Set());
+    setIsDeleteSelectedConfirmOpen(false);
+  };
+
+  const isAllStoresSelected = useMemo(() => stores.length > 0 && selectedStoreIds.size === stores.length, [stores, selectedStoreIds]);
+
 
   return (
     <div className="animate-fadeIn">
@@ -616,6 +674,11 @@ export default function ManageStoresPage() {
         iconClassName="text-secondary"
         actions={
           <div className="flex flex-col sm:flex-row gap-2">
+            {selectedStoreIds.size > 0 && (
+              <Button onClick={() => setIsDeleteSelectedConfirmOpen(true)} variant="destructive" className="w-full sm:w-auto">
+                <Trash className="mr-2 h-4 w-4" /> Excluir ({selectedStoreIds.size})
+              </Button>
+            )}
             <Button onClick={() => setIsImportStoreDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
               <UploadCloud className="mr-2 h-4 w-4" /> Importar (CSV)
             </Button>
@@ -625,6 +688,22 @@ export default function ManageStoresPage() {
           </div>
         }
       />
+
+      <AlertDialog open={isDeleteSelectedConfirmOpen} onOpenChange={setIsDeleteSelectedConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão em Massa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedStoreIds.size} loja(s) selecionada(s)?
+              Esta ação também removerá os usuários de login associados a estas lojas. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteSelectedConfirmOpen(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteSelected} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir Selecionadas</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog
         open={isDialogOpen || isViewDialogOpen}
@@ -719,6 +798,14 @@ export default function ManageStoresPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12 px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                     <Checkbox
+                        checked={isAllStoresSelected}
+                        onCheckedChange={handleSelectAllStores}
+                        aria-label="Selecionar todas as lojas"
+                        disabled={stores.length === 0}
+                      />
+                  </TableHead>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Código</TableHead>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Razão Social</TableHead>
                   <TableHead className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">CNPJ</TableHead>
@@ -730,10 +817,17 @@ export default function ManageStoresPage() {
               </TableHeader>
               <TableBody>
                 {stores.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">Nenhuma loja cadastrada.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">Nenhuma loja cadastrada.</TableCell></TableRow>
                 )}
                 {stores.map((store) => (
-                  <TableRow key={store.id}>
+                  <TableRow key={store.id} data-state={selectedStoreIds.has(store.id) ? "selected" : ""}>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                       <Checkbox
+                        checked={selectedStoreIds.has(store.id)}
+                        onCheckedChange={() => handleSelectStore(store.id)}
+                        aria-label={`Selecionar loja ${store.name}`}
+                      />
+                    </TableCell>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.code}</TableCell>
                     <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.name}</TableCell>
                     <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatDisplayCNPJ(store.cnpj)}</TableCell>
