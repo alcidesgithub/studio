@@ -32,9 +32,12 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   return (
     <Card key={store.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-          <StoreIcon className="h-5 w-5 sm:h-6 sm:w-6 text-secondary flex-shrink-0" />
-          <span className="truncate">{store.name} ({store.code})</span>
+        <CardTitle className="flex items-start gap-2 text-base sm:text-lg">
+          <StoreIcon className="h-5 w-5 sm:h-6 sm:w-6 text-secondary flex-shrink-0 mt-0.5" />
+          <div>
+            <span className="block font-semibold truncate" title={store.name}>{store.name}</span>
+            <span className="block text-xs text-muted-foreground truncate" title={`Código: ${store.code}`}>({store.code})</span>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-grow space-y-1.5 text-xs sm:text-sm">
@@ -88,7 +91,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center gap-1.5"> {/* Added wrapper div with smaller gap */}
+            <div className="flex items-center justify-center gap-1.5">
               {currentVendorCompany.logoUrl ? (
                 <div className="relative w-24 h-12 flex-shrink-0">
                   <Image
@@ -111,4 +114,3 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   );
 });
 StorePositivationDisplayCard.displayName = 'StorePositivationDisplayCard';
-
