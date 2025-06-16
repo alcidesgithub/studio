@@ -239,7 +239,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Fornecedores Participantes</CardTitle>
-            <Users className="h-8 w-8 text-secondary" />
+            <Briefcase className="h-8 w-8 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalVendorsCount}</div>
