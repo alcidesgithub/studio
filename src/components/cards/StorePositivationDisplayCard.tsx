@@ -74,7 +74,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
         <Button
           className={cn(
             "w-full h-16 text-base font-semibold",
-            !isDisabled ? "pl-4" : "" // Reduce left padding for active button
+            !isDisabled ? "pl-4" : "" 
           )}
           onClick={() => onPositivar(store.id, store.name)}
           disabled={isDisabled}
@@ -83,14 +83,14 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
           {isDisabled ? (
             <>
               <CheckCircle className="h-6 w-6 flex-shrink-0" />
-              <span className="truncate">
+              <div className="truncate">
                 Positivada por {currentVendorCompany.name}
-              </span>
+              </div>
             </>
           ) : (
             <>
               {currentVendorCompany.logoUrl ? (
-                <div className="relative w-20 h-10 flex-shrink-0">
+                <div className="relative w-24 h-12 flex-shrink-0">
                   <Image
                     src={currentVendorCompany.logoUrl}
                     alt={`Logo ${currentVendorCompany.name}`}
