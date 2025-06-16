@@ -27,7 +27,6 @@ export default function BranchDetailPage() {
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  // accessDenied state is removed
 
   useEffect(() => {
     setDataLoading(true);
@@ -39,7 +38,7 @@ export default function BranchDetailPage() {
   }, []);
 
   const loggedInStore = useMemo(() => {
-    if (!user || user.role !== 'store' || !user.email) return undefined;
+    if (!user || !user.email) return undefined; // Role check happens later
     return allStores.find(s => s.email === user.email);
   }, [user, allStores]);
 
@@ -111,7 +110,7 @@ export default function BranchDetailPage() {
     );
   }
 
-  // Access control checks after loading is complete
+  // Access Control Checks
   if (!user) {
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
@@ -128,15 +127,15 @@ export default function BranchDetailPage() {
     );
   }
 
-  if (user.role !== 'store') {
+  if (!user.role || user.role !== 'store') { // Check if role exists and is 'store'
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
         <PageHeader title="Acesso Negado" icon={AlertTriangle} iconClassName="text-destructive" />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-destructive-foreground bg-destructive rounded-md">
             <p className="text-lg font-semibold">Você não tem permissão para ver esta página (tipo de usuário incorreto).</p>
-            <Button onClick={() => router.push('/store/positivacao')} className="mt-4 bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90">
-              Voltar para Minhas Positivações
+            <Button onClick={() => router.push(user.role === 'vendor' ? '/vendor/positivacao' : '/dashboard')} className="mt-4 bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90">
+              Voltar para Página Inicial
             </Button>
           </CardContent>
         </Card>
@@ -209,7 +208,6 @@ export default function BranchDetailPage() {
     );
   }
   
-  // At this point, all checks passed, currentEvent should also be loaded
   if (!currentEvent) {
      return (
       <div className="animate-fadeIn p-4 sm:p-6">
@@ -386,5 +384,3 @@ export default function BranchDetailPage() {
     </div>
   );
 }
-
-    
