@@ -5,13 +5,15 @@ import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
-import { Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react';
+import { Trophy, TrendingUp, Gift, BadgeCheck, Building, Eye } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { VendorPositivationDisplayCard } from '@/components/cards/VendorPositivationDisplayCard';
+import Link from 'next/link';
 
 export default function StorePositivacaoPage() {
   const { user } = useAuth();
@@ -29,88 +31,74 @@ export default function StorePositivacaoPage() {
   }, []);
 
   const currentStore = useMemo(() => {
-    if (!user || !user.email) return undefined; // Match by email for uniqueness
+    if (!user || !user.email) return undefined;
     return allStores.find(s => s.email === user.email);
   }, [user, allStores]);
 
-  const storesToConsiderForStats = useMemo(() => {
-    if (!currentStore) return [];
-    if (currentStore.isMatrix) {
-      return allStores.filter(s => s.id === currentStore.id || s.matrixStoreId === currentStore.id);
-    }
-    return [currentStore];
-  }, [currentStore, allStores]);
-
-  const validPositivationsDetailsCombined = useMemo(() => {
-    if (storesToConsiderForStats.length === 0 || allVendors.length === 0) return [];
-    const existingVendorIds = new Set(allVendors.map(v => v.id));
-    let combinedDetails: PositivationDetail[] = [];
-    storesToConsiderForStats.forEach(store => {
-        if (store.positivationsDetails) {
-            combinedDetails = combinedDetails.concat(
-                store.positivationsDetails.filter(pd => existingVendorIds.has(pd.vendorId))
-            );
-        }
-    });
-    return combinedDetails;
-  }, [storesToConsiderForStats, allVendors]);
-
-  const positivacoesCount = useMemo(() => validPositivationsDetailsCombined.length, [validPositivationsDetailsCombined]);
-
-  const sortedAwardTiersForDisplay = useMemo(() => {
-    return [...awardTiers].sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
-  }, [awardTiers]);
-
-  const currentAchievedTier = useMemo(() => {
-    if (!currentStore || sortedAwardTiersForDisplay.length === 0 || !currentStore.state) return undefined;
-    const storeStateForRequirements = currentStore.state; 
-    let achievedTier: AwardTier | undefined = undefined;
-    for (let i = sortedAwardTiersForDisplay.length - 1; i >= 0; i--) {
-        const tier = sortedAwardTiersForDisplay[i];
-        if (positivacoesCount >= getRequiredPositivationsForStore(tier, storeStateForRequirements)) {
-            achievedTier = tier;
-            break; 
-        }
-    }
-    return achievedTier;
-  }, [sortedAwardTiersForDisplay, positivacoesCount, currentStore]);
-
-  const nextTier = useMemo(() => {
-    if (!currentStore || sortedAwardTiersForDisplay.length === 0 || !currentStore.state) return undefined;
-    if (currentAchievedTier) {
-        const currentTierIndex = sortedAwardTiersForDisplay.findIndex(t => t.id === currentAchievedTier!.id);
-        if (currentTierIndex < sortedAwardTiersForDisplay.length - 1) {
-            return sortedAwardTiersForDisplay[currentTierIndex + 1];
-        }
-        return undefined; 
-    }
-    return sortedAwardTiersForDisplay.length > 0 ? sortedAwardTiersForDisplay[0] : undefined;
-  }, [sortedAwardTiersForDisplay, currentAchievedTier, currentStore]);
-
-  const progressToNextTier = useMemo(() => {
-    if (!currentStore || !nextTier || !currentStore.state) return currentAchievedTier ? 100 : 0;
-    const storeStateForRequirements = currentStore.state;
-    const requiredForNext = getRequiredPositivationsForStore(nextTier, storeStateForRequirements);
-    if (requiredForNext === 0) return positivacoesCount >= 0 ? 100 : 0; 
-    if (requiredForNext <= 0 || positivacoesCount < 0) return 0;
-    const progress = (positivacoesCount / requiredForNext) * 100;
-    return Math.min(progress, 100);
-  }, [nextTier, positivacoesCount, currentAchievedTier, currentStore]);
-
-  // For the "Cartela de positivação", always show the logged-in store's direct positivations
-  const validPositivationsDetailsForCartela = useMemo(() => {
+  // Positivations for the currently viewed store (matrix itself, or the logged-in branch/standalone)
+  const positivationsDetailsForCurrentStoreView = useMemo(() => {
     if (!currentStore || !currentStore.positivationsDetails || allVendors.length === 0) return [];
     const existingVendorIds = new Set(allVendors.map(v => v.id));
     return currentStore.positivationsDetails.filter(pd => existingVendorIds.has(pd.vendorId));
   }, [currentStore, allVendors]);
 
+  const positivacoesCountForCurrentStoreView = useMemo(() => positivationsDetailsForCurrentStoreView.length, [positivationsDetailsForCurrentStoreView]);
+
+  const sortedAwardTiersForDisplay = useMemo(() => {
+    return [...awardTiers].sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
+  }, [awardTiers]);
+
+  const currentAchievedTierForCurrentStoreView = useMemo(() => {
+    if (!currentStore || sortedAwardTiersForDisplay.length === 0 || !currentStore.state) return undefined;
+    const storeStateForRequirements = currentStore.state;
+    let achievedTier: AwardTier | undefined = undefined;
+    for (let i = sortedAwardTiersForDisplay.length - 1; i >= 0; i--) {
+        const tier = sortedAwardTiersForDisplay[i];
+        if (positivacoesCountForCurrentStoreView >= getRequiredPositivationsForStore(tier, storeStateForRequirements)) {
+            achievedTier = tier;
+            break;
+        }
+    }
+    return achievedTier;
+  }, [sortedAwardTiersForDisplay, positivacoesCountForCurrentStoreView, currentStore]);
+
+  const nextTierForCurrentStoreView = useMemo(() => {
+    if (!currentStore || sortedAwardTiersForDisplay.length === 0 || !currentStore.state) return undefined;
+    if (currentAchievedTierForCurrentStoreView) {
+        const currentTierIndex = sortedAwardTiersForDisplay.findIndex(t => t.id === currentAchievedTierForCurrentStoreView!.id);
+        if (currentTierIndex < sortedAwardTiersForDisplay.length - 1) {
+            return sortedAwardTiersForDisplay[currentTierIndex + 1];
+        }
+        return undefined;
+    }
+    return sortedAwardTiersForDisplay.length > 0 ? sortedAwardTiersForDisplay[0] : undefined;
+  }, [sortedAwardTiersForDisplay, currentAchievedTierForCurrentStoreView, currentStore]);
+
+  const progressToNextTierForCurrentStoreView = useMemo(() => {
+    if (!currentStore || !nextTierForCurrentStoreView || !currentStore.state) return currentAchievedTierForCurrentStoreView ? 100 : 0;
+    const storeStateForRequirements = currentStore.state;
+    const requiredForNext = getRequiredPositivationsForStore(nextTierForCurrentStoreView, storeStateForRequirements);
+    if (requiredForNext === 0) return positivacoesCountForCurrentStoreView >= 0 ? 100 : 0;
+    if (requiredForNext <= 0 || positivacoesCountForCurrentStoreView < 0) return 0;
+    const progress = (positivacoesCountForCurrentStoreView / requiredForNext) * 100;
+    return Math.min(progress, 100);
+  }, [nextTierForCurrentStoreView, positivacoesCountForCurrentStoreView, currentAchievedTierForCurrentStoreView, currentStore]);
+
   const positivationsMapForCartela = useMemo(() => {
     const map = new Map<string, PositivationDetail>();
-    validPositivationsDetailsForCartela.forEach(detail => {
+    // Cartela always shows the direct positivations of the currentStore (matrix or branch)
+    const detailsForCartela = currentStore?.positivationsDetails?.filter(pd => allVendors.some(v => v.id === pd.vendorId)) || [];
+    detailsForCartela.forEach(detail => {
       map.set(detail.vendorId, detail);
     });
     return map;
-  }, [validPositivationsDetailsForCartela]);
+  }, [currentStore, allVendors]);
+
+  const branchesOfCurrentStore = useMemo(() => {
+    if (!currentStore || !currentStore.isMatrix) return [];
+    return allStores.filter(store => store.matrixStoreId === currentStore.id);
+  }, [currentStore, allStores]);
+
 
   if (!user || !currentEvent) {
     return (
@@ -138,10 +126,9 @@ export default function StorePositivacaoPage() {
     );
   }
 
-  const pageTitle = currentStore.isMatrix 
-    ? `${currentStore.code} - ${currentStore.name} (Matriz e Filiais)` 
-    : `${currentStore.code} - ${currentStore.name} (${currentStore.state || 'N/A'})`;
-  const pageDescription = `Sua performance e selos recebidos no ${currentEvent.name}${currentStore.isMatrix ? " (incluindo filiais)" : ""}`;
+  const pageTitle = `${currentStore.code} - ${currentStore.name} (${currentStore.state || 'N/A'})${currentStore.isMatrix ? " (Matriz)" : ""}`;
+  const pageDescription = `Sua performance e selos recebidos no ${currentEvent.name}${currentStore.isMatrix ? ". Detalhes das filiais abaixo." : ""}`;
+
 
   return (
     <div className="animate-fadeIn">
@@ -154,56 +141,56 @@ export default function StorePositivacaoPage() {
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Selos Recebidos {currentStore.isMatrix && <span className="text-xs font-normal">(Matriz+Filiais)</span>}</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Selos Recebidos {currentStore.isMatrix && <span className="text-xs font-normal">(Apenas Matriz)</span>}</CardTitle>
             <BadgeCheck className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold">{positivacoesCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold">{positivacoesCountForCurrentStoreView}</div>
             <p className="text-xs text-muted-foreground">De fornecedores participantes</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Faixa de Premiação Atual {currentStore.isMatrix && <span className="text-xs font-normal">(Matriz+Filiais)</span>}</CardTitle>
+            <CardTitle className="text-sm font-medium">Faixa de Premiação Atual {currentStore.isMatrix && <span className="text-xs font-normal">(Apenas Matriz)</span>}</CardTitle>
             <Trophy className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">
-              {currentAchievedTier ? currentAchievedTier.name : 'Nenhuma'}
+              {currentAchievedTierForCurrentStoreView ? currentAchievedTierForCurrentStoreView.name : 'Nenhuma'}
             </div>
             <p className="text-xs text-muted-foreground">
-              {currentAchievedTier ? `Prêmio: ${currentAchievedTier.rewardName}` : 'Continue coletando selos!'}
+              {currentAchievedTierForCurrentStoreView ? `Prêmio: ${currentAchievedTierForCurrentStoreView.rewardName}` : 'Continue coletando selos!'}
             </p>
           </CardContent>
         </Card>
 
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Progresso Próxima Faixa {currentStore.isMatrix && <span className="text-xs font-normal">(Matriz+Filiais)</span>}</CardTitle>
+            <CardTitle className="text-sm font-medium">Progresso Próxima Faixa {currentStore.isMatrix && <span className="text-xs font-normal">(Apenas Matriz)</span>}</CardTitle>
             <TrendingUp className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
-            {nextTier && currentStore.state ? (
+            {nextTierForCurrentStoreView && currentStore.state ? (
               <>
-                <div className="text-lg sm:text-xl font-bold">{positivacoesCount} / {getRequiredPositivationsForStore(nextTier, currentStore.state)} selos</div>
-                <Progress value={progressToNextTier} className="mt-2 h-2.5 sm:h-3" />
+                <div className="text-lg sm:text-xl font-bold">{positivacoesCountForCurrentStoreView} / {getRequiredPositivationsForStore(nextTierForCurrentStoreView, currentStore.state)} selos</div>
+                <Progress value={progressToNextTierForCurrentStoreView} className="mt-2 h-2.5 sm:h-3" />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Faltam {Math.max(0, getRequiredPositivationsForStore(nextTier, currentStore.state) - positivacoesCount)} selos para a faixa {nextTier.name}!
+                  Faltam {Math.max(0, getRequiredPositivationsForStore(nextTierForCurrentStoreView, currentStore.state) - positivacoesCountForCurrentStoreView)} selos para a faixa {nextTierForCurrentStoreView.name}!
                 </p>
               </>
             ) : (
-              currentAchievedTier ? (
+              currentAchievedTierForCurrentStoreView ? (
                   <>
                   <div className="text-lg sm:text-xl font-bold">Parabéns!</div>
                   <p className="text-xs text-muted-foreground mt-1">Você atingiu a faixa máxima de premiação!</p>
                   </>
-              ) : ( 
+              ) : (
                   <>
                   <div className="text-lg sm:text-xl font-bold">
-                    {positivacoesCount} / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? (sortedAwardTiersForDisplay[0].positivacoesRequired.PR || '0') : '-')} selos
+                    {positivacoesCountForCurrentStoreView} / {awardTiers.length > 0 && currentStore.state && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? getRequiredPositivationsForStore(sortedAwardTiersForDisplay[0], currentStore.state) : (awardTiers.length > 0 && sortedAwardTiersForDisplay.length > 0 && sortedAwardTiersForDisplay[0] ? (sortedAwardTiersForDisplay[0].positivacoesRequired.PR || '0') : '-')} selos
                   </div>
-                    <Progress value={progressToNextTier} className="mt-2 h-2.5 sm:h-3" />
+                    <Progress value={progressToNextTierForCurrentStoreView} className="mt-2 h-2.5 sm:h-3" />
                   <p className="text-xs text-muted-foreground mt-1">
                     {awardTiers.length === 0 ? "Nenhuma faixa de premiação configurada." : (currentStore.state ? "Comece a coletar selos!" : "Dados do estado da loja incompletos.")}
                   </p>
@@ -233,13 +220,55 @@ export default function StorePositivacaoPage() {
               ))}
             </div>
           )}
-          {validPositivationsDetailsForCartela.length === 0 && allVendors.length > 0 && (
+          {positivationsDetailsForCurrentStoreView.length === 0 && allVendors.length > 0 && (
             <p className="mt-6 sm:mt-8 text-center text-base sm:text-lg text-white/50">
               Ainda não há selos (positivações) para esta loja. Positive com os fornecedores para recebê-los!
             </p>
           )}
         </CardContent>
       </Card>
+
+      {currentStore.isMatrix && branchesOfCurrentStore.length > 0 && (
+        <Card className="shadow-lg mb-6 sm:mb-8">
+          <CardHeader className="flex flex-row items-center gap-2">
+            <Building className="h-5 w-5 sm:h-6 sm:w-6 text-secondary"/>
+            <CardTitle>Desempenho das Filiais</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="px-2 py-3 sm:px-4">Código</TableHead>
+                    <TableHead className="px-2 py-3 sm:px-4">Nome da Filial</TableHead>
+                    <TableHead className="text-right px-2 py-3 sm:px-4">Selos</TableHead>
+                    <TableHead className="text-center px-2 py-3 sm:px-4">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {branchesOfCurrentStore.map((branch) => {
+                    const branchPositivationsCount = branch.positivationsDetails?.filter(pd => allVendors.some(v => v.id === pd.vendorId)).length || 0;
+                    return (
+                      <TableRow key={branch.id}>
+                        <TableCell className="px-2 py-3 sm:px-4">{branch.code}</TableCell>
+                        <TableCell className="font-medium px-2 py-3 sm:px-4">{branch.name}</TableCell>
+                        <TableCell className="text-right font-semibold px-2 py-3 sm:px-4">{branchPositivationsCount}</TableCell>
+                        <TableCell className="text-center px-2 py-3 sm:px-4">
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/store/branch/${branch.id}`}>
+                              <Eye className="mr-2 h-4 w-4" /> Ver Detalhes
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="shadow-lg mb-6 sm:mb-8">
         <CardHeader className="flex flex-row items-center gap-2">
@@ -282,10 +311,12 @@ export default function StorePositivacaoPage() {
               <CardTitle>Qualificação para Sorteios</CardTitle>
           </CardHeader>
           <CardContent>
-          <p className="text-sm">Sua loja (e filiais, se aplicável) tem <span className="font-bold text-base sm:text-lg text-secondary">{positivacoesCount}</span> selos.</p>
+          <p className="text-sm">Sua loja (apenas <span className="font-semibold">{currentStore.name}</span>) tem <span className="font-bold text-base sm:text-lg text-secondary">{positivacoesCountForCurrentStoreView}</span> selos.</p>
           <p className="text-xs text-muted-foreground mt-1">Lojas com mais selos e que atingem as faixas de premiação participam de sorteios especiais. Continue positivando!</p>
           </CardContent>
       </Card>
     </div>
   );
 }
+
+    
