@@ -73,12 +73,12 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
       <CardFooter>
         <Button
           className={cn(
-            "w-full h-16 text-base font-semibold"
-            // Removed explicit "flex justify-center" as it's default for shadcn Button
+            "w-full h-16 text-base font-semibold",
+            !isDisabled ? "pl-4" : "" // Reduce left padding for active button
           )}
           onClick={() => onPositivar(store.id, store.name)}
           disabled={isDisabled}
-          size="lg" 
+          size="lg"
         >
           {isDisabled ? (
             <>
@@ -90,7 +90,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
           ) : (
             <>
               {currentVendorCompany.logoUrl ? (
-                <div className="relative w-20 h-10 flex-shrink-0"> 
+                <div className="relative w-20 h-10 flex-shrink-0">
                   <Image
                     src={currentVendorCompany.logoUrl}
                     alt={`Logo ${currentVendorCompany.name}`}
@@ -102,7 +102,6 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
               ) : (
                 <BadgeCheck className="h-6 w-6 flex-shrink-0" />
               )}
-              {/* Using a div for the text can sometimes help with flex centering issues */}
               <div>Positivar Loja</div>
             </>
           )}
