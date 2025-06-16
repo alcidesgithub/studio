@@ -977,20 +977,36 @@ export default function ManageStoresPage() {
   };
   
   const filteredStores = useMemo(() => {
-    if (!searchTerm.trim()) {
-      return stores;
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    if (!lowerSearchTerm) {
+      return stores; // Return all stores if search term is empty
     }
-    const lowerSearchTerm = searchTerm.toLowerCase();
     const cleanedSearchTermForCnpj = searchTerm.replace(/\D/g, '');
 
-    return stores.filter(store => {
+    const directlyMatchingMatrix = stores.find(
+      s => s.code.toLowerCase() === lowerSearchTerm && s.isMatrix
+    );
+    
+    let branchesOfMatchedMatrix: Store[] = [];
+    if (directlyMatchingMatrix) {
+        branchesOfMatchedMatrix = stores.filter(
+            s => s.matrixStoreId === directlyMatchingMatrix.id
+        );
+    }
+
+    const results = stores.filter(store => {
+      // If a matrix was directly matched by code, include its branches (already handled by branchesOfMatchedMatrix)
+      // and the matrix itself (also handled if directlyMatchingMatrix exists)
+
       const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
+      
       const checkCnpj = (cnpjValue?: string) => { 
         if (!cnpjValue) return false;
-        if (cleanedSearchTermForCnpj.length > 0 && cleanCNPJ(cnpjValue).includes(cleanedSearchTermForCnpj)) {
+        const cleanedStoreCnpj = cleanCNPJ(cnpjValue);
+        if (cleanedSearchTermForCnpj.length > 0 && cleanedStoreCnpj.includes(cleanedSearchTermForCnpj)) {
           return true;
         }
-        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) {
+        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) { // Check raw formatted CNPJ as well
             return true;
         }
         return false;
@@ -1010,6 +1026,13 @@ export default function ManageStoresPage() {
         checkString(store.email)
       );
     });
+    
+    // Combine results and remove duplicates if any (e.g. matrix matched by name and also by code)
+    const combinedResults = new Set([...results, ...branchesOfMatchedMatrix]);
+    if (directlyMatchingMatrix) combinedResults.add(directlyMatchingMatrix);
+    
+    return Array.from(combinedResults);
+
   }, [stores, searchTerm]);
 
   const isAllStoresSelected = useMemo(() => filteredStores.length > 0 && selectedStoreIds.size === filteredStores.length && filteredStores.every(s => selectedStoreIds.has(s.id)), [filteredStores, selectedStoreIds]);
