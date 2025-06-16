@@ -69,6 +69,7 @@ export default function AdminEventManagementPage() {
     toast({
       title: "Configurações do Evento Salvas!",
       description: "Os detalhes do evento foram atualizados com sucesso no armazenamento local.",
+      variant: "success",
     });
   };
 

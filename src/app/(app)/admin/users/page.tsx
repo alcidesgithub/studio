@@ -297,6 +297,7 @@ export default function AdminUsersPage() {
         toast({
             title: "Usuário Atualizado!",
             description: `Usuário ${data.name} foi atualizado.${passwordChangedMessage}`,
+            variant: "success",
         });
 
     } else { 
@@ -334,6 +335,7 @@ export default function AdminUsersPage() {
         toast({
           title: "Usuário Criado!",
           description: `Usuário ${ROLES_TRANSLATIONS[data.role]} ${data.name} foi criado.`,
+          variant: "success",
         });
     }
 

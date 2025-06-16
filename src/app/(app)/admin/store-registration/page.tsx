@@ -627,6 +627,7 @@ export default function ManageStoresPage() {
       toast({
         title: "Loja Atualizada!",
         description: `Loja ${data.code} - ${data.razaoSocial} foi atualizada.`,
+        variant: "success",
       });
       
       if (userIndex > -1) {
@@ -637,6 +638,7 @@ export default function ManageStoresPage() {
            toast({
             title: "Senha do Usuário Atualizada!",
             description: `A senha para ${currentUsers[userIndex].email} foi atualizada.`,
+            variant: "success",
           });
         }
         saveUsers(currentUsers);
@@ -683,6 +685,7 @@ export default function ManageStoresPage() {
       toast({
         title: "Loja Cadastrada!",
         description: `Loja ${data.code} - ${data.razaoSocial} foi cadastrada.`,
+        variant: "success",
       });
 
       const newUserForStore: User = {
@@ -698,6 +701,7 @@ export default function ManageStoresPage() {
       toast({
         title: "Usuário da Loja Criado!",
         description: `Um login foi criado para ${data.email}.`,
+        variant: "success",
       });
     }
     setStores(updatedStores);
@@ -889,7 +893,7 @@ export default function ManageStoresPage() {
       setImportStoreLoading(false);
 
       if (importedCount > 0 && validationErrors.length === 0) {
-        toast({ title: "Importação Concluída!", description: `${importedCount} lojas e seus respectivos usuários (se novos) foram importados com sucesso.` });
+        toast({ title: "Importação Concluída!", description: `${importedCount} lojas e seus respectivos usuários (se novos) foram importados com sucesso.`, variant: "success" });
         setIsImportStoreDialogOpen(false);
         setCsvStoreFile(null);
         setCsvStoreFileName("");
@@ -973,6 +977,7 @@ export default function ManageStoresPage() {
     toast({
       title: `Check-in ${checked ? 'Confirmado' : 'Desfeito'}`,
       description: `${storeName} ${checked ? 'agora está com check-in.' : 'não está mais com check-in.'}`,
+      variant: "success",
     });
   };
   

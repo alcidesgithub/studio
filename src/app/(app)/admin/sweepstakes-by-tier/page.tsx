@@ -130,6 +130,7 @@ export default function AdminTieredSweepstakesPage() {
     toast({
       title: "Vencedor Sorteado!",
       description: `${winningStore.name} ganhou o prêmio ${tier.rewardName} (da faixa ${tier.name}). Esta loja não poderá ser sorteada novamente.`,
+      variant: "success",
     });
   }, [toast, setDrawnWinners]);
 
@@ -148,7 +149,7 @@ export default function AdminTieredSweepstakesPage() {
       SorteadoEm: format(new Date(r.drawnAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
     }));
     exportToCSV(dataToExport, `log_vencedores_sorteio_faixas_${currentEvent?.name.replace(/\s+/g, '_') || 'evento'}`);
-    toast({ title: "Log Exportado", description: "O log de vencedores do sorteio foi exportado para um arquivo CSV." });
+    toast({ title: "Log Exportado", description: "O log de vencedores do sorteio foi exportado para um arquivo CSV.", variant: "success" });
   }, [drawnWinners, currentEvent, toast]);
 
   const confirmResetAllSweepstakes = useCallback(() => {

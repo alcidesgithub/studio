@@ -267,6 +267,7 @@ export default function AdminAwardsPage() {
       toast({
         title: "Faixa Atualizada!",
         description: `A faixa de premiação "${data.name}" foi atualizada no armazenamento local.`,
+        variant: "success",
       });
     } else {
       const newTier: AwardTier = { 
@@ -278,6 +279,7 @@ export default function AdminAwardsPage() {
       toast({
         title: "Faixa Criada!",
         description: `A faixa de premiação "${data.name}" foi criada no armazenamento local.`,
+        variant: "success",
       });
     }
     updatedTiers.sort((a,b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));

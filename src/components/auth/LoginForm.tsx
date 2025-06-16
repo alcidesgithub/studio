@@ -45,6 +45,7 @@ export function LoginForm() {
       toast({
         title: "Login Bem-sucedido",
         description: `Bem-vindo(a) de volta, ${loggedInUser.name}!`,
+        variant: "success",
       });
       if (loggedInUser.role === 'store') {
         router.push('/store/positivacao');

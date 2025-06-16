@@ -50,6 +50,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
       toast({
         title: "Sucesso!",
         description: result.message,
+        variant: "success",
       });
       form.reset();
       if (onSuccess) onSuccess();

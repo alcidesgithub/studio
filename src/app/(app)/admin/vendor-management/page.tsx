@@ -525,7 +525,7 @@ export default function ManageVendorsPage() {
         v.id === initialEditingVendor.id ? { ...initialEditingVendor, ...data, cnpj: rawCnpj } : v
       );
       if (vendorForm.formState.isDirty) {
-        toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.` });
+        toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.`, variant: "success" });
       }
     } else {
       if(vendors.some(v => v.cnpj === rawCnpj)) {
@@ -537,7 +537,7 @@ export default function ManageVendorsPage() {
       const newVendor: Vendor = { id: newVendorId, ...data, cnpj: rawCnpj };
       updatedVendors = [...vendors, newVendor];
       setEditingVendor(newVendor); 
-      toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.` });
+      toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.`, variant: "success" });
     }
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
@@ -575,7 +575,7 @@ export default function ManageVendorsPage() {
     const usersToKeep = currentUsers.filter(u => !(u.email === salespersonToDelete.email && u.role === 'vendor'));
     if (usersToKeep.length < currentUsers.length) {
         saveUsers(usersToKeep);
-        toast({ title: "Login do Vendedor Removido", description: `O login para ${salespersonToDelete.email} foi removido.`, variant: "info" });
+        toast({ title: "Login do Vendedor Removido", description: `O login para ${salespersonToDelete.email} foi removido.`, variant: "default" });
     }
     const updatedSalespeople = salespeople.filter(sp => sp.id !== salespersonToDelete.id);
     setSalespeople(updatedSalespeople);
@@ -595,7 +595,7 @@ export default function ManageVendorsPage() {
     if (editingSalesperson) {
         const userIndex = currentUsers.findIndex(u => u.email === editingSalesperson.email && u.role === 'vendor');
         updatedSalespeople = salespeople.map(sp => sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson, password: data.password || editingSalesperson.password } : sp );
-        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado.` });
+        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado.`, variant: "success" });
 
         if (userIndex > -1) {
             currentUsers[userIndex].name = data.name;
@@ -606,6 +606,7 @@ export default function ManageVendorsPage() {
                 toast({
                     title: "Senha do Vendedor Atualizada!",
                     description: `A senha para ${currentUsers[userIndex].email} foi atualizada.`,
+                    variant: "success",
                 });
             }
             saveUsers(currentUsers);
@@ -631,7 +632,7 @@ export default function ManageVendorsPage() {
 
         const newSalesperson: Salesperson = { id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data, vendorId: currentVendorIdForSalesperson, password: data.password };
         updatedSalespeople = [...salespeople, newSalesperson];
-        toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson.name}.` });
+        toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson.name}.`, variant: "success" });
         
         const newUserForSalesperson: User = {
             id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
@@ -643,7 +644,7 @@ export default function ManageVendorsPage() {
         };
         currentUsers.push(newUserForSalesperson);
         saveUsers(currentUsers);
-        toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`});
+        toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`, variant: "success"});
     }
     setSalespeople(updatedSalespeople);
     saveSalespeople(updatedSalespeople);
@@ -733,7 +734,7 @@ export default function ManageVendorsPage() {
       setImportLoading(false);
 
       if (importedCount > 0 && validationErrors.length === 0) {
-        toast({ title: "Importação Concluída!", description: `${importedCount} fornecedores importados com sucesso.` });
+        toast({ title: "Importação Concluída!", description: `${importedCount} fornecedores importados com sucesso.`, variant: "success" });
         setIsImportDialogOpen(false);
         setCsvFile(null);
         setCsvFileName("");

@@ -49,6 +49,11 @@ export default function VendorPositivacaoPage() {
 
     const targetStore = storesFromStorage[targetStoreIndex];
 
+    if (!targetStore.isCheckedIn) {
+      toast({ title: "Check-in Pendente", description: `${storeName} precisa realizar o check-in antes de ser positivada.`, variant: "default" });
+      return;
+    }
+
     const alreadyPositivatedByThisVendor = targetStore.positivationsDetails.some(
       detail => detail.vendorId === currentVendorCompany.id
     );
@@ -85,6 +90,7 @@ export default function VendorPositivacaoPage() {
     toast({
       title: "Loja Positivada!",
       description: `Loja ${storeName} positivada com sucesso por ${user.name} (${currentVendorCompany.name}).`,
+      variant: "success",
     });
   }, [currentVendorCompany, user, toast]);
 
