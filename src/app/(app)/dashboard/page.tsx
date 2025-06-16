@@ -170,7 +170,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalStoresCount}</div>
-            <p className="text-xs text-muted-foreground">Total de lojas no sistema</p>
+            <p className="text-xs text-muted-foreground">Cadastradas no evento</p>
           </CardContent>
         </Card>
 
