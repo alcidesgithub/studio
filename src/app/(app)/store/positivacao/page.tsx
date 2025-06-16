@@ -42,31 +42,22 @@ export default function StorePositivacaoPage() {
   const positivacoesCount = useMemo(() => validPositivationsDetails.length, [validPositivationsDetails]);
 
   const sortedAwardTiersForDisplay = useMemo(() => {
-    if (!currentStore || !currentStore.state || awardTiers.length === 0) {
-      const fallbackSortKey = awardTiers[0]?.positivacoesRequired?.PR !== undefined ? 'PR' : (awardTiers[0]?.positivacoesRequired?.SC !== undefined ? 'SC' : null);
-      if (fallbackSortKey) {
-        return [...awardTiers].sort((a,b) => {
-            const aReq = (a.positivacoesRequired as any)[fallbackSortKey] || 0;
-            const bReq = (b.positivacoesRequired as any)[fallbackSortKey] || 0;
-            return aReq - bReq;
-        });
-      }
-      return [...awardTiers];
-    }
-    const storeState = currentStore.state;
-    return [...awardTiers].sort((a, b) => 
-        getRequiredPositivationsForStore(a, storeState) - getRequiredPositivationsForStore(b, storeState)
-    );
-  }, [awardTiers, currentStore]);
+    // Tiers should already be loaded with sortOrder from localStorage,
+    // which is maintained by the AdminAwardsPage.
+    // If sortOrder somehow gets corrupted or is missing, treat it as highest.
+    return [...awardTiers].sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
+  }, [awardTiers]);
 
   const currentAchievedTier = useMemo(() => {
     if (!currentStore || sortedAwardTiersForDisplay.length === 0 || !currentStore.state) return undefined;
     const storeState = currentStore.state;
     let achievedTier: AwardTier | undefined = undefined;
+    // Iterate based on the pre-sorted (by sortOrder) tiers
     for (let i = sortedAwardTiersForDisplay.length - 1; i >= 0; i--) {
-        if (positivacoesCount >= getRequiredPositivationsForStore(sortedAwardTiersForDisplay[i], storeState)) {
-            achievedTier = sortedAwardTiersForDisplay[i];
-            break;
+        const tier = sortedAwardTiersForDisplay[i];
+        if (positivacoesCount >= getRequiredPositivationsForStore(tier, storeState)) {
+            achievedTier = tier;
+            break; 
         }
     }
     return achievedTier;
@@ -82,6 +73,7 @@ export default function StorePositivacaoPage() {
         }
         return undefined; 
     }
+    // If no tier is achieved, the next tier is the first one in the sorted list (lowest sortOrder)
     return sortedAwardTiersForDisplay.length > 0 ? sortedAwardTiersForDisplay[0] : undefined;
   }, [sortedAwardTiersForDisplay, currentAchievedTier, currentStore]);
 
