@@ -7,7 +7,6 @@ export interface User {
   role: UserRole;
   name: string;
   storeName?: string; // For store users (vendor's company name) or store's own name
-  // password?: string; // Removed
 }
 
 export interface Event {
@@ -61,7 +60,7 @@ export interface AwardTier {
 }
 
 export interface Positivacao {
-  id: string;
+  id:string;
   vendorId: string;
   storeId: string;
   eventId: string;
@@ -96,14 +95,15 @@ export interface Salesperson { // Represents the individual salesperson User
   name: string;
   phone: string;
   email: string;
-  // password?: string; // Removed
 }
 
 export interface SweepstakeWinnerRecord {
+  id: string; // Unique ID for this specific win
   tierId: string;
   tierName: string;
   prizeName: string;
   storeId: string;
-  storeName: string;
+  storeName: string; // Includes Code, Name, CNPJ, State for easy display
   drawnAt: Date | string;
 }
+

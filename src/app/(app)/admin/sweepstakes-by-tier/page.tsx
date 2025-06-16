@@ -6,10 +6,11 @@ import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { loadAwardTiers, loadStores, loadEvent, loadDrawnWinners, saveDrawnWinners } from '@/lib/localStorageUtils';
 import type { AwardTier, Store, Event as EventType, SweepstakeWinnerRecord } from '@/types';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
-import { Dice6, ListChecks, Trophy, Download, PlayCircle } from 'lucide-react';
+import { Dice6, ListChecks, Trophy, Download, PlayCircle, RotateCcw, Trash2, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -56,6 +57,11 @@ export default function AdminTieredSweepstakesPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
 
+  const [isResetAllConfirmOpen, setIsResetAllConfirmOpen] = useState(false);
+  const [tierToReset, setTierToReset] = useState<AwardTierWithStats | null>(null);
+  const [winnerToDelete, setWinnerToDelete] = useState<SweepstakeWinnerRecord | null>(null);
+
+
   useEffect(() => {
     setAwardTiers(loadAwardTiers().sort((a,b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)));
     setStores(loadStores());
@@ -64,6 +70,8 @@ export default function AdminTieredSweepstakesPage() {
   }, []);
 
   useEffect(() => {
+    // Persist drawnWinners to localStorage whenever it changes,
+    // but only if it's not empty, or if the localStorage key already exists (meaning we are clearing it)
     if (drawnWinners.length > 0 || localStorage.getItem('hiperfarma_drawn_winners')) {
         saveDrawnWinners(drawnWinners);
     }
@@ -108,6 +116,7 @@ export default function AdminTieredSweepstakesPage() {
     const winningStore = tier.eligibleStores[randomIndex];
 
     const newWinnerRecord: SweepstakeWinnerRecord = {
+      id: `winner_${tier.id}_${winningStore.id}_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
       tierId: tier.id,
       tierName: tier.name,
       prizeName: tier.rewardName,
@@ -130,14 +139,61 @@ export default function AdminTieredSweepstakesPage() {
       return;
     }
     const dataToExport = drawnWinners.map(r => ({
-      Faixa: r.tierName,
-      Premio: r.prizeName,
+      ID_Vencedor: r.id,
+      Faixa_ID: r.tierId,
+      Faixa_Nome: r.tierName,
+      Premio_Nome: r.prizeName,
+      Loja_ID: r.storeId,
       Loja_Vencedora_Detalhes: r.storeName,
       SorteadoEm: format(new Date(r.drawnAt), "dd/MM/yyyy HH:mm:ss", { locale: ptBR }),
     }));
     exportToCSV(dataToExport, `log_vencedores_sorteio_faixas_${currentEvent?.name.replace(/\s+/g, '_') || 'evento'}`);
     toast({ title: "Log Exportado", description: "O log de vencedores do sorteio foi exportado para um arquivo CSV." });
   }, [drawnWinners, currentEvent, toast]);
+
+  const confirmResetAllSweepstakes = useCallback(() => {
+    if (drawnWinners.length === 0) {
+      toast({ title: "Sorteio já está limpo", description: "Não há vencedores para resetar.", variant: "default" });
+      return;
+    }
+    setIsResetAllConfirmOpen(true);
+  }, [drawnWinners.length, toast]);
+
+  const handleResetAllSweepstakes = useCallback(() => {
+    setDrawnWinners([]);
+    saveDrawnWinners([]); // Explicitly save empty array to clear localStorage
+    toast({ title: "Sorteio Resetado", description: "Todos os vencedores sorteados foram removidos.", variant: "destructive" });
+    setIsResetAllConfirmOpen(false);
+  }, [toast]);
+
+  const confirmResetTierSweepstakes = useCallback((tier: AwardTierWithStats) => {
+     if (tier.winners.length === 0) {
+      toast({ title: "Faixa já está limpa", description: `Não há vencedores para resetar na faixa ${tier.name}.`, variant: "default" });
+      return;
+    }
+    setTierToReset(tier);
+  }, [toast]);
+  
+  const handleResetTierSweepstakes = useCallback(() => {
+    if (!tierToReset) return;
+    const updatedWinners = drawnWinners.filter(w => w.tierId !== tierToReset.id);
+    setDrawnWinners(updatedWinners);
+    toast({ title: "Faixa Resetada", description: `Todos os vencedores da faixa "${tierToReset.name}" foram removidos.`, variant: "destructive" });
+    setTierToReset(null);
+  }, [drawnWinners, tierToReset, toast]);
+
+  const confirmDeleteSingleWinner = useCallback((winner: SweepstakeWinnerRecord) => {
+    setWinnerToDelete(winner);
+  }, []);
+
+  const handleDeleteSingleWinner = useCallback(() => {
+    if (!winnerToDelete) return;
+    const updatedWinners = drawnWinners.filter(w => w.id !== winnerToDelete.id);
+    setDrawnWinners(updatedWinners);
+    toast({ title: "Vencedor Removido", description: `O prêmio de "${winnerToDelete.storeName}" na faixa "${winnerToDelete.tierName}" foi removido.`, variant: "destructive" });
+    setWinnerToDelete(null);
+  }, [drawnWinners, winnerToDelete, toast]);
+
 
   if (!currentEvent) {
     return <div>Carregando dados do sorteio...</div>
@@ -151,9 +207,14 @@ export default function AdminTieredSweepstakesPage() {
         icon={Dice6}
         iconClassName="text-secondary"
         actions={
-          <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
-            <Download className="mr-2 h-4 w-4" /> Exportar Log (CSV)
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={confirmResetAllSweepstakes} variant="destructive" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
+              <RotateCcw className="mr-2 h-4 w-4" /> Resetar Todos Sorteios
+            </Button>
+            <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
+              <Download className="mr-2 h-4 w-4" /> Exportar Log (CSV)
+            </Button>
+          </div>
         }
       />
 
@@ -165,12 +226,25 @@ export default function AdminTieredSweepstakesPage() {
         {awardTiersWithStats.map((tier) => (
           <Card key={tier.id} className="shadow-lg flex flex-col">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl"><Trophy className="text-secondary h-5 w-5 sm:h-6 sm:w-6" /> Faixa {tier.name}</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                Tipo de Prêmio: <span className="font-semibold">{tier.rewardName}</span> <br />
-                Requer (PR/SC): <span className="font-semibold">{tier.positivacoesRequired.PR} / {tier.positivacoesRequired.SC}</span> selos. <br />
-                Total de Prêmios: <span className="font-semibold">{tier.quantityAvailable}</span> | Restantes: <span className="font-semibold">{tier.remainingQuantity}</span>
-              </CardDescription>
+              <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl"><Trophy className="text-secondary h-5 w-5 sm:h-6 sm:w-6" /> Faixa {tier.name}</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm mt-1">
+                        Prêmio: <span className="font-semibold">{tier.rewardName}</span> | Req. (PR/SC): <span className="font-semibold">{tier.positivacoesRequired.PR}/{tier.positivacoesRequired.SC}</span> <br/>
+                        Total: <span className="font-semibold">{tier.quantityAvailable}</span> | Restantes: <span className="font-semibold">{tier.remainingQuantity}</span>
+                    </CardDescription>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => confirmResetTierSweepstakes(tier)} 
+                  disabled={tier.winners.length === 0}
+                  className="text-xs hover:bg-destructive/10 hover:text-destructive"
+                  title={`Resetar vencedores da faixa ${tier.name}`}
+                >
+                  <RotateCcw className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Resetar Faixa</span>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-3 sm:space-y-4">
               <div>
@@ -206,24 +280,28 @@ export default function AdminTieredSweepstakesPage() {
                           <p className="text-xs text-muted-foreground mt-1">Disponível para sorteio</p>
                         )}
                       </div>
-                      {!isSlotDrawn && (
+                      {!isSlotDrawn ? (
                         <Button
                           size="lg"
                           onClick={() => handleDrawWinner(tier)}
                           disabled={!canDrawForThisSlot || isLoadingDraw === tier.id}
                           variant="default"
+                          className="w-24 sm:w-28"
                         >
                           {isLoadingDraw === tier.id ? (
                             <PlayCircle className="h-4 w-4 animate-spin" />
                           ) : (
                             <PlayCircle className="h-4 w-4" />
                           )}
-                          {isLoadingDraw === tier.id ? "Sorteando..." : "Sortear"}
+                          <span className="ml-1.5">{isLoadingDraw === tier.id ? "Sorteando" : "Sortear"}</span>
                         </Button>
-                      )}
-                       {isSlotDrawn && (
-                        <div className="w-24 sm:w-28 text-right ml-2"> 
+                      ) : (
+                        <div className="w-24 sm:w-28 text-right ml-2 flex flex-col items-end"> 
                             <span className="text-xs text-green-600 font-bold">PREMIADO</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive mt-0.5" onClick={() => winnerRecord && confirmDeleteSingleWinner(winnerRecord)} title="Resetar este slot (remover vencedor)">
+                                <Trash2 className="h-3.5 w-3.5"/>
+                                <span className="sr-only">Resetar Slot</span>
+                            </Button>
                         </div>
                        )}
                     </div>
@@ -253,8 +331,8 @@ export default function AdminTieredSweepstakesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {drawnWinners.sort((a,b) => new Date(b.drawnAt).getTime() - new Date(a.drawnAt).getTime()).map((record, index) => (
-                    <TableRow key={`${record.tierId}-${record.storeId}-${index}`}>
+                  {drawnWinners.sort((a,b) => new Date(b.drawnAt).getTime() - new Date(a.drawnAt).getTime()).map((record) => (
+                    <TableRow key={record.id}>
                       <TableCell className="font-medium px-2 py-3 sm:px-4">{record.tierName}</TableCell>
                       <TableCell className="hidden sm:table-cell px-2 py-3 sm:px-4 break-words">{record.prizeName}</TableCell>
                       <TableCell className="font-semibold px-2 py-3 sm:px-4 break-words">{record.storeName}</TableCell>
@@ -269,8 +347,56 @@ export default function AdminTieredSweepstakesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* AlertDialog for Reset All */}
+      <AlertDialog open={isResetAllConfirmOpen} onOpenChange={setIsResetAllConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><ShieldAlert className="h-6 w-6 text-destructive"/>Confirmar Reset Total do Sorteio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá TODOS os vencedores de TODAS as faixas de premiação. As lojas poderão ser sorteadas novamente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetAllSweepstakes} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Resetar Tudo</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog for Reset Tier */}
+      <AlertDialog open={!!tierToReset} onOpenChange={(open) => !open && setTierToReset(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><ShieldAlert className="h-6 w-6 text-destructive"/>Confirmar Reset da Faixa "{tierToReset?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá todos os vencedores sorteados APENAS para a faixa "{tierToReset?.name}". As lojas que ganharam nesta faixa poderão ser sorteadas novamente (em qualquer faixa). Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTierToReset(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetTierSweepstakes} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Resetar Faixa</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog for Delete Single Winner */}
+      <AlertDialog open={!!winnerToDelete} onOpenChange={(open) => !open && setWinnerToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><ShieldAlert className="h-6 w-6 text-destructive"/>Confirmar Remoção de Vencedor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover o prêmio <span className="font-semibold">"{winnerToDelete?.prizeName}"</span> ganho por <span className="font-semibold">"{winnerToDelete?.storeName}"</span> na faixa <span className="font-semibold">"{winnerToDelete?.tierName}"</span>?
+              <br/>A loja poderá ser sorteada novamente e este slot de prêmio ficará disponível. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setWinnerToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSingleWinner} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Remover Vencedor</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
-
-    
