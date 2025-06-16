@@ -203,8 +203,17 @@ export default function StorePositivacaoPage() {
 
       <Card className="shadow-xl mb-6 sm:mb-8 bg-[#2d2d2d]">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl sm:text-4xl md:text-5xl text-[#c3f45d]">Cartela de positivação {currentStore.isMatrix && <span className="text-xl font-normal">(Apenas {currentStore.name})</span>}</CardTitle>
-          <CardDescription className="text-white">Veja quais fornecedores já te positivaram (para esta loja) e por qual vendedor.</CardDescription>
+          <CardTitle className="font-headline text-3xl sm:text-4xl md:text-5xl text-[#c3f45d]">
+            Cartela de positivação
+          </CardTitle>
+          {currentStore.isMatrix && (
+            <p className="text-xl font-normal text-[#c3f45d]">
+              (Apenas Matriz)
+            </p>
+          )}
+          <CardDescription className="text-white">
+            Veja quais fornecedores já te positivaram (para esta loja) e por qual vendedor.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {allVendors.length === 0 ? (
