@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, PlayCircle, CheckCircle, Gift, Users } from 'lucide-react';
+import { Loader2, PlayCircle, CheckCircle, Gift, Store as StoreIcon } from 'lucide-react'; // Changed Users to StoreIcon
 import type { Store } from '@/types';
 import type { AwardTierWithStats } from '@/app/(app)/admin/sweepstakes-by-tier/page'; // Adjust path as necessary
 
@@ -108,7 +108,7 @@ export const SweepstakeAnimationDialog: React.FC<SweepstakeAnimationDialogProps>
 
         <div className="my-6 space-y-4">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-5 w-5 text-secondary" />
+                <StoreIcon className="h-5 w-5 text-secondary" />
                 <span>{tier.eligibleStores.length} {tier.eligibleStores.length === 1 ? "loja elegível" : "lojas elegíveis"} para este prêmio.</span>
             </div>
 
