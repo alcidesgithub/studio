@@ -164,7 +164,7 @@ export default function AdminTieredSweepstakesPage() {
     toast({ title: "Log Exportado", description: "O log de vencedores do sorteio foi exportado para um arquivo CSV.", variant: "success" });
   }, [drawnWinners, currentEvent, toast]);
 
-  const confirmResetAllSweepstakes = useCallback(() => {
+  const openResetAllConfirmDialog = useCallback(() => {
     if (drawnWinners.length === 0) {
       toast({ title: "Sorteio já está limpo", description: "Não há vencedores para resetar.", variant: "default" });
       return;
@@ -179,7 +179,7 @@ export default function AdminTieredSweepstakesPage() {
     setIsResetAllConfirmOpen(false);
   }, [toast]);
 
-  const confirmResetTierSweepstakes = useCallback((tier: AwardTierWithStats) => {
+  const openResetTierConfirmDialog = useCallback((tier: AwardTierWithStats) => {
      if (tier.winners.length === 0) {
       toast({ title: "Faixa já está limpa", description: `Não há vencedores para resetar na faixa ${tier.name}.`, variant: "default" });
       return;
@@ -223,7 +223,7 @@ export default function AdminTieredSweepstakesPage() {
         iconClassName="text-secondary"
         actions={
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={confirmResetAllSweepstakes} variant="destructive" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
+            <Button onClick={openResetAllConfirmDialog} variant="destructive" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
               <RotateCcw className="mr-2 h-4 w-4" /> Resetar Todos Sorteios
             </Button>
             <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
@@ -267,7 +267,7 @@ export default function AdminTieredSweepstakesPage() {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={() => confirmResetTierSweepstakes(tier)} 
+                  onClick={() => openResetTierConfirmDialog(tier)} 
                   disabled={tier.winners.length === 0}
                   className="text-xs hover:bg-destructive/10 hover:text-destructive"
                   title={`Resetar vencedores da faixa ${tier.name}`}
