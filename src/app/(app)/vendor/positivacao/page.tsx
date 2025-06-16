@@ -6,17 +6,22 @@ import { Card, CardContent } from '@/components/ui/card';
 import { loadStores, saveStores, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, Event as EventType, Vendor, PositivationDetail } from '@/types';
-import { BadgeCheck, Search, Store as StoreIcon } from 'lucide-react'; 
+import { BadgeCheck, Search } from 'lucide-react'; 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { StorePositivationDisplayCard } from '@/components/cards/StorePositivationDisplayCard';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+
+type SearchModeFilterType = 'all_stores' | 'matrix_only' | 'branch_only' | 'matrix_with_its_branches';
 
 export default function VendorPositivacaoPage() {
   const [allStores, setAllStores] = useState<Store[]>([]);
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchModeFilter, setSearchModeFilter] = useState<SearchModeFilterType>('all_stores');
   const { toast } = useToast();
   const { user } = useAuth(); 
 
@@ -100,53 +105,80 @@ export default function VendorPositivacaoPage() {
 
   const filteredStores = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    const participatingStores = allStores.filter(store => store.participating);
+
     if (!lowerSearchTerm) {
-        return allStores.filter(store => store.participating);
+        switch (searchModeFilter) {
+            case 'matrix_only':
+                return participatingStores.filter(s => s.isMatrix);
+            case 'branch_only':
+                return participatingStores.filter(s => !s.isMatrix);
+            case 'matrix_with_its_branches':
+                return []; // Requires a matrix code to be searched
+            case 'all_stores':
+            default:
+                return participatingStores;
+        }
     }
 
-    // Check for an exact code match first
-    const exactCodeMatchStore = allStores.find(
-        s => s.code.toLowerCase() === lowerSearchTerm && s.participating
+    // Initial text-based filtering
+    let preliminaryFilteredStores: Store[] = [];
+    const exactCodeMatchStore = participatingStores.find(
+      s => s.code.toLowerCase() === lowerSearchTerm
     );
 
     if (exactCodeMatchStore) {
-        // If an exact code is found, return only that store.
-        return [exactCodeMatchStore];
-    }
-
-    // If no exact code match, proceed with a general search across other fields
-    const cleanedSearchTermForCnpj = lowerSearchTerm.replace(/\D/g, '');
-
-    return allStores.filter(store => {
-        if (!store.participating) return false;
-
+      preliminaryFilteredStores = [exactCodeMatchStore];
+    } else {
+      const cleanedSearchTermForCnpj = lowerSearchTerm.replace(/\D/g, '');
+      preliminaryFilteredStores = participatingStores.filter(store => {
         const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
-        
         const checkCnpj = (cnpjValue?: string) => { 
             if (!cnpjValue) return false;
             const cleanedStoreCnpj = cleanCNPJ(cnpjValue);
             if (cleanedSearchTermForCnpj.length > 0 && cleanedStoreCnpj.includes(cleanedSearchTermForCnpj)) {
                 return true;
             }
-            // Keep the original check for formatted CNPJ parts if searchTerm is not purely numeric
             if (!/^\d+$/.test(lowerSearchTerm) && cnpjValue.toLowerCase().includes(lowerSearchTerm)) {
                 return true;
             }
             return false;
         };
-
         return (
-            checkString(store.name) ||
-            checkString(store.code) || // Allows partial code match if not an exact match above
-            checkCnpj(store.cnpj) ||
-            checkString(store.ownerName) ||
-            checkString(store.responsibleName) || 
-            checkString(store.city) ||
-            checkString(store.neighborhood) ||
-            checkString(store.state)
+          checkString(store.name) ||
+          checkString(store.code) ||
+          checkCnpj(store.cnpj) ||
+          checkString(store.ownerName) ||
+          checkString(store.responsibleName) ||
+          checkString(store.city) ||
+          checkString(store.neighborhood) ||
+          checkString(store.state)
         );
-    });
-  }, [searchTerm, allStores, cleanCNPJ]);
+      });
+    }
+
+    // Apply searchModeFilter
+    switch (searchModeFilter) {
+      case 'matrix_only':
+        return preliminaryFilteredStores.filter(store => store.isMatrix);
+      case 'branch_only':
+        return preliminaryFilteredStores.filter(store => !store.isMatrix);
+      case 'matrix_with_its_branches':
+        if (exactCodeMatchStore && exactCodeMatchStore.isMatrix) {
+          const matrix = exactCodeMatchStore;
+          const branches = participatingStores.filter(
+            s => s.matrixStoreId === matrix.id
+          );
+          // Return matrix first, then its branches sorted by code
+          return [matrix, ...branches.sort((a,b) => a.code.localeCompare(b.code))];
+        }
+        // If search term is not an exact matrix code, this filter returns no results.
+        return []; 
+      case 'all_stores':
+      default:
+        return preliminaryFilteredStores;
+    }
+  }, [searchTerm, allStores, searchModeFilter, cleanCNPJ]);
 
 
   if (!currentEvent || !currentVendorCompany) {
@@ -171,31 +203,54 @@ export default function VendorPositivacaoPage() {
         iconClassName="text-secondary"
       />
 
-      <div className="mb-4 sm:mb-6 relative flex items-center max-w-full sm:max-w-sm">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input 
-          type="text"
-          placeholder="Buscar por nome, código, CNPJ, local..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      <div className="mb-4 sm:mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div className="md:col-span-2">
+          <Label htmlFor="store-search-term">Buscar Loja</Label>
+          <div className="relative flex items-center mt-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              id="store-search-term"
+              type="text"
+              placeholder="Nome, código, CNPJ, local..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <div>
+            <Label htmlFor="store-type-filter">Filtrar Por Tipo</Label>
+            <Select value={searchModeFilter} onValueChange={(value) => setSearchModeFilter(value as SearchModeFilterType)}>
+                <SelectTrigger id="store-type-filter" className="mt-1">
+                    <SelectValue placeholder="Selecione o tipo de filtro" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all_stores">Todas as Lojas (Padrão)</SelectItem>
+                    <SelectItem value="matrix_only">Apenas Matrizes</SelectItem>
+                    <SelectItem value="branch_only">Apenas Filiais</SelectItem>
+                    <SelectItem value="matrix_with_its_branches">Matriz por Código + Filiais</SelectItem>
+                </SelectContent>
+            </Select>
+             {searchModeFilter === 'matrix_with_its_branches' && (
+                <p className="text-xs text-muted-foreground mt-1">Para este filtro, busque pelo código exato da matriz.</p>
+            )}
+        </div>
       </div>
+      
 
-      {filteredStores.length === 0 && allStores.length > 0 && (
+      {filteredStores.length === 0 && (
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
-            Nenhuma loja encontrada com o termo pesquisado.
+            {searchTerm || searchModeFilter !== 'all_stores' 
+                ? "Nenhuma loja encontrada com os critérios de busca e filtro selecionados." 
+                : "Nenhuma loja participante disponível para positivação." }
+             {searchModeFilter === 'matrix_with_its_branches' && searchTerm && !(exactCodeMatchStore && exactCodeMatchStore.isMatrix) &&
+                <span className="block mt-1"> Certifique-se de usar o código exato de uma loja matriz para o filtro 'Matriz por Código + Filiais'.</span>
+             }
           </CardContent>
         </Card>
       )}
-      {allStores.length === 0 && (
-        <Card>
-          <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
-            Nenhuma loja participante disponível para positivação.
-          </CardContent>
-        </Card>
-      )}
+
 
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredStores.map((store: Store) => (
@@ -212,4 +267,10 @@ export default function VendorPositivacaoPage() {
     </div>
   );
 }
+
+// Helper variable for conditional rendering in the "no stores found" message
+// This needs to be defined outside the component to be accessible within the memoized filteredStores if needed,
+// or simply re-evaluated within the component render body.
+// For simplicity, it's evaluated within the return statement of the component.
+let exactCodeMatchStore: Store | undefined;
 
