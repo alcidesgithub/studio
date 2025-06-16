@@ -2,7 +2,7 @@
 // src/lib/localStorageUtils.ts
 "use client";
 import type { Event, AwardTier, Store, Vendor, Salesperson, User, SweepstakeWinnerRecord } from '@/types';
-import { MOCK_EVENT, MOCK_AWARD_TIERS, MOCK_STORES, MOCK_VENDORS, MOCK_SALESPEOPLE, MOCK_USERS } from './constants';
+import { MOCK_EVENT, MOCK_AWARD_TIERS, MOCK_STORES, MOCK_VENDORS, MOCK_SALESPEOPLE } from './constants';
 
 const EVENT_KEY = 'hiperfarma_event_details';
 const AWARD_TIERS_KEY = 'hiperfarma_award_tiers';
@@ -91,9 +91,11 @@ export const loadSalespeople = (): Salesperson[] => loadData<Salesperson[]>(SALE
 export const saveSalespeople = (salespeople: Salesperson[]): void => saveData<Salesperson[]>(SALESPEOPLE_KEY, salespeople);
 
 // Users
-export const loadUsers = (): User[] => loadData<User[]>(USERS_KEY, [], MOCK_USERS);
+// For Users, if no mockDataFallback is provided, it defaults to an empty array.
+export const loadUsers = (): User[] => loadData<User[]>(USERS_KEY, []);
 export const saveUsers = (users: User[]): void => saveData<User[]>(USERS_KEY, users);
 
 // Drawn Winners
 export const loadDrawnWinners = (): SweepstakeWinnerRecord[] => loadData<SweepstakeWinnerRecord[]>(DRAWN_WINNERS_KEY, []);
 export const saveDrawnWinners = (winners: SweepstakeWinnerRecord[]): void => saveData<SweepstakeWinnerRecord[]>(DRAWN_WINNERS_KEY, winners);
+

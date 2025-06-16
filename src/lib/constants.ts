@@ -1,5 +1,5 @@
 
-import type { Event, Store, AwardTier, User, UserRole, SweepstakeEntry, Vendor, Salesperson, PositivationDetail } from '@/types';
+import type { Event, Store, AwardTier, UserRole, SweepstakeEntry, Vendor, Salesperson, PositivationDetail } from '@/types';
 import { parseISO, subDays } from 'date-fns';
 
 export const MOCK_EVENT: Event = {
@@ -82,21 +82,6 @@ export const MOCK_STORES: Store[] = [
 ];
 
 
-export const MOCK_USERS: User[] = [
-  { id: 'user_admin', email: 'admin@hiperfarma.com', role: 'admin', name: 'Usuário Admin', password: 'adminpassword' },
-  { id: 'user_alcides', email: 'alcides@redehiperfarma.com.br', role: 'admin', name: 'Alcides', password: 'password123' },
-  { id: 'user_manager', email: 'manager@hiperfarma.com', role: 'manager', name: 'Usuário Gerente', password: 'managerpassword' },
-  // Salesperson users - their 'name' is the salesperson's name, 'storeName' is their vendor company name
-  { id: MOCK_SALESPEOPLE[0].id, email: MOCK_SALESPEOPLE[0].email, role: 'vendor', name: MOCK_SALESPEOPLE[0].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[0].vendorId)?.name, password: 'vendorpassword1' },
-  { id: MOCK_SALESPEOPLE[1].id, email: MOCK_SALESPEOPLE[1].email, role: 'vendor', name: MOCK_SALESPEOPLE[1].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[1].vendorId)?.name, password: 'vendorpassword2' },
-  { id: MOCK_SALESPEOPLE[2].id, email: MOCK_SALESPEOPLE[2].email, role: 'vendor', name: MOCK_SALESPEOPLE[2].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[2].vendorId)?.name, password: 'vendorpassword3' },
-  { id: MOCK_SALESPEOPLE[3].id, email: MOCK_SALESPEOPLE[3].email, role: 'vendor', name: MOCK_SALESPEOPLE[3].name, storeName: MOCK_VENDORS.find(v => v.id === MOCK_SALESPEOPLE[3].vendorId)?.name, password: 'vendorpassword4' },
-  // Store users
-  { id: 'user_store_1', email: 'store1@hiperfarma.com', role: 'store', name: 'Equipe Matriz', storeName: MOCK_STORES[0].name, password: 'storepassword1' },
-  { id: 'user_store_2', email: 'store2@hiperfarma.com', role: 'store', name: 'Equipe Filial Centro', storeName: MOCK_STORES[1].name, password: 'storepassword2' },
-  { id: 'user_store_4', email: 'store4@hiperfarma.com', role: 'store', name: 'Equipe Av. Brasil', storeName: MOCK_STORES[3].name, password: 'storepassword3' },
-];
-
 export const ROLES: UserRole[] = ['admin', 'manager', 'vendor', 'store'];
 export const ROLES_TRANSLATIONS: Record<UserRole, string> = {
   admin: 'Administrador',
@@ -119,3 +104,4 @@ export const MOCK_SWEEPSTAKE_ENTRIES: SweepstakeEntry[] = MOCK_STORES
     storeName: s.name,
     qualificationRate: s.goalProgress / 100,
   }));
+
