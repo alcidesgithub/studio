@@ -66,6 +66,7 @@ type StoreCSVData = {
   ownerName?: string;
   responsibleName?: string;
   email?: string;
+  senha?: string; // Corrigido para 'senha' (password em pt-br)
 };
 
 const applyCnpjMask = (value: string = ''): string => {
@@ -114,14 +115,16 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
     const headerMap: Record<string, keyof StoreCSVData> = {
         "codigo": "code", "razaosocial": "razaoSocial", "cnpj": "cnpj", "endereco": "address",
         "cidade": "city", "bairro": "neighborhood", "estado": "state", "telefone": "phone",
-        "nomeproprietario": "ownerName", "nomeresponsavel": "responsibleName", "email": "email"
+        "nomeproprietario": "ownerName", "nomeresponsavel": "responsibleName", "email": "email", "senha": "senha"
     };
+    
+    // Lista de cabeçalhos obrigatórios no CSV
+    const requiredCsvHeaders = ["codigo", "razaosocial", "cnpj", "email"]; // 'senha' é opcional
+    const expectedHeadersForDescription = Object.keys(headerMap); // Todos os cabeçalhos esperados para descrição
 
-    const expectedHeaders = Object.keys(headerMap);
-    const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
-
-    if (missingHeaders.length > 0) {
-        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${expectedHeaders.join(', ')}`] };
+    const missingRequiredHeaders = requiredCsvHeaders.filter(reqH => !headers.includes(reqH));
+    if (missingRequiredHeaders.length > 0) {
+        return { data: [], errors: [`Cabeçalhos obrigatórios faltando no CSV: ${missingRequiredHeaders.join(', ')}. Certifique-se que a primeira linha contém pelo menos: ${requiredCsvHeaders.join(', ')} e opcionalmente os demais: ${expectedHeadersForDescription.filter(h => !requiredCsvHeaders.includes(h)).join(', ')}`] };
     }
 
     const storesData: StoreCSVData[] = [];
@@ -146,6 +149,13 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
             errors.push(`Linha ${i + 1}: Dados essenciais (código, razão social, cnpj, email) faltando.`);
             hasErrorInRow = true;
         }
+        
+        // Validação da senha se fornecida no CSV
+        if (storeRow.senha && storeRow.senha.length < 6) {
+             errors.push(`Linha ${i + 1} (Loja ${storeRow.code || 'sem código'}): Senha fornecida deve ter pelo menos 6 caracteres.`);
+             hasErrorInRow = true;
+        }
+
 
         if (!hasErrorInRow) {
             storesData.push(storeRow);
@@ -380,7 +390,7 @@ export default function ManageStoresPage() {
       ownerName: store.ownerName || '',
       responsibleName: store.responsibleName || '',
       email: store.email || '',
-      password: '', // Passwords are not shown/edited here
+      password: '', 
       confirmPassword: '',
     });
     setIsDialogOpen(true);
@@ -467,34 +477,17 @@ export default function ManageStoresPage() {
         title: "Loja Atualizada!",
         description: `Loja ${data.code} - ${data.razaoSocial} foi atualizada.`,
       });
-      // Update existing user if email matches
       if (userIndex > -1) {
         currentUsers[userIndex].name = data.responsibleName;
         currentUsers[userIndex].storeName = data.razaoSocial;
-        // Password is not changed here for existing users via this form
         saveUsers(currentUsers);
       } else if (data.email !== editingStore.email) {
-          // If email changed, need to handle old user vs new user logic (complex, for now, let's assume if email changes, it's like a new user association)
-          // For simplicity, this case might create a new user if the new email doesn't exist.
-          // Or, ideally, prevent email change or handle user migration.
-          // For now, if userIndex is -1 and email is different, we might be creating a new user or there's an issue.
-          // Let's assume we create a new one if it's a new email and no user exists for it.
           const existingNewEmailUser = currentUsers.find(u => u.email === data.email && u.role === 'store');
           if (!existingNewEmailUser) {
-            const newUserForStore: User = {
-                id: `user_store_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
-                email: data.email,
-                role: 'store',
-                name: data.responsibleName,
-                storeName: data.razaoSocial,
-                password: data.password, // This should only happen if we allow password change on edit
-            };
-            // This path needs careful consideration for password handling on edit.
-            // For now, password setting is only for new stores.
           }
       }
 
-    } else { // New store
+    } else { 
       if (!data.password || !data.confirmPassword) {
         form.setError("password", {type: "manual", message: "Senha é obrigatória para novo cadastro."});
         toast({ title: "Erro de Validação", description: "Senha é obrigatória.", variant: "destructive"});
@@ -505,7 +498,7 @@ export default function ManageStoresPage() {
          toast({ title: "Erro de Validação", description: "As senhas não coincidem.", variant: "destructive"});
         return;
       }
-      if (userIndex > -1) { // Check if email already exists for a store user
+      if (userIndex > -1) { 
         form.setError("email", { type: "manual", message: "Este email já está em uso por outro usuário de loja." });
         toast({ title: "Erro", description: "Email já cadastrado para um usuário de loja.", variant: "destructive" });
         return;
@@ -530,7 +523,7 @@ export default function ManageStoresPage() {
         role: 'store',
         name: data.responsibleName,
         storeName: data.razaoSocial,
-        password: data.password, // Store the password
+        password: data.password, 
       };
       currentUsers.push(newUserForStore);
       saveUsers(currentUsers);
@@ -559,17 +552,19 @@ export default function ManageStoresPage() {
   };
 
   const handleDownloadSampleStoreCSV = () => {
-    const csvHeader = "codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email\n";
-    const csvExampleRow1 = `"LJ998","Farmácia Exemplo Sul Ltda.","11222333000188","Rua Modelo Sul, 789","Curitiba","Portão","PR","(41) 99999-0001","Carlos Exemplo","Ana Modelo","loja.exsul@example.com"\n`;
-    const csvExampleRow2 = `"LJ999","Drogaria Boa Saúde Oeste S.A.","44555666000199","Avenida Teste Oeste, 1011","Joinville","Centro","SC","(47) 98888-0002","Fernanda Teste","Ricardo Boa","loja.bsoeste@example.com"\n`;
-    const csvContent = csvHeader + csvExampleRow1 + csvExampleRow2;
+    const csvHeader = "codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email,senha\n";
+    const csvExampleRow1 = `"LJ998","Farmácia Exemplo Sul Ltda.","11222333000188","Rua Modelo Sul, 789","Curitiba","Portão","PR","(41) 99999-0001","Carlos Exemplo","Ana Modelo","loja.exsul@example.com","senhaSegura123"\n`;
+    const csvExampleRow2 = `"LJ999","Drogaria Boa Saúde Oeste S.A.","44555666000199","Avenida Teste Oeste, 1011","Joinville","Centro","SC","(47) 98888-0002","Fernanda Teste","Ricardo Boa","loja.bsoeste@example.com","outraSenha456"\n`;
+    const csvExampleRow3 = `"LJ1000","Mais Saúde Farma","10111213000112","Praça Central, 01","Curitiba","Rebouças","PR","(41) 97777-0003","José Praça","Maria Central","loja.central@example.com",""\n`;
+
+    const csvContent = csvHeader + csvExampleRow1 + csvExampleRow2 + csvExampleRow3;
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", "exemplo_lojas.csv");
+      link.setAttribute("download", "exemplo_lojas_com_senha.csv");
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -608,8 +603,9 @@ export default function ManageStoresPage() {
         const ps = parsedStores[i];
         try {
           const cleanedCsvCnpj = cleanCNPJ(ps.cnpj || "");
-           // Generate a dummy password for CSV import for now
-          const dummyPassword = "PasswordFromCSV123!";
+          const passwordFromCsv = ps.senha;
+          const passwordForUser = (passwordFromCsv && passwordFromCsv.length >= 6) ? passwordFromCsv : "PadraoHiper123!"; // Senha padrão se não fornecida ou inválida
+
           const storeInputData = {
             code: ps.code || "",
             razaoSocial: ps.razaoSocial || "",
@@ -622,8 +618,8 @@ export default function ManageStoresPage() {
             ownerName: ps.ownerName || "",
             responsibleName: ps.responsibleName || "",
             email: ps.email || "",
-            password: dummyPassword, // For schema validation
-            confirmPassword: dummyPassword, // For schema validation
+            password: passwordForUser, 
+            confirmPassword: passwordForUser, 
           };
 
           const validationResult = storeRegistrationSchema.safeParse(storeInputData);
@@ -676,9 +672,11 @@ export default function ManageStoresPage() {
               role: 'store',
               name: validatedData.responsibleName,
               storeName: validatedData.razaoSocial,
-              password: validatedData.password, // Save the dummy password or ideally prompt admin later
+              password: passwordForUser, 
             };
             newUsersToSave.push(newUserForStore);
+          } else {
+             validationErrors.push(`Linha ${i + 2}: Email ${validatedData.email} já existe para um usuário. A loja será criada, mas o usuário existente não será modificado por esta importação.`);
           }
           importedCount++;
         } catch (error) {
@@ -700,12 +698,12 @@ export default function ManageStoresPage() {
       setImportStoreLoading(false);
 
       if (importedCount > 0 && validationErrors.length === 0) {
-        toast({ title: "Importação Concluída!", description: `${importedCount} lojas importadas com sucesso.` });
+        toast({ title: "Importação Concluída!", description: `${importedCount} lojas e seus respectivos usuários (se novos) foram importados com sucesso.` });
         setIsImportStoreDialogOpen(false);
         setCsvStoreFile(null);
         setCsvStoreFileName("");
       } else if (importedCount > 0 && validationErrors.length > 0) {
-        toast({ title: "Importação Parcial", description: `${importedCount} lojas importadas. Alguns registros tiveram erros.`, variant: "default" });
+        toast({ title: "Importação Parcial", description: `${importedCount} lojas importadas. Alguns registros tiveram erros ou avisos.`, variant: "default" });
       } else if (importedCount === 0 && validationErrors.length > 0) {
         toast({ title: "Falha na Importação", description: "Nenhuma loja importada devido a erros. Verifique os detalhes.", variant: "destructive" });
       } else if (importedCount === 0 && validationErrors.length === 0 && parsedStores.length > 0) {
@@ -849,8 +847,11 @@ export default function ManageStoresPage() {
             <DialogTitle>Importar Lojas (CSV)</DialogTitle>
             <DialogDescription>
               Selecione um arquivo CSV para importar lojas em massa.
-              A primeira linha (cabeçalho) deve conter:
-              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email</code>
+              A primeira linha (cabeçalho) deve conter pelo menos os campos obrigatórios:
+              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">codigo,razaosocial,cnpj,email</code>
+              E opcionalmente:
+              <code className="block bg-muted p-2 rounded-md my-1 text-xs break-all">endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,senha</code>
+              A coluna 'senha' é opcional; se não fornecida ou inválida, uma senha padrão será usada.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 sm:space-y-4 py-4">
@@ -870,7 +871,7 @@ export default function ManageStoresPage() {
               </div>
             )}
             <Button type="button" variant="link" size="sm" onClick={handleDownloadSampleStoreCSV} className="p-0 h-auto text-primary text-xs sm:text-sm">
-              <Download className="mr-1 h-3 w-3" /> Baixar CSV de Exemplo para Lojas
+              <Download className="mr-1 h-3 w-3" /> Baixar CSV de Exemplo para Lojas (com senha)
             </Button>
             {importStoreErrors.length > 0 && (
               <div className="mt-4 max-h-40 overflow-y-auto rounded-md border border-destructive/50 bg-destructive/10 p-3">
