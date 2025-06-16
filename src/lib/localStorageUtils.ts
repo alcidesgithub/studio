@@ -40,7 +40,12 @@ function loadData<T>(key: string, emptyDefault: T | (() => T)): T {
     } else {
       // If item doesn't exist, save and return the emptyDefault to ensure the key exists in localStorage
       const defaultValue = typeof emptyDefault === 'function' ? (emptyDefault as () => T)() : emptyDefault;
-      saveData(key, defaultValue);
+      // For saveData to work here, it must not cause an infinite loop if it also calls loadData
+      // This initial save should be simple and not itself trigger loads.
+      // For this specific case, we will ensure initial save doesn't call load for its own key.
+      if (key !== EVENT_KEY || defaultValue !== defaultEvent) { // Prevent recursion for event key specifically
+        saveDataInternal(key, defaultValue);
+      }
       return defaultValue;
     }
   } catch (error) {
@@ -51,23 +56,47 @@ function loadData<T>(key: string, emptyDefault: T | (() => T)): T {
   }
 }
 
-// Generic save function
-function saveData<T>(key: string, data: T): void {
+// Internal save function used by loadData to prevent direct exposure of a non-error-handling save
+function saveDataInternal<T>(key: string, data: T): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
+    // Log error but don't throw, as this is a helper for initialization
+    console.error(`Internal error saving ${key} to localStorage:`, error);
+  }
+}
+
+
+// Generic save function
+function saveData<T>(key: string, data: T): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (error: any) {
     console.error(`Error saving ${key} to localStorage:`, error);
+    // Check for QuotaExceededError (browser-specific checks might be needed)
+    if (error.name === 'QuotaExceededError' || 
+        error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || // Firefox
+        error.code === 22 || // Safari
+        error.code === 1014 // IE
+    ) {
+      console.error(`Quota exceeded while trying to save ${key}. Data might be too large.`);
+      // Specific handling for quota exceeded should be done in the calling component
+      // by checking the return value of this function.
+    }
+    return false;
   }
 }
 
 // Event
 export const loadEvent = (): Event => loadData<Event>(EVENT_KEY, defaultEvent);
-export const saveEvent = (event: Event): void => saveData<Event>(EVENT_KEY, event);
+export const saveEvent = (event: Event): boolean => saveData<Event>(EVENT_KEY, event);
 
 // Award Tiers
 export const loadAwardTiers = (): AwardTier[] => loadData<AwardTier[]>(AWARD_TIERS_KEY, []);
-export const saveAwardTiers = (tiers: AwardTier[]): void => saveData<AwardTier[]>(AWARD_TIERS_KEY, tiers);
+export const saveAwardTiers = (tiers: AwardTier[]): void => { saveData<AwardTier[]>(AWARD_TIERS_KEY, tiers); }; // Keep void for now unless needed elsewhere
 
 // Stores
 export const loadStores = (): Store[] => {
@@ -90,19 +119,19 @@ export const loadStores = (): Store[] => {
     return migratedStore;
   });
   if (migrated && typeof window !== 'undefined') {
-    saveData(STORES_KEY, stores); 
+    saveDataInternal(STORES_KEY, stores); 
   }
   return stores;
 };
-export const saveStores = (stores: Store[]): void => saveData<Store[]>(STORES_KEY, stores);
+export const saveStores = (stores: Store[]): void => { saveData<Store[]>(STORES_KEY, stores); };
 
 // Vendors
 export const loadVendors = (): Vendor[] => loadData<Vendor[]>(VENDORS_KEY, []);
-export const saveVendors = (vendors: Vendor[]): void => saveData<Vendor[]>(VENDORS_KEY, vendors);
+export const saveVendors = (vendors: Vendor[]): void => { saveData<Vendor[]>(VENDORS_KEY, vendors); };
 
 // Salespeople
 export const loadSalespeople = (): Salesperson[] => loadData<Salesperson[]>(SALESPEOPLE_KEY, []);
-export const saveSalespeople = (salespeople: Salesperson[]): void => saveData<Salesperson[]>(SALESPEOPLE_KEY, salespeople);
+export const saveSalespeople = (salespeople: Salesperson[]): void => { saveData<Salesperson[]>(SALESPEOPLE_KEY, salespeople); };
 
 // Users
 export const loadUsers = (): User[] => {
@@ -170,14 +199,13 @@ export const loadUsers = (): User[] => {
 
 
   if (updateLocalStorage) {
-    saveData<User[]>(USERS_KEY, users);
+    saveDataInternal(USERS_KEY, users);
   }
   
   return users;
 };
-export const saveUsers = (users: User[]): void => saveData<User[]>(USERS_KEY, users);
+export const saveUsers = (users: User[]): void => { saveData<User[]>(USERS_KEY, users); };
 
 // Drawn Winners
 export const loadDrawnWinners = (): SweepstakeWinnerRecord[] => loadData<SweepstakeWinnerRecord[]>(DRAWN_WINNERS_KEY, []);
-export const saveDrawnWinners = (winners: SweepstakeWinnerRecord[]): void => saveData<SweepstakeWinnerRecord[]>(DRAWN_WINNERS_KEY, winners);
-
+export const saveDrawnWinners = (winners: SweepstakeWinnerRecord[]): void => { saveData<SweepstakeWinnerRecord[]>(DRAWN_WINNERS_KEY, winners); };

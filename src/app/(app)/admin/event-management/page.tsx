@@ -88,6 +88,16 @@ export default function AdminEventManagementPage() {
         event.target.value = ""; // Clear the input
         return;
       }
+      // Check file size (e.g., 2MB limit for individual PDF)
+      // Note: localStorage total limit is around 5-10MB. Data URLs are ~33% larger than binary.
+      // A 2MB PDF might become ~2.7MB Data URL. Two such files could exceed limits.
+      const maxSizeMB = 2; 
+      if (file.size > maxSizeMB * 1024 * 1024) {
+         toast({ title: "Arquivo Muito Grande", description: `O arquivo PDF deve ser menor que ${maxSizeMB}MB.`, variant: "destructive" });
+         event.target.value = ""; 
+         return;
+      }
+
       try {
         const dataUrl = await readFileAsDataURL(file);
         form.setValue(fieldName, dataUrl, { shouldValidate: true });
@@ -116,7 +126,8 @@ export default function AdminEventManagementPage() {
 
   const onSubmit = (data: EventFormValues) => {
     const eventToSave: Event = {
-      ...(currentEvent as Event), // Keep ID and any other non-form fields
+      ...(currentEvent || {}), // Keep ID and any other non-form fields, handle if currentEvent is null
+      id: currentEvent?.id || `event_${Date.now()}`, // Ensure ID exists
       name: data.name,
       date: format(data.date, 'yyyy-MM-dd'),
       time: data.time,
@@ -126,18 +137,29 @@ export default function AdminEventManagementPage() {
       vendorGuideUrl: data.vendorGuideUrl,
       associateGuideUrl: data.associateGuideUrl,
     };
-    saveEvent(eventToSave);
-    setCurrentEvent(eventToSave); 
     
-    // Reset file display names based on what was just saved
-    setSelectedVendorGuideName(eventToSave.vendorGuideUrl ? "Guia do Fornecedor Salvo" : null);
-    setSelectedAssociateGuideName(eventToSave.associateGuideUrl ? "Guia do Associado Salvo" : null);
+    const success = saveEvent(eventToSave);
     
-    toast({
-      title: "Configurações do Evento Salvas!",
-      description: "Os detalhes do evento foram atualizados com sucesso.",
-      variant: "success",
-    });
+    if (success) {
+        setCurrentEvent(eventToSave); 
+        
+        // Reset file display names based on what was just saved
+        setSelectedVendorGuideName(eventToSave.vendorGuideUrl ? "Guia do Fornecedor Salvo" : null);
+        setSelectedAssociateGuideName(eventToSave.associateGuideUrl ? "Guia do Associado Salvo" : null);
+        
+        toast({
+          title: "Configurações do Evento Salvas!",
+          description: "Os detalhes do evento foram atualizados com sucesso.",
+          variant: "success",
+        });
+    } else {
+        toast({
+            title: "Falha ao Salvar",
+            description: "Não foi possível salvar os detalhes do evento. O armazenamento local pode estar cheio. Tente usar arquivos PDF menores ou remova um dos guias.",
+            variant: "destructive",
+            duration: 9000, // Longer duration for important error
+        });
+    }
   };
 
   if (!currentEvent) {
@@ -175,7 +197,7 @@ export default function AdminEventManagementPage() {
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle>Guias do Evento (PDF)</CardTitle>
-              <CardDescription>Faça upload dos guias para fornecedores e associados.</CardDescription>
+              <CardDescription>Faça upload dos guias para fornecedores e associados. Limite de 2MB por arquivo.</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <FormItem>
@@ -188,7 +210,7 @@ export default function AdminEventManagementPage() {
                     <div className="flex items-center gap-1">
                       <FileText className="h-3.5 w-3.5" />
                       <span className="truncate" title={selectedVendorGuideName || "Guia Atual"}>{selectedVendorGuideName || "Guia do Fornecedor Atual"}</span>
-                      {currentVendorGuideUrl && 
+                      {currentVendorGuideUrl && currentVendorGuideUrl.startsWith('data:application/pdf') && 
                         <a href={currentVendorGuideUrl} target="_blank" rel="noopener noreferrer" download="Guia_Fornecedor.pdf" className="ml-1 text-primary hover:underline"><Download className="h-3 w-3 inline" /></a>}
                     </div>
                     {currentVendorGuideUrl &&
@@ -210,7 +232,7 @@ export default function AdminEventManagementPage() {
                     <div className="flex items-center gap-1">
                         <FileText className="h-3.5 w-3.5" />
                         <span className="truncate" title={selectedAssociateGuideName || "Guia Atual"}>{selectedAssociateGuideName || "Guia do Associado Atual"}</span>
-                        {currentAssociateGuideUrl && 
+                        {currentAssociateGuideUrl && currentAssociateGuideUrl.startsWith('data:application/pdf') &&
                         <a href={currentAssociateGuideUrl} target="_blank" rel="noopener noreferrer" download="Guia_Associado.pdf" className="ml-1 text-primary hover:underline"><Download className="h-3 w-3 inline" /></a>}
                     </div>
                     {currentAssociateGuideUrl &&
