@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -58,8 +59,13 @@ export default function AppLayout({
       );
   }
 
-  const allowedStorePaths = ['/event', '/store/positivacao']; 
-  if (user.role === 'store' && !allowedStorePaths.includes(pathname) && !pathname.startsWith('/_next/')) {
+  const allowedStoreExactPaths = ['/event', '/store/positivacao']; 
+  if (
+    user.role === 'store' &&
+    !allowedStoreExactPaths.includes(pathname) && // Check exact allowed paths
+    !pathname.startsWith('/store/branch/') &&     // Allow any path under /store/branch/
+    !pathname.startsWith('/_next/')               // Ignore Next.js internal paths
+  ) {
       return (
           <div className="flex min-h-screen flex-col items-center justify-center p-4">
             <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>
