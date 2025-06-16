@@ -42,16 +42,21 @@ function loadData<T>(key: string, emptyDefault: T | (() => T), mockDataFallback?
         saveData(key, mockDataFallback); // Salva os mocks para que fiquem disponíveis
         return mockDataFallback;
       }
-      return typeof emptyDefault === 'function' ? (emptyDefault as () => T)() : emptyDefault;
+      // Caso contrário, salva e retorna o emptyDefault para garantir que a chave exista no localStorage
+      const defaultValue = typeof emptyDefault === 'function' ? (emptyDefault as () => T)() : emptyDefault;
+      saveData(key, defaultValue);
+      return defaultValue;
     }
   } catch (error) {
     console.error(`Error loading ${key} from localStorage:`, error);
     // Fallback para default ou mock em caso de erro no parse, se mockDataFallback existir
     if (mockDataFallback !== undefined) {
-        saveData(key, mockDataFallback);
+        // Não salvar mockDataFallback em caso de erro de parse, apenas retornar
         return mockDataFallback;
     }
-    return typeof emptyDefault === 'function' ? (emptyDefault as () => T)() : emptyDefault;
+    const defaultValue = typeof emptyDefault === 'function' ? (emptyDefault as () => T)() : emptyDefault;
+    // Não salvar defaultValue em caso de erro de parse, apenas retornar
+    return defaultValue;
   }
 }
 
@@ -86,8 +91,8 @@ export const loadSalespeople = (): Salesperson[] => loadData<Salesperson[]>(SALE
 export const saveSalespeople = (salespeople: Salesperson[]): void => saveData<Salesperson[]>(SALESPEOPLE_KEY, salespeople);
 
 // Users
-// Agora, se não houver usuários no localStorage, MOCK_USERS será carregado e salvo.
-export const loadUsers = (): User[] => loadData<User[]>(USERS_KEY, [], MOCK_USERS);
+// Alterado para não usar MOCK_USERS como fallback na inicialização.
+export const loadUsers = (): User[] => loadData<User[]>(USERS_KEY, []);
 export const saveUsers = (users: User[]): void => saveData<User[]>(USERS_KEY, users);
 
 // Drawn Winners
