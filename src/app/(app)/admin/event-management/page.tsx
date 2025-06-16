@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { loadEvent, saveEvent } from '@/lib/localStorageUtils';
 import type { Event } from '@/types';
-import { Edit3, CalendarIcon, Save, UploadCloud, FileText, Trash2, Download, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { Edit3, CalendarIcon, Save, Link as LinkIcon, Trash2, ExternalLink, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -29,26 +29,15 @@ const eventFormSchema = z.object({
   location: z.string().min(5, { message: "Localização deve ter pelo menos 5 caracteres." }),
   address: z.string().min(10, { message: "Endereço deve ter pelo menos 10 caracteres." }),
   mapEmbedUrl: z.string().url({ message: "Por favor, insira uma URL válida para o mapa." }).or(z.literal("")),
-  vendorGuideUrl: z.string().optional(),
-  associateGuideUrl: z.string().optional(),
+  vendorGuideUrl: z.string().url({ message: "Por favor, insira uma URL válida para o Guia do Fornecedor." }).optional().or(z.literal("")),
+  associateGuideUrl: z.string().url({ message: "Por favor, insira uma URL válida para o Guia do Associado." }).optional().or(z.literal("")),
 });
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
-const readFileAsDataURL = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
 export default function AdminEventManagementPage() {
   const { toast } = useToast();
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
-  const [selectedVendorGuideName, setSelectedVendorGuideName] = useState<string | null>(null);
-  const [selectedAssociateGuideName, setSelectedAssociateGuideName] = useState<string | null>(null);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -69,65 +58,17 @@ export default function AdminEventManagementPage() {
       vendorGuideUrl: loadedEvent.vendorGuideUrl || '',
       associateGuideUrl: loadedEvent.associateGuideUrl || '',
     });
-    // If there are existing URLs, we might want to display a placeholder name or allow download
-    // For simplicity, we'll just show a download link if URL exists
-    if (loadedEvent.vendorGuideUrl) setSelectedVendorGuideName("Guia do Fornecedor Existente");
-    if (loadedEvent.associateGuideUrl) setSelectedAssociateGuideName("Guia do Associado Existente");
-
   }, [form]);
 
-  const handleFileChange = useCallback(async (
-    event: React.ChangeEvent<HTMLInputElement>,
-    fieldName: keyof EventFormValues,
-    setNameState: React.Dispatch<React.SetStateAction<string | null>>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type !== "application/pdf") {
-        toast({ title: "Arquivo Inválido", description: "Por favor, selecione um arquivo PDF.", variant: "destructive" });
-        event.target.value = ""; // Clear the input
-        return;
-      }
-      // Check file size (e.g., 2MB limit for individual PDF)
-      // Note: localStorage total limit is around 5-10MB. Data URLs are ~33% larger than binary.
-      // A 2MB PDF might become ~2.7MB Data URL. Two such files could exceed limits.
-      const maxSizeMB = 2; 
-      if (file.size > maxSizeMB * 1024 * 1024) {
-         toast({ title: "Arquivo Muito Grande", description: `O arquivo PDF deve ser menor que ${maxSizeMB}MB.`, variant: "destructive" });
-         event.target.value = ""; 
-         return;
-      }
-
-      try {
-        const dataUrl = await readFileAsDataURL(file);
-        form.setValue(fieldName, dataUrl, { shouldValidate: true });
-        setNameState(file.name);
-        toast({ title: "Arquivo Carregado", description: `${file.name} pronto para salvar.`, variant: "success" });
-      } catch (error) {
-        toast({ title: "Erro ao Ler Arquivo", description: "Não foi possível carregar o arquivo.", variant: "destructive" });
-        setNameState(null);
-      }
-    } else {
-      // If no file is selected (e.g., user cancels file dialog), keep existing or clear if intended
-      // form.setValue(fieldName, currentEvent?.[fieldName] || '', { shouldValidate: true }); // Keep existing if not replaced
-      // setNameState(currentEvent?.[fieldName] ? `Guia Existente (${fieldName === 'vendorGuideUrl' ? 'Fornecedor' : 'Associado'})` : null);
-    }
-  }, [form, toast]);
-
-  const handleRemoveGuide = useCallback((
-    fieldName: 'vendorGuideUrl' | 'associateGuideUrl',
-    setNameState: React.Dispatch<React.SetStateAction<string | null>>
-  ) => {
+  const handleRemoveGuideUrl = useCallback((fieldName: 'vendorGuideUrl' | 'associateGuideUrl') => {
     form.setValue(fieldName, '', { shouldValidate: true });
-    setNameState(null);
-    toast({ title: "Guia Removido", description: "O guia será removido ao salvar.", variant: "default" });
+    toast({ title: "URL Removida", description: "A URL do guia será removida ao salvar.", variant: "default" });
   }, [form, toast]);
-
 
   const onSubmit = (data: EventFormValues) => {
     const eventToSave: Event = {
-      ...(currentEvent || {}), // Keep ID and any other non-form fields, handle if currentEvent is null
-      id: currentEvent?.id || `event_${Date.now()}`, // Ensure ID exists
+      ...(currentEvent || {}),
+      id: currentEvent?.id || `event_${Date.now()}`,
       name: data.name,
       date: format(data.date, 'yyyy-MM-dd'),
       time: data.time,
@@ -142,11 +83,6 @@ export default function AdminEventManagementPage() {
     
     if (success) {
         setCurrentEvent(eventToSave); 
-        
-        // Reset file display names based on what was just saved
-        setSelectedVendorGuideName(eventToSave.vendorGuideUrl ? "Guia do Fornecedor Salvo" : null);
-        setSelectedAssociateGuideName(eventToSave.associateGuideUrl ? "Guia do Associado Salvo" : null);
-        
         toast({
           title: "Configurações do Evento Salvas!",
           description: "Os detalhes do evento foram atualizados com sucesso.",
@@ -155,9 +91,9 @@ export default function AdminEventManagementPage() {
     } else {
         toast({
             title: "Falha ao Salvar",
-            description: "Não foi possível salvar os detalhes do evento. O armazenamento local pode estar cheio. Tente usar arquivos PDF menores ou remova um dos guias.",
+            description: "Não foi possível salvar os detalhes do evento. O armazenamento local pode estar cheio ou ocorreu um erro inesperado.",
             variant: "destructive",
-            duration: 9000, // Longer duration for important error
+            duration: 9000,
         });
     }
   };
@@ -173,7 +109,7 @@ export default function AdminEventManagementPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title="Gerenciar evento"
-        description="Edite os detalhes principais do evento e faça upload dos guias em PDF."
+        description="Edite os detalhes principais do evento e configure os links para os guias."
         icon={Edit3}
         iconClassName="text-secondary"
       />
@@ -196,53 +132,65 @@ export default function AdminEventManagementPage() {
 
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle>Guias do Evento (PDF)</CardTitle>
-              <CardDescription>Faça upload dos guias para fornecedores e associados. Limite de 2MB por arquivo.</CardDescription>
+              <CardTitle>Links dos Guias do Evento</CardTitle>
+              <CardDescription>Insira as URLs completas para os guias em PDF.</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              <FormItem>
-                <FormLabel>Guia do Fornecedor (PDF)</FormLabel>
-                <FormControl>
-                  <Input type="file" accept=".pdf" className="h-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90" onChange={(e) => handleFileChange(e, 'vendorGuideUrl', setSelectedVendorGuideName)} />
-                </FormControl>
-                {(selectedVendorGuideName || currentVendorGuideUrl) && (
-                  <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-3.5 w-3.5" />
-                      <span className="truncate" title={selectedVendorGuideName || "Guia Atual"}>{selectedVendorGuideName || "Guia do Fornecedor Atual"}</span>
-                      {currentVendorGuideUrl && currentVendorGuideUrl.startsWith('data:application/pdf') && 
-                        <a href={currentVendorGuideUrl} target="_blank" rel="noopener noreferrer" download="Guia_Fornecedor.pdf" className="ml-1 text-primary hover:underline"><Download className="h-3 w-3 inline" /></a>}
-                    </div>
-                    {currentVendorGuideUrl &&
-                    <Button type="button" variant="ghost" size="sm" className="h-auto p-1 text-destructive hover:text-destructive/80" onClick={() => handleRemoveGuide('vendorGuideUrl', setSelectedVendorGuideName)}>
-                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover
-                    </Button>}
-                  </div>
+              <FormField
+                control={form.control}
+                name="vendorGuideUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL do Guia do Fornecedor (PDF)</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <Input type="url" placeholder="https://example.com/guia-fornecedor.pdf" {...field} />
+                        {field.value && (
+                           <Button type="button" variant="ghost" size="icon" asChild>
+                            <a href={field.value} target="_blank" rel="noopener noreferrer" title="Testar Link">
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    </FormControl>
+                     {currentVendorGuideUrl &&
+                        <Button type="button" variant="link" size="sm" className="h-auto p-0 mt-1 text-xs text-destructive hover:text-destructive/80" onClick={() => handleRemoveGuideUrl('vendorGuideUrl')}>
+                          <Trash2 className="h-3 w-3 mr-1" /> Remover URL
+                        </Button>
+                      }
+                    <FormMessage />
+                  </FormItem>
                 )}
-                <FormMessage>{form.formState.errors.vendorGuideUrl?.message}</FormMessage>
-              </FormItem>
+              />
 
-              <FormItem>
-                <FormLabel>Guia do Associado (PDF)</FormLabel>
-                <FormControl>
-                   <Input type="file" accept=".pdf" className="h-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90" onChange={(e) => handleFileChange(e, 'associateGuideUrl', setSelectedAssociateGuideName)} />
-                </FormControl>
-                 {(selectedAssociateGuideName || currentAssociateGuideUrl) && (
-                  <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5" />
-                        <span className="truncate" title={selectedAssociateGuideName || "Guia Atual"}>{selectedAssociateGuideName || "Guia do Associado Atual"}</span>
-                        {currentAssociateGuideUrl && currentAssociateGuideUrl.startsWith('data:application/pdf') &&
-                        <a href={currentAssociateGuideUrl} target="_blank" rel="noopener noreferrer" download="Guia_Associado.pdf" className="ml-1 text-primary hover:underline"><Download className="h-3 w-3 inline" /></a>}
-                    </div>
-                    {currentAssociateGuideUrl &&
-                    <Button type="button" variant="ghost" size="sm" className="h-auto p-1 text-destructive hover:text-destructive/80" onClick={() => handleRemoveGuide('associateGuideUrl', setSelectedAssociateGuideName)}>
-                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover
-                    </Button>}
-                  </div>
+              <FormField
+                control={form.control}
+                name="associateGuideUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL do Guia do Associado (PDF)</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <Input type="url" placeholder="https://example.com/guia-associado.pdf" {...field} />
+                        {field.value && (
+                           <Button type="button" variant="ghost" size="icon" asChild>
+                            <a href={field.value} target="_blank" rel="noopener noreferrer" title="Testar Link">
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    </FormControl>
+                     {currentAssociateGuideUrl &&
+                        <Button type="button" variant="link" size="sm" className="h-auto p-0 mt-1 text-xs text-destructive hover:text-destructive/80" onClick={() => handleRemoveGuideUrl('associateGuideUrl')}>
+                          <Trash2 className="h-3 w-3 mr-1" /> Remover URL
+                        </Button>
+                      }
+                    <FormMessage />
+                  </FormItem>
                 )}
-                <FormMessage>{form.formState.errors.associateGuideUrl?.message}</FormMessage>
-              </FormItem>
+              />
             </CardContent>
           </Card>
 

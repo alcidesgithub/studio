@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import type { Event, Vendor } from '@/types';
 import { EventMap } from '@/components/event/EventMap';
-import { CalendarDays, Clock, MapPin as MapPinIcon, Briefcase, Download, FileText, Loader2 } from 'lucide-react';
+import { CalendarDays, Clock, MapPin as MapPinIcon, Briefcase, FileText, ExternalLink, Loader2 } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
@@ -96,21 +96,21 @@ export default function EventInfoPage() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="font-headline text-lg sm:text-xl flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-secondary"/> Documentos do Evento
+                  <FileText className="h-5 w-5 text-secondary"/> Guias do Evento
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {user.role === 'vendor' && currentEvent.vendorGuideUrl && (
                   <Button asChild className="w-full">
-                    <a href={currentEvent.vendorGuideUrl} download="Guia_do_Fornecedor.pdf">
-                      <Download className="mr-2 h-4 w-4" /> Baixar Guia do Fornecedor
+                    <a href={currentEvent.vendorGuideUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" /> Abrir Guia do Fornecedor
                     </a>
                   </Button>
                 )}
                 {user.role === 'store' && currentEvent.associateGuideUrl && (
                   <Button asChild className="w-full">
-                    <a href={currentEvent.associateGuideUrl} download="Guia_do_Associado.pdf">
-                      <Download className="mr-2 h-4 w-4" /> Baixar Guia do Associado
+                    <a href={currentEvent.associateGuideUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" /> Abrir Guia do Associado
                     </a>
                   </Button>
                 )}
@@ -118,15 +118,15 @@ export default function EventInfoPage() {
                   <>
                     {currentEvent.vendorGuideUrl && (
                       <Button asChild variant="outline" className="w-full">
-                        <a href={currentEvent.vendorGuideUrl} download="Guia_do_Fornecedor.pdf">
-                          <Download className="mr-2 h-4 w-4" /> Guia do Fornecedor (Admin)
+                        <a href={currentEvent.vendorGuideUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="mr-2 h-4 w-4" /> Guia do Fornecedor (Admin)
                         </a>
                       </Button>
                     )}
                     {currentEvent.associateGuideUrl && (
                       <Button asChild variant="outline" className="w-full">
-                        <a href={currentEvent.associateGuideUrl} download="Guia_do_Associado.pdf">
-                          <Download className="mr-2 h-4 w-4" /> Guia do Associado (Admin)
+                        <a href={currentEvent.associateGuideUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="mr-2 h-4 w-4" /> Guia do Associado (Admin)
                         </a>
                       </Button>
                     )}
