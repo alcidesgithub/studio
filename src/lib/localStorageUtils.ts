@@ -91,8 +91,41 @@ export const loadSalespeople = (): Salesperson[] => loadData<Salesperson[]>(SALE
 export const saveSalespeople = (salespeople: Salesperson[]): void => saveData<Salesperson[]>(SALESPEOPLE_KEY, salespeople);
 
 // Users
-// For Users, if no mockDataFallback is provided, it defaults to an empty array.
-export const loadUsers = (): User[] => loadData<User[]>(USERS_KEY, []);
+export const loadUsers = (): User[] => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  try {
+    const item = window.localStorage.getItem(USERS_KEY);
+    if (item) {
+      return JSON.parse(item) as User[];
+    } else {
+      // No users found, create and save the default admin
+      const defaultAdmin: User = {
+        id: 'user_admin_alcides_default',
+        name: 'Alcides',
+        email: 'alcides@redehiperfarma.com.br',
+        role: 'admin',
+        password: 'eitarede7889',
+      };
+      const initialUsers = [defaultAdmin];
+      saveData<User[]>(USERS_KEY, initialUsers);
+      
+      // Also ensure mock/default data for other entities are loaded if it's the very first run
+      // This helps in setting up a new environment with some basic data.
+      if (!window.localStorage.getItem(EVENT_KEY)) loadEvent();
+      if (!window.localStorage.getItem(AWARD_TIERS_KEY)) loadAwardTiers();
+      if (!window.localStorage.getItem(STORES_KEY)) loadStores();
+      if (!window.localStorage.getItem(VENDORS_KEY)) loadVendors();
+      if (!window.localStorage.getItem(SALESPEOPLE_KEY)) loadSalespeople();
+      
+      return initialUsers;
+    }
+  } catch (error) {
+    console.error(`Error loading ${USERS_KEY} from localStorage:`, error);
+    return [];
+  }
+};
 export const saveUsers = (users: User[]): void => saveData<User[]>(USERS_KEY, users);
 
 // Drawn Winners
