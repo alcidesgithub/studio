@@ -41,7 +41,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
           <StoreIcon className="h-5 w-5 sm:h-6 sm:w-6 text-secondary flex-shrink-0 mt-0.5" />
           <div>
             <span className="block font-semibold truncate" title={store.name}>{store.name}</span>
-            <span className="block text-sm text-muted-foreground truncate" title={`Código: ${store.code}`}>({store.code})</span>
+            <span className="block text-sm text-muted-foreground font-semibold truncate" title={`Código: ${store.code}`}>({store.code})</span>
             {!store.isMatrix && matrixStoreCode && (
               <span className="block text-sm text-secondary truncate" title={`Matriz: ${matrixStoreCode}`}>
                 Filial de: {matrixStoreCode}
@@ -124,6 +124,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   );
 });
 StorePositivationDisplayCard.displayName = 'StorePositivationDisplayCard';
+
 
 
 
