@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,12 @@ import { Dice6, ListChecks, Trophy, Download, PlayCircle, RotateCcw, Trash2, Shi
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+const SweepstakeAnimationDialog = dynamic(() =>
+  import('@/components/dialogs/SweepstakeAnimationDialog').then((mod) => mod.SweepstakeAnimationDialog),
+  { ssr: false, loading: () => <p>Carregando diálogo do sorteio...</p> }
+);
+
 
 const exportToCSV = (data: any[], filename: string) => {
   if (typeof window === "undefined") return;
@@ -41,7 +48,7 @@ const exportToCSV = (data: any[], filename: string) => {
   document.body.removeChild(link);
 };
 
-type AwardTierWithStats = AwardTier & {
+export type AwardTierWithStats = AwardTier & {
   remainingQuantity: number;
   eligibleStores: Store[];
   winners: SweepstakeWinnerRecord[];
@@ -50,7 +57,6 @@ type AwardTierWithStats = AwardTier & {
 
 export default function AdminTieredSweepstakesPage() {
   const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]);
-  const [isLoadingDraw, setIsLoadingDraw] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
@@ -61,6 +67,9 @@ export default function AdminTieredSweepstakesPage() {
   const [tierToReset, setTierToReset] = useState<AwardTierWithStats | null>(null);
   const [winnerToDelete, setWinnerToDelete] = useState<SweepstakeWinnerRecord | null>(null);
 
+  const [isSweepstakeDialogOpen, setIsSweepstakeDialogOpen] = useState(false);
+  const [currentTierForDialog, setCurrentTierForDialog] = useState<AwardTierWithStats | null>(null);
+
 
   useEffect(() => {
     setAwardTiers(loadAwardTiers().sort((a,b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)));
@@ -70,8 +79,6 @@ export default function AdminTieredSweepstakesPage() {
   }, []);
 
   useEffect(() => {
-    // Persist drawnWinners to localStorage whenever it changes,
-    // but only if it's not empty, or if the localStorage key already exists (meaning we are clearing it)
     if (drawnWinners.length > 0 || localStorage.getItem('hiperfarma_drawn_winners')) {
         saveDrawnWinners(drawnWinners);
     }
@@ -103,36 +110,44 @@ export default function AdminTieredSweepstakesPage() {
     });
   }, [drawnWinners, awardTiers, stores]);
 
-  const handleDrawWinner = useCallback(async (tier: AwardTierWithStats) => {
-    if (tier.remainingQuantity <= 0 || tier.eligibleStores.length === 0) {
-      toast({ title: "Não é Possível Sortear", description: "Nenhum prêmio restante nesta faixa ou nenhuma loja elegível (que ainda não ganhou ou não fez check-in).", variant: "default" });
+
+  const openSweepstakeDialog = (tier: AwardTierWithStats) => {
+     if (tier.remainingQuantity <= 0 || tier.eligibleStores.length === 0) {
+      toast({ title: "Não é Possível Sortear", description: "Nenhum prêmio restante nesta faixa ou nenhuma loja elegível.", variant: "default" });
       return;
     }
+    setCurrentTierForDialog(tier);
+    setIsSweepstakeDialogOpen(true);
+  };
 
-    setIsLoadingDraw(tier.id);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const randomIndex = Math.floor(Math.random() * tier.eligibleStores.length);
-    const winningStore = tier.eligibleStores[randomIndex];
+  const handleSweepstakeConfirmed = useCallback((winningStore: Store) => {
+    if (!currentTierForDialog) {
+        toast({ title: "Erro no Sorteio", description: "Faixa de premiação não identificada.", variant: "destructive"});
+        setIsSweepstakeDialogOpen(false);
+        return;
+    }
 
     const newWinnerRecord: SweepstakeWinnerRecord = {
-      id: `winner_${tier.id}_${winningStore.id}_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
-      tierId: tier.id,
-      tierName: tier.name,
-      prizeName: tier.rewardName,
+      id: `winner_${currentTierForDialog.id}_${winningStore.id}_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+      tierId: currentTierForDialog.id,
+      tierName: currentTierForDialog.name,
+      prizeName: currentTierForDialog.rewardName,
       storeId: winningStore.id,
       storeName: `${winningStore.code} - ${winningStore.name} (CNPJ: ${winningStore.cnpj}, Estado: ${winningStore.state || 'N/A'})`,
       drawnAt: new Date(),
     };
 
     setDrawnWinners(prev => [...prev, newWinnerRecord]);
-    setIsLoadingDraw(null);
     toast({
       title: "Vencedor Sorteado!",
-      description: `${winningStore.name} ganhou o prêmio ${tier.rewardName} (da faixa ${tier.name}). Esta loja não poderá ser sorteada novamente.`,
+      description: `${winningStore.name} ganhou o prêmio ${currentTierForDialog.rewardName} (da faixa ${currentTierForDialog.name}). Esta loja não poderá ser sorteada novamente.`,
       variant: "success",
     });
-  }, [toast, setDrawnWinners]);
+    
+    setIsSweepstakeDialogOpen(false);
+    setCurrentTierForDialog(null);
+  }, [currentTierForDialog, toast, setDrawnWinners]);
+
 
   const handleExportLog = useCallback(() => {
     if (drawnWinners.length === 0) {
@@ -162,7 +177,7 @@ export default function AdminTieredSweepstakesPage() {
 
   const handleResetAllSweepstakes = useCallback(() => {
     setDrawnWinners([]);
-    saveDrawnWinners([]); // Explicitly save empty array to clear localStorage
+    saveDrawnWinners([]); 
     toast({ title: "Sorteio Resetado", description: "Todos os vencedores sorteados foram removidos.", variant: "destructive" });
     setIsResetAllConfirmOpen(false);
   }, [toast]);
@@ -218,6 +233,21 @@ export default function AdminTieredSweepstakesPage() {
           </div>
         }
       />
+
+      {isSweepstakeDialogOpen && currentTierForDialog && (
+        <SweepstakeAnimationDialog
+          isOpen={isSweepstakeDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setIsSweepstakeDialogOpen(false);
+              setCurrentTierForDialog(null);
+            }
+          }}
+          tier={currentTierForDialog}
+          onConfirmWinner={handleSweepstakeConfirmed}
+        />
+      )}
+
 
       {awardTiersWithStats.length === 0 && (
         <Card><CardContent className="p-4 sm:p-6 text-center text-muted-foreground">Nenhuma faixa de premiação configurada.</CardContent></Card>
@@ -284,17 +314,13 @@ export default function AdminTieredSweepstakesPage() {
                       {!isSlotDrawn ? (
                         <Button
                           size="lg"
-                          onClick={() => handleDrawWinner(tier)}
-                          disabled={!canDrawForThisSlot || isLoadingDraw === tier.id}
+                          onClick={() => openSweepstakeDialog(tier)}
+                          disabled={!canDrawForThisSlot}
                           variant="default"
                           className="w-24 sm:w-28"
                         >
-                          {isLoadingDraw === tier.id ? (
-                            <PlayCircle className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <PlayCircle className="h-4 w-4" />
-                          )}
-                          <span className="ml-1.5">{isLoadingDraw === tier.id ? "Sorteando" : "Sortear"}</span>
+                          <PlayCircle className="h-4 w-4" />
+                          <span className="ml-1.5">Sortear</span>
                         </Button>
                       ) : (
                         <div className="w-24 sm:w-28 text-right ml-2 flex flex-col items-end"> 
@@ -349,7 +375,6 @@ export default function AdminTieredSweepstakesPage() {
         </CardContent>
       </Card>
 
-      {/* AlertDialog for Reset All */}
       <AlertDialog open={isResetAllConfirmOpen} onOpenChange={setIsResetAllConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -365,7 +390,6 @@ export default function AdminTieredSweepstakesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* AlertDialog for Reset Tier */}
       <AlertDialog open={!!tierToReset} onOpenChange={(open) => !open && setTierToReset(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -381,7 +405,6 @@ export default function AdminTieredSweepstakesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* AlertDialog for Delete Single Winner */}
       <AlertDialog open={!!winnerToDelete} onOpenChange={(open) => !open && setWinnerToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -401,3 +424,4 @@ export default function AdminTieredSweepstakesPage() {
     </div>
   );
 }
+
