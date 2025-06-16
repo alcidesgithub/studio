@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { loadStores, loadEvent, loadAwardTiers, loadVendors } from '@/lib/localStorageUtils';
 import { getRequiredPositivationsForStore, formatDisplayCNPJ } from '@/lib/utils';
 import type { Store, Event, AwardTier, Vendor } from '@/types';
-import { Store as StoreIcon, Trophy, LayoutDashboard, Briefcase, CheckSquare, Users, Percent, Activity, BadgeCheck } from 'lucide-react';
+import { Store as StoreIcon, Trophy, LayoutDashboard, Briefcase, CheckSquare, Users, Percent, Activity, BadgeCheck, Stamp } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -43,9 +43,11 @@ export default function DashboardPage() {
   const totalStoresCount = useMemo(() => stores.length, [stores]);
   const participatingStores = useMemo(() => stores.filter(s => s.participating), [stores]);
   
-  const checkedInStoresCount = useMemo(() =>
-    participatingStores.filter(s => s.isCheckedIn).length
+  const checkedInStores = useMemo(() =>
+    participatingStores.filter(s => s.isCheckedIn)
   , [participatingStores]);
+  const checkedInStoresCount = checkedInStores.length;
+
 
   const checkedInPercentage = useMemo(() => {
     if (totalStoresCount === 0) return 0;
@@ -53,8 +55,8 @@ export default function DashboardPage() {
   }, [checkedInStoresCount, totalStoresCount]);
 
   const totalPositivacoes = useMemo(() => 
-    participatingStores.reduce((sum, s) => sum + (s.positivationsDetails?.filter(pd => vendors.some(v => v.id === pd.vendorId)).length || 0), 0), 
-  [participatingStores, vendors]);
+    checkedInStores.reduce((sum, s) => sum + (s.positivationsDetails?.filter(pd => vendors.some(v => v.id === pd.vendorId)).length || 0), 0), 
+  [checkedInStores, vendors]);
 
   const totalVendorsCount = useMemo(() => vendors.length, [vendors]);
 
@@ -64,7 +66,8 @@ export default function DashboardPage() {
   }, [totalPositivacoes, checkedInStoresCount]);
   
   const storesByHighestTier = useMemo(() => {
-    if (awardTiers.length === 0 && participatingStores.length === 0) return {};
+    const activeStoresForTiers = participatingStores.filter(s => s.isCheckedIn);
+    if (awardTiers.length === 0 && activeStoresForTiers.length === 0) return {};
     
     const tierCounts: Record<string, { name: string; count: number; reward: string }> = {};
     awardTiers.forEach(tier => {
@@ -72,7 +75,7 @@ export default function DashboardPage() {
     });
     let storesWithNoTierCount = 0;
 
-    participatingStores.forEach(store => {
+    activeStoresForTiers.forEach(store => {
       const positivacoesCount = store.positivationsDetails?.filter(pd => vendors.some(v => v.id === pd.vendorId)).length || 0;
       let highestAchievedTier: AwardTier | undefined = undefined;
 
@@ -93,7 +96,7 @@ export default function DashboardPage() {
       }
     });
 
-    if (storesWithNoTierCount > 0 && participatingStores.length > 0) {
+    if (storesWithNoTierCount > 0 && activeStoresForTiers.length > 0) {
        if (Object.values(tierCounts).some(tc => tc.count > 0) || storesWithNoTierCount > 0) {
          tierCounts['none'] = { name: 'Nenhuma Faixa', count: storesWithNoTierCount, reward: '-' };
        }
@@ -145,15 +148,18 @@ export default function DashboardPage() {
   }, [awardTiers, storesByHighestTier]);
   
   const positivationsByVendorChartData = useMemo(() => {
-    if (participatingStores.length === 0 || vendors.length === 0) return [];
+    const activeStoresForVendorChart = participatingStores.filter(s => s.isCheckedIn);
+    if (activeStoresForVendorChart.length === 0 || vendors.length === 0) return [];
+    
     const counts: Record<string, number> = {};
-    participatingStores.forEach(store => {
+    activeStoresForVendorChart.forEach(store => {
       store.positivationsDetails?.forEach(pd => {
-        if (vendors.some(v => v.id === pd.vendorId)) {
+        if (vendors.some(v => v.id === pd.vendorId)) { // Ensure vendor still exists
           counts[pd.vendorId] = (counts[pd.vendorId] || 0) + 1;
         }
       });
     });
+
     return Object.entries(counts)
       .map(([vendorId, count]) => {
         const vendor = vendors.find(v => v.id === vendorId);
@@ -186,10 +192,11 @@ export default function DashboardPage() {
     );
   }
 
+  const activeParticipatingStores = participatingStores.filter(s => s.isCheckedIn);
   const noTiersConfigured = awardTiers.length === 0;
-  const noParticipatingStores = participatingStores.length === 0;
+  const noActiveParticipatingStores = activeParticipatingStores.length === 0;
   const noStoresInAnyTierBasedOnChartData = tierDistributionChartData.every(d => d.lojas === 0) && !(tierDistributionChartData.length === 1 && tierDistributionChartData[0].name === "Nenhuma Faixa");
-  const showTierChart = !noTiersConfigured && !noParticipatingStores && !noStoresInAnyTierBasedOnChartData;
+  const showTierChart = !noTiersConfigured && !noActiveParticipatingStores && !noStoresInAnyTierBasedOnChartData;
 
 
   return (
@@ -249,12 +256,12 @@ export default function DashboardPage() {
 
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Selos (Positivações)</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Selos (Lojas com Check-in)</CardTitle>
             <BadgeCheck className="h-8 w-8 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalPositivacoes}</div>
-            <p className="text-xs text-muted-foreground">Em lojas participantes do evento</p>
+            <p className="text-xs text-muted-foreground">Em lojas participantes com check-in no evento</p>
           </CardContent>
         </Card>
 
@@ -273,17 +280,17 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full">
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-base font-semibold">Distribuição por Faixas de Premiação</CardTitle>
+              <CardTitle className="text-base font-semibold">Distribuição por Faixas (Lojas com Check-in)</CardTitle>
               <Trophy className="h-8 w-8 text-secondary" />
             </CardHeader>
             <CardDescription className="px-4 sm:px-6 text-xs">
-              Lojas pela maior faixa alcançada, baseado nos requisitos do seu estado (PR/SC).
+              Lojas com check-in pela maior faixa alcançada, baseado nos requisitos do seu estado (PR/SC).
             </CardDescription>
             <CardContent className="pt-4 px-2 sm:px-6">
               {!showTierChart ? (
                   noTiersConfigured ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma faixa de premiação configurada.</p>
-                  : noParticipatingStores ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja participando para exibir distribuição.</p>
-                  : <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja atingiu as faixas de premiação ainda.</p>
+                  : noActiveParticipatingStores ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja com check-in para exibir distribuição.</p>
+                  : <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja com check-in atingiu as faixas de premiação ainda.</p>
               ) : (
                 <ChartContainer config={tierChartConfig} className="h-[250px] sm:h-[300px] w-full">
                   <BarChart
@@ -323,8 +330,8 @@ export default function DashboardPage() {
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div>
-                  <CardTitle className="text-base font-semibold">Top Fornecedores por Positivações</CardTitle>
-                   <CardDescription className="text-xs mt-1">Fornecedores que mais concederam selos (positivações) a lojas participantes.</CardDescription>
+                  <CardTitle className="text-base font-semibold">Top Fornecedores (Positivações em Lojas com Check-in)</CardTitle>
+                   <CardDescription className="text-xs mt-1">Fornecedores que mais concederam selos a lojas participantes com check-in.</CardDescription>
                 </div>
                 <Briefcase className="h-8 w-8 text-secondary" />
               </CardHeader>
@@ -340,7 +347,7 @@ export default function DashboardPage() {
                           </BarChart>
                       </ChartContainer>
                   ) : (
-                      <p className="text-sm text-muted-foreground text-center py-8">Nenhuma positivação registrada para exibir o ranking.</p>
+                      <p className="text-sm text-muted-foreground text-center py-8">Nenhuma positivação em lojas com check-in registrada para exibir o ranking.</p>
                   )}
               </CardContent>
           </Card>
@@ -348,4 +355,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

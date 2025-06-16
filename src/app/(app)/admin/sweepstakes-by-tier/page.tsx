@@ -79,19 +79,19 @@ export default function AdminTieredSweepstakesPage() {
 
 
   const awardTiersWithStats = useMemo((): AwardTierWithStats[] => {
-    const allDrawnStoreIds = new Set(drawnWinners.map(w => w.storeId)); 
+    const allDrawnStoreIds = new Set(drawnWinners.map(w => w.storeId));
 
     return awardTiers.map(tier => {
       const winnersForThisTier = drawnWinners.filter(w => w.tierId === tier.id).sort((a,b) => new Date(a.drawnAt).getTime() - new Date(b.drawnAt).getTime());
       const remainingQuantity = tier.quantityAvailable - winnersForThisTier.length;
 
       const eligibleStoresForTier = stores.filter(store => {
-        if (!store.state) return false; 
+        if (!store.state) return false;
         const requiredPositivations = getRequiredPositivationsForStore(tier, store.state);
         const meetsPositivationRequirement = (store.positivationsDetails?.length || 0) >= requiredPositivations;
         const hasNotWonAnyPrizeYet = !allDrawnStoreIds.has(store.id);
         
-        return store.participating && meetsPositivationRequirement && hasNotWonAnyPrizeYet;
+        return store.participating && store.isCheckedIn && meetsPositivationRequirement && hasNotWonAnyPrizeYet;
       });
 
       return {
@@ -105,7 +105,7 @@ export default function AdminTieredSweepstakesPage() {
 
   const handleDrawWinner = useCallback(async (tier: AwardTierWithStats) => {
     if (tier.remainingQuantity <= 0 || tier.eligibleStores.length === 0) {
-      toast({ title: "Não é Possível Sortear", description: "Nenhum prêmio restante nesta faixa ou nenhuma loja elegível (que ainda não ganhou).", variant: "default" });
+      toast({ title: "Não é Possível Sortear", description: "Nenhum prêmio restante nesta faixa ou nenhuma loja elegível (que ainda não ganhou ou não fez check-in).", variant: "default" });
       return;
     }
 
@@ -203,7 +203,7 @@ export default function AdminTieredSweepstakesPage() {
     <div className="animate-fadeIn space-y-6 sm:space-y-8">
       <PageHeader
         title="Sorteios por faixa"
-        description="Sorteie vencedores para cada faixa de premiação. Cada loja pode ganhar apenas uma vez."
+        description="Sorteie vencedores para cada faixa de premiação. Cada loja pode ganhar apenas uma vez. Lojas devem ter check-in para serem elegíveis."
         icon={Dice6}
         iconClassName="text-secondary"
         actions={
@@ -248,7 +248,7 @@ export default function AdminTieredSweepstakesPage() {
             </CardHeader>
             <CardContent className="flex-grow space-y-3 sm:space-y-4">
               <div>
-                <h4 className="font-semibold text-xs sm:text-sm mb-1 flex items-center gap-1"><ListChecks className="text-secondary h-4 w-4 sm:h-5 sm:w-5" /> Lojas Elegíveis ({tier.eligibleStores.length}):</h4>
+                <h4 className="font-semibold text-xs sm:text-sm mb-1 flex items-center gap-1"><ListChecks className="text-secondary h-4 w-4 sm:h-5 sm:w-5" /> Lojas Elegíveis (Com Check-in: {tier.eligibleStores.length}):</h4>
                 {tier.eligibleStores.length > 0 ? (
                   <ul className="list-disc list-inside text-xs text-muted-foreground max-h-20 sm:max-h-24 overflow-y-auto bg-muted/30 p-2 rounded-md">
                     {tier.eligibleStores.map(store =>
@@ -256,7 +256,7 @@ export default function AdminTieredSweepstakesPage() {
                     )}
                   </ul>
                 ) : (
-                  <p className="text-xs text-muted-foreground p-2">Nenhuma loja elegível para o sorteio desta faixa (ou todas já ganharam um prêmio).</p>
+                  <p className="text-xs text-muted-foreground p-2">Nenhuma loja elegível para o sorteio desta faixa (verifique check-in, prêmios já ganhos, ou se atingiram os selos necessários).</p>
                 )}
               </div>
 

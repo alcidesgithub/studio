@@ -5,7 +5,7 @@ import React from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Store as StoreIcon, CheckCircle, User, MapPin, Building as BuildingIcon, BadgeCheck } from 'lucide-react';
+import { Store as StoreIcon, CheckCircle, User, MapPin, Building as BuildingIcon, BadgeCheck, AlertTriangle } from 'lucide-react';
 import type { Store, Vendor } from '@/types';
 import { formatDisplayCNPJ } from '@/lib/utils';
 import { cn } from "@/lib/utils";
@@ -29,7 +29,9 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   const isPersistentlyPositivatedByThisVendorCompany = store.positivationsDetails.some(
     detail => detail.vendorId === currentVendorCompany.id
   );
-  const isDisabled = isPositivatedByThisVendorForSession || isPersistentlyPositivatedByThisVendorCompany;
+  const isActionDisabled = isPositivatedByThisVendorForSession || isPersistentlyPositivatedByThisVendorCompany || !store.isCheckedIn || !store.participating;
+  const buttonAlreadyPositivated = isPositivatedByThisVendorForSession || isPersistentlyPositivatedByThisVendorCompany;
+
 
   const matrixStore = !store.isMatrix && store.matrixStoreId ? allStores.find(s => s.id === store.matrixStoreId) : null;
   const matrixStoreCode = matrixStore ? matrixStore.code : null;
@@ -51,8 +53,15 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-grow space-y-1.5 text-xs sm:text-sm">
-        <p className="text-secondary mb-2 text-sm font-semibold">
-          Confirme a positivação dessa loja.
+        <p className={cn(
+            "mb-2 text-sm font-semibold",
+            !store.isCheckedIn ? "text-orange-600" : "text-secondary"
+        )}>
+          {!store.participating
+            ? "Loja não participante do evento."
+            : !store.isCheckedIn
+            ? "Loja aguardando check-in."
+            : "Confirme a positivação dessa loja."}
         </p>
         {store.cnpj && (
           <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -87,18 +96,28 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
         <Button
           className={cn(
             "w-full h-16 text-base font-semibold",
-            !isDisabled ? "pl-4" : "" 
+            !buttonAlreadyPositivated && store.isCheckedIn && store.participating ? "pl-4" : ""
           )}
           onClick={() => onPositivar(store.id, store.name)}
-          disabled={isDisabled}
+          disabled={isActionDisabled}
           size="lg"
         >
-          {isDisabled ? (
+          {buttonAlreadyPositivated ? (
             <>
               <CheckCircle className="h-6 w-6 flex-shrink-0" />
               <div className="truncate">
                 Positivada por {currentVendorCompany.name}
               </div>
+            </>
+          ) : !store.participating ? (
+             <>
+              <AlertTriangle className="h-6 w-6 flex-shrink-0" />
+              <div className="truncate">Loja Não Participante</div>
+            </>
+          ) : !store.isCheckedIn ? (
+            <>
+              <AlertTriangle className="h-6 w-6 flex-shrink-0" />
+              <div className="truncate">Aguardando Check-in</div>
             </>
           ) : (
             <div className="flex items-center justify-center gap-1.5">
@@ -124,8 +143,3 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   );
 });
 StorePositivationDisplayCard.displayName = 'StorePositivationDisplayCard';
-
-
-
-
-
