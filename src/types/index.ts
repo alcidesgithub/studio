@@ -47,6 +47,8 @@ export interface Store {
   responsibleName?: string;
   email?: string;
   isCheckedIn: boolean; // Added for check-in status
+  isMatrix: boolean; // Is this store a matrix?
+  matrixStoreId?: string; // If it's a branch, this is the ID of the matrix store
 }
 
 export interface AwardTier {

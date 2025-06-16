@@ -14,9 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound, CheckSquare, Search } from 'lucide-react';
+import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound, CheckSquare, Search, Building } from 'lucide-react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -40,6 +42,8 @@ const storeRegistrationSchemaBase = z.object({
   email: z.string().email("Endereço de email inválido."),
   password: z.string().optional().or(z.literal('')),
   confirmPassword: z.string().optional().or(z.literal('')),
+  isMatrix: z.boolean().default(true),
+  matrixStoreCode: z.string().optional().or(z.literal('')),
 });
 
 const storeRegistrationSchema = storeRegistrationSchemaBase.superRefine((data, ctx) => {
@@ -65,6 +69,24 @@ const storeRegistrationSchema = storeRegistrationSchemaBase.superRefine((data, c
         path: ["password"],
       });
   }
+
+  if (data.isMatrix === false) { // If it's a branch
+    if (!data.matrixStoreCode || data.matrixStoreCode.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Código da Loja Matriz é obrigatório para Filial.",
+        path: ["matrixStoreCode"],
+      });
+    }
+  } else { // If it's a matrix
+    if (data.matrixStoreCode && data.matrixStoreCode.trim() !== "") {
+       ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Loja Matriz não pode ter um Código de Loja Matriz.",
+        path: ["matrixStoreCode"],
+      });
+    }
+  }
 });
 
 
@@ -83,6 +105,8 @@ type StoreCSVData = {
   responsibleName?: string;
   email?: string;
   senha?: string;
+  isMatrix?: string; // "TRUE" or "FALSE"
+  matrixStoreCode?: string;
 };
 
 const applyCnpjMask = (value: string = ''): string => {
@@ -119,7 +143,7 @@ const getDisplayState = (stateValue?: string) => {
   return stateObj ? stateObj.label.split(' (')[0] : stateValue;
 };
 
-function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: string[] } {
+function parseCSVToStores(csvText: string, existingStores: Store[]): { data: StoreCSVData[], errors: string[] } {
     const allLines = csvText.trim().split(/\r\n|\n/);
     if (allLines.length < 2) {
         return { data: [], errors: ["Arquivo CSV vazio ou sem dados."] };
@@ -131,10 +155,11 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
     const headerMap: Record<string, keyof StoreCSVData> = {
         "codigo": "code", "razaosocial": "razaoSocial", "cnpj": "cnpj", "endereco": "address",
         "cidade": "city", "bairro": "neighborhood", "estado": "state", "telefone": "phone",
-        "nomeproprietario": "ownerName", "nomeresponsavel": "responsibleName", "email": "email", "senha": "senha"
+        "nomeproprietario": "ownerName", "nomeresponsavel": "responsibleName", "email": "email", "senha": "senha",
+        "ismatrix": "isMatrix", "matrixstorecode": "matrixStoreCode",
     };
     
-    const requiredCsvHeaders = ["codigo", "razaosocial", "cnpj", "email"];
+    const requiredCsvHeaders = ["codigo", "razaosocial", "cnpj", "email", "ismatrix"];
     const expectedHeadersForDescription = Object.keys(headerMap);
 
     const missingRequiredHeaders = requiredCsvHeaders.filter(reqH => !headers.includes(reqH));
@@ -160,9 +185,28 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
             }
         });
 
-        if (!storeRow.code || !storeRow.razaoSocial || !storeRow.cnpj || !storeRow.email) {
-            errors.push(`Linha ${i + 1}: Dados essenciais (código, razão social, cnpj, email) faltando.`);
+        if (!storeRow.code || !storeRow.razaoSocial || !storeRow.cnpj || !storeRow.email || !storeRow.isMatrix) {
+            errors.push(`Linha ${i + 1}: Dados essenciais (código, razão social, cnpj, email, isMatrix) faltando.`);
             hasErrorInRow = true;
+        }
+
+        if (storeRow.isMatrix && storeRow.isMatrix.toUpperCase() !== 'TRUE' && storeRow.isMatrix.toUpperCase() !== 'FALSE') {
+             errors.push(`Linha ${i + 1} (Loja ${storeRow.code || 'sem código'}): Valor inválido para 'isMatrix'. Use TRUE ou FALSE.`);
+             hasErrorInRow = true;
+        }
+
+        if (storeRow.isMatrix && storeRow.isMatrix.toUpperCase() === 'FALSE') {
+            if (!storeRow.matrixStoreCode || storeRow.matrixStoreCode.trim() === '') {
+                errors.push(`Linha ${i + 1} (Loja ${storeRow.code || 'sem código'}): 'matrixStoreCode' é obrigatório se 'isMatrix' é FALSE.`);
+                hasErrorInRow = true;
+            } else {
+                const matrixExists = existingStores.some(s => s.code === storeRow.matrixStoreCode && s.isMatrix);
+                if (!matrixExists) {
+                    // This check is against existing stores before import. If matrix is also in CSV, it might be missed here.
+                    // Better to validate post-parsing against the full set of stores (existing + new).
+                    // For now, this is a basic check.
+                }
+            }
         }
         
         if (storeRow.senha && storeRow.senha.length < 6) {
@@ -183,10 +227,15 @@ interface StoreFormDialogContentProps {
   editingStore: Store | null;
   viewingStore: Store | null;
   isSubmitting: boolean;
+  allStores: Store[]; // Pass all stores for validation
 }
 
-const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingStore, isSubmitting }: StoreFormDialogContentProps) => {
-  const showPasswordFields = !viewingStore; // Show for new and edit, hide for view
+const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingStore, isSubmitting, allStores }: StoreFormDialogContentProps) => {
+  const showPasswordFields = !viewingStore; 
+  const currentIsMatrix = form.watch("isMatrix");
+
+  const disableMatrixFields = !!viewingStore || (!!editingStore && editingStore.isMatrix && allStores.some(s => s.matrixStoreId === editingStore.id && s.id !== editingStore.id));
+
   return (
     <>
       <DialogHeader>
@@ -197,6 +246,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
         <DialogDescription>
           {editingStore ? 'Atualize os detalhes desta loja. Deixe os campos de senha em branco para não alterá-la.' :
           (viewingStore ? 'Detalhes da loja.' : 'Preencha os detalhes da loja.')}
+          {disableMatrixFields && editingStore && <span className="block text-xs text-orange-600 mt-1">Esta loja é uma matriz com filiais vinculadas. Para alterar o tipo ou vincular a outra matriz, desvincule as filiais primeiro.</span>}
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
@@ -219,7 +269,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
                         {...field}
                         value={field.value}
                         onChange={e => field.onChange(applyCnpjMask(e.target.value))}
-                        disabled={!!viewingStore || !!editingStore} // Disable CNPJ for edit as well
+                        disabled={!!viewingStore || !!editingStore} 
                         maxLength={18}
                       />
                     </FormControl>
@@ -241,6 +291,48 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
               <FormField control={form.control} name="phone" render={({ field }) => (
                   <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
               )}/>
+               <FormField
+                  control={form.control}
+                  name="isMatrix"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2 space-y-2">
+                      <FormLabel>Tipo de Loja</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={(value) => field.onChange(value === 'true')}
+                          value={String(field.value)}
+                          className="flex items-center space-x-4"
+                          disabled={disableMatrixFields}
+                        >
+                          <FormItem className="flex items-center space-x-2">
+                            <RadioGroupItem value="true" id="isMatrix-true" />
+                            <Label htmlFor="isMatrix-true" className="font-normal">Matriz</Label>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2">
+                            <RadioGroupItem value="false" id="isMatrix-false" />
+                            <Label htmlFor="isMatrix-false" className="font-normal">Filial</Label>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {currentIsMatrix === false && (
+                  <FormField
+                    control={form.control}
+                    name="matrixStoreCode"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Código da Loja Matriz</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Insira o código da loja matriz" {...field} disabled={!!viewingStore || disableMatrixFields} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
             </CardContent>
           </Card>
           <Card>
@@ -297,7 +389,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
                 </Button>
             </DialogClose>
             {!viewingStore && (
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting || disableMatrixFields && !!editingStore}>
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                   {editingStore ? 'Salvar Alterações' : 'Cadastrar Loja'}
                 </Button>
@@ -367,6 +459,8 @@ export default function ManageStoresPage() {
       email: '',
       password: '',
       confirmPassword: '',
+      isMatrix: true,
+      matrixStoreCode: '',
     },
   });
 
@@ -387,6 +481,8 @@ export default function ManageStoresPage() {
         email: '',
         password: '',
         confirmPassword: '',
+        isMatrix: true,
+        matrixStoreCode: '',
     });
     setIsDialogOpen(true);
     setIsViewDialogOpen(false);
@@ -395,6 +491,7 @@ export default function ManageStoresPage() {
   const handleEdit = (store: Store) => {
     setEditingStore(store);
     setViewingStore(null);
+    const matrixStore = store.isMatrix === false && store.matrixStoreId ? stores.find(s => s.id === store.matrixStoreId) : undefined;
     form.reset({
       code: store.code,
       razaoSocial: store.name,
@@ -409,6 +506,8 @@ export default function ManageStoresPage() {
       email: store.email || '',
       password: '', 
       confirmPassword: '',
+      isMatrix: store.isMatrix,
+      matrixStoreCode: store.isMatrix === false ? (matrixStore?.code || '') : '',
     });
     setIsDialogOpen(true);
     setIsViewDialogOpen(false);
@@ -417,6 +516,7 @@ export default function ManageStoresPage() {
   const handleView = (store: Store) => {
     setViewingStore(store);
     setEditingStore(null);
+    const matrixStore = store.isMatrix === false && store.matrixStoreId ? stores.find(s => s.id === store.matrixStoreId) : undefined;
     form.reset({
       code: store.code,
       razaoSocial: store.name,
@@ -431,6 +531,8 @@ export default function ManageStoresPage() {
       email: store.email || '',
       password: '',
       confirmPassword: '',
+      isMatrix: store.isMatrix,
+      matrixStoreCode: store.isMatrix === false ? (matrixStore?.code || '') : '',
     });
     setIsViewDialogOpen(true);
     setIsDialogOpen(false);
@@ -450,8 +552,15 @@ export default function ManageStoresPage() {
             });
         }
     }
+    
+    let updatedStores = stores.filter(s => s.id !== storeId);
+    // If deleting a matrix, orphan its branches for now
+    if (storeToDelete?.isMatrix) {
+        updatedStores = updatedStores.map(s => s.matrixStoreId === storeId ? { ...s, matrixStoreId: undefined } : s);
+        toast({ title: "Aviso", description: `Filiais da loja matriz ${storeToDelete.name} foram desvinculadas.`, variant: "default"});
+    }
 
-    const updatedStores = stores.filter(s => s.id !== storeId);
+
     setStores(updatedStores);
     saveStores(updatedStores);
     setSelectedStoreIds(prev => {
@@ -468,6 +577,26 @@ export default function ManageStoresPage() {
 
   const onSubmit = (data: StoreRegistrationFormValues) => {
     let updatedStores;
+    let matrixStoreIdFromCode: string | undefined = undefined;
+
+    if (data.isMatrix === false) {
+      if (!data.matrixStoreCode || data.matrixStoreCode.trim() === "") {
+        form.setError("matrixStoreCode", { type: "manual", message: "Código da Loja Matriz é obrigatório para Filial." });
+        return;
+      }
+      const matrixStore = stores.find(s => s.code === data.matrixStoreCode?.trim() && s.isMatrix);
+      if (!matrixStore) {
+        form.setError("matrixStoreCode", { type: "manual", message: "Loja Matriz inválida (código não encontrado ou não é uma matriz)." });
+        return;
+      }
+      if (editingStore && editingStore.id === matrixStore.id) {
+         form.setError("matrixStoreCode", { type: "manual", message: "Uma loja não pode ser filial de si mesma." });
+        return;
+      }
+      matrixStoreIdFromCode = matrixStore.id;
+    }
+
+
     const storeDataToSave = {
       code: data.code,
       name: data.razaoSocial,
@@ -480,15 +609,25 @@ export default function ManageStoresPage() {
       ownerName: data.ownerName,
       responsibleName: data.responsibleName,
       email: data.email,
+      isMatrix: data.isMatrix,
+      matrixStoreId: data.isMatrix ? undefined : matrixStoreIdFromCode,
     };
 
     const currentUsers = loadUsers();
     
     if (editingStore) {
+      if (editingStore.isMatrix && !data.isMatrix && stores.some(s => s.matrixStoreId === editingStore.id)) {
+        toast({ title: "Erro de Validação", description: "Esta loja é uma matriz com filiais vinculadas. Desvincule as filiais antes de alterá-la para filial.", variant: "destructive"});
+        return;
+      }
+      // Check for CNPJ/Code uniqueness if they are changed (though they are disabled for edit in this form)
+      // Check if email is being changed (also disabled)
+
       const userIndex = currentUsers.findIndex(u => u.email === editingStore.email && u.role === 'store');
       updatedStores = stores.map(s =>
         s.id === editingStore.id
-          ? { ...s, ...storeDataToSave, isCheckedIn: s.isCheckedIn } : s // Preserve isCheckedIn
+          ? { ...s, ...storeDataToSave, isCheckedIn: s.isCheckedIn } 
+          : s
       );
       toast({
         title: "Loja Atualizada!",
@@ -499,7 +638,6 @@ export default function ManageStoresPage() {
         currentUsers[userIndex].name = data.responsibleName;
         currentUsers[userIndex].storeName = data.razaoSocial;
         if (data.password && data.password.length > 0) {
-          // Schema ensures password is valid if provided
           currentUsers[userIndex].password = data.password;
            toast({
             title: "Senha do Usuário Atualizada!",
@@ -515,7 +653,6 @@ export default function ManageStoresPage() {
         return;
       }
       if (data.password.length < 6 || (data.password !== data.confirmPassword)) {
-         // Schema should catch this, but double check
         toast({ title: "Erro de Validação", description: "Verifique os campos de senha.", variant: "destructive"});
         return;
       }
@@ -539,14 +676,13 @@ export default function ManageStoresPage() {
         return;
       }
 
-
       const newStore: Store = {
         id: `store_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
         ...storeDataToSave,
         participating: true,
         goalProgress: 0,
         positivationsDetails: [],
-        isCheckedIn: false, // Default for new stores
+        isCheckedIn: false,
       };
       updatedStores = [...stores, newStore];
       toast({
@@ -589,10 +725,10 @@ export default function ManageStoresPage() {
   };
 
   const handleDownloadSampleStoreCSV = () => {
-    const csvHeader = "codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email,senha\n";
-    const csvExampleRow1 = `"LJ998","Farmácia Exemplo Sul Ltda.","11222333000188","Rua Modelo Sul, 789","Curitiba","Portão","PR","(41) 99999-0001","Carlos Exemplo","Ana Modelo","loja.exsul@example.com","senhaSegura123"\n`;
-    const csvExampleRow2 = `"LJ999","Drogaria Boa Saúde Oeste S.A.","44555666000199","Avenida Teste Oeste, 1011","Joinville","Centro","SC","(47) 98888-0002","Fernanda Teste","Ricardo Boa","loja.bsoeste@example.com","outraSenha456"\n`;
-    const csvExampleRow3 = `"LJ1000","Mais Saúde Farma","10111213000112","Praça Central, 01","Curitiba","Rebouças","PR","(41) 97777-0003","José Praça","Maria Central","loja.central@example.com",""\n`;
+    const csvHeader = "codigo,razaosocial,cnpj,endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,email,senha,isMatrix,matrixStoreCode\n";
+    const csvExampleRow1 = `"LJ998","Farmácia Exemplo Sul Ltda.","11222333000188","Rua Modelo Sul, 789","Curitiba","Portão","PR","(41) 99999-0001","Carlos Exemplo","Ana Modelo","loja.exsul@example.com","senhaSegura123","TRUE",""\n`;
+    const csvExampleRow2 = `"LJ999","Drogaria Boa Saúde Oeste S.A.","44555666000199","Avenida Teste Oeste, 1011","Joinville","Centro","SC","(47) 98888-0002","Fernanda Teste","Ricardo Boa","loja.bsoeste@example.com","outraSenha456","FALSE","LJ998"\n`;
+    const csvExampleRow3 = `"LJ1000","Mais Saúde Farma","10111213000112","Praça Central, 01","Curitiba","Rebouças","PR","(41) 97777-0003","José Praça","Maria Central","loja.central@example.com","","TRUE",""\n`;
 
     const csvContent = csvHeader + csvExampleRow1 + csvExampleRow2 + csvExampleRow3;
 
@@ -601,7 +737,7 @@ export default function ManageStoresPage() {
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", "exemplo_lojas_com_senha.csv");
+      link.setAttribute("download", "exemplo_lojas_matriz_filial.csv");
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -620,7 +756,8 @@ export default function ManageStoresPage() {
 
     reader.onload = async (e) => {
       const text = e.target?.result as string;
-      const { data: parsedStores, errors: parsingErrors } = parseCSVToStores(text);
+      const currentLocalStores = loadStores();
+      const { data: parsedStoreRows, errors: parsingErrors } = parseCSVToStores(text, currentLocalStores);
 
       if (parsingErrors.length > 0) {
         setImportStoreErrors(parsingErrors);
@@ -629,25 +766,41 @@ export default function ManageStoresPage() {
         return;
       }
 
-      const currentLocalStores = loadStores();
       const currentLocalUsers = loadUsers();
       const newStoresToSave: Store[] = [];
       const newUsersToSave: User[] = [];
       const validationErrors: string[] = [];
       let importedCount = 0;
+      
+      // Temporary list to validate matrix codes within the import batch
+      const allStoresForValidation = [...currentLocalStores];
 
-      for (let i = 0; i < parsedStores.length; i++) {
-        const ps = parsedStores[i];
+      for (let i = 0; i < parsedStoreRows.length; i++) {
+        const ps = parsedStoreRows[i];
         try {
           const cleanedCsvCnpj = cleanCNPJ(ps.cnpj || "");
           const passwordFromCsv = ps.senha;
-          // Use password from CSV if valid, otherwise a strong default.
           const passwordForUser = (passwordFromCsv && passwordFromCsv.length >= 6) ? passwordFromCsv : "PadraoHiper123!"; 
+          const isMatrixFromCsv = ps.isMatrix?.toUpperCase() === 'TRUE';
+          
+          let matrixStoreIdFromCsvCode: string | undefined = undefined;
+          if (!isMatrixFromCsv && ps.matrixStoreCode) {
+            const potentialMatrix = allStoresForValidation.concat(newStoresToSave).find(s => s.code === ps.matrixStoreCode && s.isMatrix);
+            if (potentialMatrix) {
+              matrixStoreIdFromCsvCode = potentialMatrix.id;
+            } else {
+              validationErrors.push(`Linha ${i + 2} (Loja ${ps.code || 'sem código'}): Código de matriz '${ps.matrixStoreCode}' não encontrado ou não é uma matriz (verifique se a matriz está antes no CSV ou já existe).`);
+              continue;
+            }
+          } else if (!isMatrixFromCsv && !ps.matrixStoreCode) {
+            validationErrors.push(`Linha ${i + 2} (Loja ${ps.code || 'sem código'}): 'matrixStoreCode' é obrigatório para filial.`);
+            continue;
+          }
 
           const storeInputData = {
             code: ps.code || "",
             razaoSocial: ps.razaoSocial || "",
-            cnpj: cleanedCsvCnpj, // Pass cleaned CNPJ here for schema validation
+            cnpj: cleanedCsvCnpj, 
             address: ps.address || "",
             city: ps.city || "",
             neighborhood: ps.neighborhood || "",
@@ -658,9 +811,10 @@ export default function ManageStoresPage() {
             email: ps.email || "",
             password: passwordForUser, 
             confirmPassword: passwordForUser, 
+            isMatrix: isMatrixFromCsv,
+            matrixStoreCode: isMatrixFromCsv ? '' : (ps.matrixStoreCode || ''),
           };
 
-          // Validate against the Zod schema
           const validationResult = storeRegistrationSchema.safeParse(storeInputData);
 
           if (!validationResult.success) {
@@ -669,17 +823,17 @@ export default function ManageStoresPage() {
             continue;
           }
 
-          const validatedData = validationResult.data; // Now use validatedData
+          const validatedData = validationResult.data;
 
-          if (currentLocalStores.some(s => s.code === validatedData.code) || newStoresToSave.some(s => s.code === validatedData.code)) {
+          if (allStoresForValidation.concat(newStoresToSave).some(s => s.code === validatedData.code)) {
             validationErrors.push(`Linha ${i + 2}: Código de loja ${validatedData.code} já existe e foi ignorado.`);
             continue;
           }
-          if (currentLocalStores.some(s => s.cnpj === validatedData.cnpj) || newStoresToSave.some(s => s.cnpj === validatedData.cnpj)) {
+          if (allStoresForValidation.concat(newStoresToSave).some(s => s.cnpj === validatedData.cnpj)) {
             validationErrors.push(`Linha ${i + 2}: CNPJ ${formatDisplayCNPJ(validatedData.cnpj)} já existe e foi ignorado.`);
             continue;
           }
-          if (currentLocalUsers.some(u => u.email === validatedData.email && u.role === 'store') || newUsersToSave.some(u => u.email === validatedData.email && u.role === 'store')) {
+          if (currentLocalUsers.concat(newUsersToSave).some(u => u.email === validatedData.email && u.role === 'store')) {
              validationErrors.push(`Linha ${i + 2}: Email ${validatedData.email} já cadastrado para outra loja e foi ignorado.`);
             continue;
           }
@@ -688,7 +842,7 @@ export default function ManageStoresPage() {
             id: `store_csv_${Date.now()}_${i}`,
             code: validatedData.code,
             name: validatedData.razaoSocial,
-            cnpj: validatedData.cnpj, // Use the validated (and cleaned) CNPJ
+            cnpj: validatedData.cnpj,
             address: validatedData.address,
             city: validatedData.city,
             neighborhood: validatedData.neighborhood,
@@ -700,19 +854,21 @@ export default function ManageStoresPage() {
             participating: true,
             goalProgress: 0,
             positivationsDetails: [],
-            isCheckedIn: false, // Default for imported stores
+            isCheckedIn: false,
+            isMatrix: validatedData.isMatrix,
+            matrixStoreId: validatedData.isMatrix ? undefined : matrixStoreIdFromCsvCode,
           };
           newStoresToSave.push(newStore);
 
           const existingUser = currentLocalUsers.find(u => u.email === validatedData.email);
-          if (!existingUser) { // Create user only if email is not taken by any user
+          if (!existingUser) { 
             const newUserForStore: User = {
               id: `user_store_csv_${Date.now()}_${i}`,
               email: validatedData.email,
               role: 'store',
               name: validatedData.responsibleName,
               storeName: validatedData.razaoSocial,
-              password: passwordForUser, // Use the determined password
+              password: passwordForUser,
             };
             newUsersToSave.push(newUserForStore);
           } else {
@@ -720,7 +876,6 @@ export default function ManageStoresPage() {
           }
           importedCount++;
         } catch (error) {
-            // This catch block might not be strictly necessary if Zod catches all validation
             validationErrors.push(`Linha ${i + 2} (Loja ${ps.code || 'sem nome'}): Erro inesperado - ${(error as Error).message}`);
         }
       }
@@ -747,7 +902,7 @@ export default function ManageStoresPage() {
         toast({ title: "Importação Parcial", description: `${importedCount} lojas importadas. Alguns registros tiveram erros ou avisos.`, variant: "default" });
       } else if (importedCount === 0 && validationErrors.length > 0) {
         toast({ title: "Falha na Importação", description: "Nenhuma loja importada devido a erros. Verifique os detalhes.", variant: "destructive" });
-      } else if (importedCount === 0 && validationErrors.length === 0 && parsedStores.length > 0) {
+      } else if (importedCount === 0 && validationErrors.length === 0 && parsedStoreRows.length > 0) {
          toast({ title: "Nenhuma Nova Loja", description: "Nenhuma nova loja para importar (possivelmente todas já existem).", variant: "default" });
       } else {
          toast({ title: "Nenhum dado para importar", description: "O arquivo CSV parece não conter dados de lojas válidos.", variant: "default" });
@@ -794,7 +949,13 @@ export default function ManageStoresPage() {
       saveUsers(usersToKeep);
     }
 
-    const updatedStores = stores.filter(s => !selectedStoreIds.has(s.id));
+    let updatedStores = stores.filter(s => !selectedStoreIds.has(s.id));
+    // Orphan branches of deleted matrices
+    const deletedMatrixIds = storesToDelete.filter(s => s.isMatrix).map(s => s.id);
+    if (deletedMatrixIds.length > 0) {
+        updatedStores = updatedStores.map(s => deletedMatrixIds.includes(s.matrixStoreId || '') ? { ...s, matrixStoreId: undefined } : s);
+    }
+    
     setStores(updatedStores);
     saveStores(updatedStores);
 
@@ -834,7 +995,6 @@ export default function ManageStoresPage() {
         if (cleanedSearchTermForCnpj.length > 0 && cleanCNPJ(cnpjValue).includes(cleanedSearchTermForCnpj)) {
           return true;
         }
-        // Also check if the raw CNPJ string (potentially with formatting) includes the search term
         if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) {
             return true;
         }
@@ -848,7 +1008,7 @@ export default function ManageStoresPage() {
         checkString(store.address) ||
         checkString(store.city) ||
         checkString(store.neighborhood) ||
-        checkString(store.state) ||
+        checkString(getDisplayState(store.state)) ||
         checkString(store.phone) ||
         checkString(store.ownerName) ||
         checkString(store.responsibleName) ||
@@ -890,7 +1050,7 @@ export default function ManageStoresPage() {
             <AlertDialogTitle>Confirmar Exclusão em Massa</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir {selectedStoreIds.size} loja(s) selecionada(s)?
-              Esta ação também removerá os usuários de login associados a estas lojas. Esta ação não pode ser desfeita.
+              Esta ação também removerá os usuários de login associados a estas lojas. Filiais de matrizes excluídas serão desvinculadas. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -920,6 +1080,7 @@ export default function ManageStoresPage() {
               editingStore={editingStore}
               viewingStore={viewingStore}
               isSubmitting={form.formState.isSubmitting}
+              allStores={stores}
             />
           )}
         </DialogContent>
@@ -939,8 +1100,9 @@ export default function ManageStoresPage() {
             <DialogDescription>
               Selecione um arquivo CSV para importar lojas em massa.
               A primeira linha (cabeçalho) deve conter pelo menos os campos obrigatórios:
-              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">codigo,razaosocial,cnpj,email</code>
-              E opcionalmente:
+              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">codigo,razaosocial,cnpj,email,isMatrix</code>
+              Se 'isMatrix' for 'FALSE', 'matrixStoreCode' também é obrigatório.
+              Opcionalmente:
               <code className="block bg-muted p-2 rounded-md my-1 text-xs break-all">endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,senha</code>
               A coluna 'senha' é opcional; se não fornecida ou inválida (menos de 6 caracteres), uma senha padrão será usada.
             </DialogDescription>
@@ -962,7 +1124,7 @@ export default function ManageStoresPage() {
               </div>
             )}
             <Button type="button" variant="link" size="sm" onClick={handleDownloadSampleStoreCSV} className="p-0 h-auto text-primary text-xs sm:text-sm">
-              <Download className="mr-1 h-3 w-3" /> Baixar CSV de Exemplo para Lojas (com senha)
+              <Download className="mr-1 h-3 w-3" /> Baixar CSV de Exemplo (com Matriz/Filial)
             </Button>
             {importStoreErrors.length > 0 && (
               <div className="mt-4 max-h-40 overflow-y-auto rounded-md border border-destructive/50 bg-destructive/10 p-3">
@@ -999,7 +1161,7 @@ export default function ManageStoresPage() {
       <Card className="shadow-lg mt-0">
         <CardHeader className="px-4 py-5 sm:p-6">
           <CardTitle>Lojas Cadastradas</CardTitle>
-          <CardDescription>Lista de todas as lojas no sistema.</CardDescription>
+          <CardDescription>Lista de todas as lojas no sistema. Use o ícone <Building size={14} className="inline text-muted-foreground"/> para identificar filiais.</CardDescription>
         </CardHeader>
         <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
           <div className="overflow-x-auto">
@@ -1016,6 +1178,7 @@ export default function ManageStoresPage() {
                   </TableHead>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Código</TableHead>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Razão Social</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Tipo</TableHead>
                   <TableHead className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">CNPJ</TableHead>
                   <TableHead className="hidden lg:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Email (Login)</TableHead>
                   <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Município</TableHead>
@@ -1026,7 +1189,7 @@ export default function ManageStoresPage() {
               </TableHeader>
               <TableBody>
                 {filteredStores.length === 0 && (
-                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">
+                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">
                     {searchTerm ? "Nenhuma loja encontrada com o termo pesquisado." : "Nenhuma loja cadastrada."}
                   </TableCell></TableRow>
                 )}
@@ -1041,6 +1204,12 @@ export default function ManageStoresPage() {
                     </TableCell>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.code}</TableCell>
                     <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.name}</TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                        <div className="flex items-center gap-1">
+                            {store.isMatrix ? "Matriz" : <Building size={14} className="text-muted-foreground" title={`Filial de ${stores.find(m => m.id === store.matrixStoreId)?.code || 'N/A'}`}/>}
+                            {!store.isMatrix && (stores.find(m => m.id === store.matrixStoreId)?.code || '')}
+                        </div>
+                    </TableCell>
                     <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatDisplayCNPJ(store.cnpj)}</TableCell>
                     <TableCell className="hidden lg:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{store.email || 'N/A'}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.city || 'N/A'}</TableCell>
@@ -1075,4 +1244,3 @@ export default function ManageStoresPage() {
     </div>
   );
 }
-

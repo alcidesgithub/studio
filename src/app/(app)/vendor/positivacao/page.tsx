@@ -93,22 +93,44 @@ export default function VendorPositivacaoPage() {
   }, []);
 
   const filteredStores = useMemo(() => {
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    const cleanedSearchTermForCnpj = searchTerm.replace(/\D/g, '');
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    if (!lowerSearchTerm) {
+        return allStores.filter(store => store.participating);
+    }
+    const cleanedSearchTermForCnpj = lowerSearchTerm.replace(/\D/g, '');
 
-    return allStores.filter(store => {
+    const directlyMatchingMatrix = allStores.find(
+      s => s.code.toLowerCase() === lowerSearchTerm && s.isMatrix && s.participating
+    );
+    
+    let branchesOfMatchedMatrix: Store[] = [];
+    if (directlyMatchingMatrix) {
+        branchesOfMatchedMatrix = allStores.filter(
+            s => s.matrixStoreId === directlyMatchingMatrix.id && s.participating
+        );
+    }
+
+    const results = allStores.filter(store => {
       if (!store.participating) return false;
+
+      // If a matrix was directly matched by code, include its branches
+      if (directlyMatchingMatrix && store.matrixStoreId === directlyMatchingMatrix.id) {
+        return true;
+      }
+       // Include the matrix itself if it matches the code search
+      if (directlyMatchingMatrix && store.id === directlyMatchingMatrix.id) {
+        return true;
+      }
 
       const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
       
       const checkCnpj = (cnpjValue?: string) => { 
         if (!cnpjValue) return false;
-        
-        if (cleanedSearchTermForCnpj.length > 0 && cleanCNPJ(cnpjValue).includes(cleanedSearchTermForCnpj)) {
+        const cleanedStoreCnpj = cleanCNPJ(cnpjValue);
+        if (cleanedSearchTermForCnpj.length > 0 && cleanedStoreCnpj.includes(cleanedSearchTermForCnpj)) {
           return true;
         }
-        
-        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) {
+        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) { // Check raw formatted CNPJ as well
             return true;
         }
         return false;
@@ -125,6 +147,13 @@ export default function VendorPositivacaoPage() {
         checkString(store.state)
       );
     });
+    
+    // Combine results and remove duplicates if any (e.g. matrix matched by name and also by code)
+    const combinedResults = new Set([...results, ...branchesOfMatchedMatrix]);
+    if (directlyMatchingMatrix) combinedResults.add(directlyMatchingMatrix);
+    
+    return Array.from(combinedResults);
+
   }, [searchTerm, allStores, cleanCNPJ]);
 
 
@@ -154,7 +183,7 @@ export default function VendorPositivacaoPage() {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input 
           type="text"
-          placeholder="Buscar por nome, código, CNPJ, proprietário, local..."
+          placeholder="Buscar por nome, código, CNPJ, local..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -190,5 +219,3 @@ export default function VendorPositivacaoPage() {
     </div>
   );
 }
-
-    

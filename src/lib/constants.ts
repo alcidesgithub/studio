@@ -54,30 +54,46 @@ const positivationsStore4: PositivationDetail[] = [
 
 export const MOCK_STORES: Store[] = [
   {
-    id: 'store_1', code: 'LJ001', name: 'Hiperfarma Matriz Ltda.', cnpj: '01234567000188',
+    id: 'store_1', code: 'LJ001', name: 'Hiperfarma Matriz Curitiba Ltda.', cnpj: '01234567000188',
     participating: true, goalProgress: 75, positivationsDetails: positivationsStore1, isCheckedIn: true,
     currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore1.length >= t.positivacoesRequired.PR && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore1.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired.PR)),
     address: 'Rua Principal, 123', city: 'Curitiba', neighborhood: 'Centro', state: 'PR', phone: '(41) 3333-1111',
-    ownerName: 'João Silva', responsibleName: 'Maria Souza', email: 'matriz@hiperfarma.com'
+    ownerName: 'João Silva', responsibleName: 'Maria Souza', email: 'matriz@hiperfarma.com',
+    isMatrix: true, 
+    matrixStoreId: undefined,
   },
   {
-    id: 'store_2', code: 'LJ002', name: 'Hiperfarma Filial Centro Com. de Med. Ltda.', cnpj: '02345678000199',
+    id: 'store_2', code: 'LJ002', name: 'Hiperfarma Filial Londrina Com. de Med. Ltda.', cnpj: '02345678000199',
     participating: true, goalProgress: 40, positivationsDetails: [], isCheckedIn: false,
     address: 'Av. Comercial, 456', city: 'Londrina', neighborhood: 'Centro', state: 'PR', phone: '(43) 3333-2222',
-    ownerName: 'Pedro Alves', responsibleName: 'Ana Costa', email: 'filial.centro@hiperfarma.com'
+    ownerName: 'Pedro Alves', responsibleName: 'Ana Costa', email: 'filial.londrina@hiperfarma.com',
+    isMatrix: false, 
+    matrixStoreId: 'store_1', 
   },
   {
-    id: 'store_3', code: 'LJ003', name: 'Hiperfarma Shopping Norte Farmácia EIRELI', cnpj: '03456789000100',
+    id: 'store_3', code: 'LJ003', name: 'Hiperfarma Joinville Farmácia EIRELI', cnpj: '03456789000100',
     participating: false, goalProgress: 0, positivationsDetails: [], isCheckedIn: false,
     address: 'Rua do Shopping, 789', city: 'Joinville', neighborhood: 'América', state: 'SC', phone: '(47) 3333-3333',
-    ownerName: 'Carlos Pereira', responsibleName: 'Beatriz Santos', email: 'shopping.norte@hiperfarma.com'
+    ownerName: 'Carlos Pereira', responsibleName: 'Beatriz Santos', email: 'joinville@hiperfarma.com',
+    isMatrix: true, 
+    matrixStoreId: undefined,
   },
   {
-    id: 'store_4', code: 'LJ004', name: 'Hiperfarma Av. Brasil Medicamentos S.A.', cnpj: '04567890000111',
+    id: 'store_4', code: 'LJ004', name: 'Hiperfarma Matriz Florianópolis Medicamentos S.A.', cnpj: '04567890000111',
     participating: true, goalProgress: 100, positivationsDetails: positivationsStore4, isCheckedIn: true,
     currentTier: MOCK_AWARD_TIERS.find(t => positivationsStore4.length >= t.positivacoesRequired.SC && (!MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1] || positivationsStore4.length < MOCK_AWARD_TIERS[MOCK_AWARD_TIERS.indexOf(t)+1].positivacoesRequired.SC)),
     address: 'Av. Brasil, 1011', city: 'Florianópolis', neighborhood: 'Centro', state: 'SC', phone: '(48) 3333-4444',
-    ownerName: 'Fernanda Lima', responsibleName: 'Ricardo Oliveira', email: 'av.brasil@hiperfarma.com'
+    ownerName: 'Fernanda Lima', responsibleName: 'Ricardo Oliveira', email: 'matriz.florianopolis@hiperfarma.com',
+    isMatrix: true, 
+    matrixStoreId: undefined,
+  },
+  {
+    id: 'store_5', code: 'LJ005', name: 'Hiperfarma Filial São José Com. de Med. Ltda.', cnpj: '05678901000122',
+    participating: true, goalProgress: 20, positivationsDetails: [{ vendorId: MOCK_VENDORS[0].id, vendorName: MOCK_VENDORS[0].name, vendorLogoUrl: MOCK_VENDORS[0].logoUrl, date: subDays(today, 1).toISOString(), salespersonId: 'user_vendor_cs', salespersonName: 'Carlos Silva' }], isCheckedIn: true,
+    address: 'Rua das Palmeiras, 789', city: 'São José', neighborhood: 'Campinas', state: 'SC', phone: '(48) 3355-5555',
+    ownerName: 'Juliana Costa', responsibleName: 'Roberto Dias', email: 'filial.saojose@hiperfarma.com',
+    isMatrix: false,
+    matrixStoreId: 'store_4',
   },
 ];
 

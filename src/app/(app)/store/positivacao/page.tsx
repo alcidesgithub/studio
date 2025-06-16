@@ -29,33 +29,45 @@ export default function StorePositivacaoPage() {
   }, []);
 
   const currentStore = useMemo(() => {
-    if (!user || !user.storeName) return undefined;
-    return allStores.find(s => s.name === user.storeName);
+    if (!user || !user.email) return undefined; // Match by email for uniqueness
+    return allStores.find(s => s.email === user.email);
   }, [user, allStores]);
 
-  const validPositivationsDetails = useMemo(() => {
-    if (!currentStore || !currentStore.positivationsDetails || allVendors.length === 0) return [];
-    const existingVendorIds = new Set(allVendors.map(v => v.id));
-    return currentStore.positivationsDetails.filter(pd => existingVendorIds.has(pd.vendorId));
-  }, [currentStore, allVendors]);
+  const storesToConsiderForStats = useMemo(() => {
+    if (!currentStore) return [];
+    if (currentStore.isMatrix) {
+      return allStores.filter(s => s.id === currentStore.id || s.matrixStoreId === currentStore.id);
+    }
+    return [currentStore];
+  }, [currentStore, allStores]);
 
-  const positivacoesCount = useMemo(() => validPositivationsDetails.length, [validPositivationsDetails]);
+  const validPositivationsDetailsCombined = useMemo(() => {
+    if (storesToConsiderForStats.length === 0 || allVendors.length === 0) return [];
+    const existingVendorIds = new Set(allVendors.map(v => v.id));
+    let combinedDetails: PositivationDetail[] = [];
+    storesToConsiderForStats.forEach(store => {
+        if (store.positivationsDetails) {
+            combinedDetails = combinedDetails.concat(
+                store.positivationsDetails.filter(pd => existingVendorIds.has(pd.vendorId))
+            );
+        }
+    });
+    return combinedDetails;
+  }, [storesToConsiderForStats, allVendors]);
+
+  const positivacoesCount = useMemo(() => validPositivationsDetailsCombined.length, [validPositivationsDetailsCombined]);
 
   const sortedAwardTiersForDisplay = useMemo(() => {
-    // Tiers should already be loaded with sortOrder from localStorage,
-    // which is maintained by the AdminAwardsPage.
-    // If sortOrder somehow gets corrupted or is missing, treat it as highest.
     return [...awardTiers].sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity));
   }, [awardTiers]);
 
   const currentAchievedTier = useMemo(() => {
     if (!currentStore || sortedAwardTiersForDisplay.length === 0 || !currentStore.state) return undefined;
-    const storeState = currentStore.state;
+    const storeStateForRequirements = currentStore.state; 
     let achievedTier: AwardTier | undefined = undefined;
-    // Iterate based on the pre-sorted (by sortOrder) tiers
     for (let i = sortedAwardTiersForDisplay.length - 1; i >= 0; i--) {
         const tier = sortedAwardTiersForDisplay[i];
-        if (positivacoesCount >= getRequiredPositivationsForStore(tier, storeState)) {
+        if (positivacoesCount >= getRequiredPositivationsForStore(tier, storeStateForRequirements)) {
             achievedTier = tier;
             break; 
         }
@@ -65,7 +77,6 @@ export default function StorePositivacaoPage() {
 
   const nextTier = useMemo(() => {
     if (!currentStore || sortedAwardTiersForDisplay.length === 0 || !currentStore.state) return undefined;
-    
     if (currentAchievedTier) {
         const currentTierIndex = sortedAwardTiersForDisplay.findIndex(t => t.id === currentAchievedTier!.id);
         if (currentTierIndex < sortedAwardTiersForDisplay.length - 1) {
@@ -73,31 +84,33 @@ export default function StorePositivacaoPage() {
         }
         return undefined; 
     }
-    // If no tier is achieved, the next tier is the first one in the sorted list (lowest sortOrder)
     return sortedAwardTiersForDisplay.length > 0 ? sortedAwardTiersForDisplay[0] : undefined;
   }, [sortedAwardTiersForDisplay, currentAchievedTier, currentStore]);
 
   const progressToNextTier = useMemo(() => {
     if (!currentStore || !nextTier || !currentStore.state) return currentAchievedTier ? 100 : 0;
-    const storeState = currentStore.state;
-    const requiredForNext = getRequiredPositivationsForStore(nextTier, storeState);
-
+    const storeStateForRequirements = currentStore.state;
+    const requiredForNext = getRequiredPositivationsForStore(nextTier, storeStateForRequirements);
     if (requiredForNext === 0) return positivacoesCount >= 0 ? 100 : 0; 
-    
     if (requiredForNext <= 0 || positivacoesCount < 0) return 0;
-
     const progress = (positivacoesCount / requiredForNext) * 100;
     return Math.min(progress, 100);
   }, [nextTier, positivacoesCount, currentAchievedTier, currentStore]);
 
+  // For the "Cartela de positivação", always show the logged-in store's direct positivations
+  const validPositivationsDetailsForCartela = useMemo(() => {
+    if (!currentStore || !currentStore.positivationsDetails || allVendors.length === 0) return [];
+    const existingVendorIds = new Set(allVendors.map(v => v.id));
+    return currentStore.positivationsDetails.filter(pd => existingVendorIds.has(pd.vendorId));
+  }, [currentStore, allVendors]);
 
-  const positivationsMap = useMemo(() => {
+  const positivationsMapForCartela = useMemo(() => {
     const map = new Map<string, PositivationDetail>();
-    validPositivationsDetails.forEach(detail => {
+    validPositivationsDetailsForCartela.forEach(detail => {
       map.set(detail.vendorId, detail);
     });
     return map;
-  }, [validPositivationsDetails]);
+  }, [validPositivationsDetailsForCartela]);
 
   if (!user || !currentEvent) {
     return (
@@ -118,25 +131,30 @@ export default function StorePositivacaoPage() {
         <PageHeader title="Minhas Positivações" icon={BadgeCheck} iconClassName="text-secondary" />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
-            Dados da loja não encontrados para o usuário {user.name}.
+            Dados da loja não encontrados para o usuário {user.name}. Verifique se o email da loja está correto no cadastro de usuários.
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  const pageTitle = currentStore.isMatrix 
+    ? `${currentStore.code} - ${currentStore.name} (Matriz e Filiais)` 
+    : `${currentStore.code} - ${currentStore.name} (${currentStore.state || 'N/A'})`;
+  const pageDescription = `Sua performance e selos recebidos no ${currentEvent.name}${currentStore.isMatrix ? " (incluindo filiais)" : ""}`;
+
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title={`${currentStore.code} - ${currentStore.name} (${currentStore.state || 'N/A'})`}
-        description={`Sua performance e selos recebidos no ${currentEvent.name}`}
+        title={pageTitle}
+        description={pageDescription}
         icon={BadgeCheck}
         iconClassName="text-secondary"
       />
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Selos Recebidos</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Selos Recebidos {currentStore.isMatrix && <span className="text-xs font-normal">(Matriz+Filiais)</span>}</CardTitle>
             <BadgeCheck className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
@@ -147,7 +165,7 @@ export default function StorePositivacaoPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Faixa de Premiação Atual</CardTitle>
+            <CardTitle className="text-sm font-medium">Faixa de Premiação Atual {currentStore.isMatrix && <span className="text-xs font-normal">(Matriz+Filiais)</span>}</CardTitle>
             <Trophy className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
@@ -162,7 +180,7 @@ export default function StorePositivacaoPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Progresso Próxima Faixa</CardTitle>
+            <CardTitle className="text-sm font-medium">Progresso Próxima Faixa {currentStore.isMatrix && <span className="text-xs font-normal">(Matriz+Filiais)</span>}</CardTitle>
             <TrendingUp className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
@@ -198,8 +216,8 @@ export default function StorePositivacaoPage() {
 
       <Card className="shadow-xl mb-6 sm:mb-8 bg-[#2d2d2d]">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-3xl sm:text-4xl md:text-5xl text-[#c3f45d]">Cartela de positivação</CardTitle>
-          <CardDescription className="text-white">Veja quais fornecedores já te positivaram e por qual vendedor.</CardDescription>
+          <CardTitle className="font-headline text-3xl sm:text-4xl md:text-5xl text-[#c3f45d]">Cartela de positivação {currentStore.isMatrix && <span className="text-xl font-normal">(Apenas {currentStore.name})</span>}</CardTitle>
+          <CardDescription className="text-white">Veja quais fornecedores já te positivaram (para esta loja) e por qual vendedor.</CardDescription>
         </CardHeader>
         <CardContent>
           {allVendors.length === 0 ? (
@@ -210,14 +228,14 @@ export default function StorePositivacaoPage() {
                 <VendorPositivationDisplayCard
                   key={vendor.id}
                   vendor={vendor}
-                  positivation={positivationsMap.get(vendor.id)}
+                  positivation={positivationsMapForCartela.get(vendor.id)}
                 />
               ))}
             </div>
           )}
-          {positivacoesCount === 0 && allVendors.length > 0 && (
+          {validPositivationsDetailsForCartela.length === 0 && allVendors.length > 0 && (
             <p className="mt-6 sm:mt-8 text-center text-base sm:text-lg text-white/50">
-              Ainda não há selos (positivações). Positive com os fornecedores para recebê-los!
+              Ainda não há selos (positivações) para esta loja. Positive com os fornecedores para recebê-los!
             </p>
           )}
         </CardContent>
@@ -264,12 +282,10 @@ export default function StorePositivacaoPage() {
               <CardTitle>Qualificação para Sorteios</CardTitle>
           </CardHeader>
           <CardContent>
-          <p className="text-sm">Sua loja tem <span className="font-bold text-base sm:text-lg text-secondary">{positivacoesCount}</span> selos.</p>
+          <p className="text-sm">Sua loja (e filiais, se aplicável) tem <span className="font-bold text-base sm:text-lg text-secondary">{positivacoesCount}</span> selos.</p>
           <p className="text-xs text-muted-foreground mt-1">Lojas com mais selos e que atingem as faixas de premiação participam de sorteios especiais. Continue positivando!</p>
           </CardContent>
       </Card>
     </div>
   );
 }
-
-    

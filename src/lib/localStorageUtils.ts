@@ -81,17 +81,34 @@ export const saveAwardTiers = (tiers: AwardTier[]): void => saveData<AwardTier[]
 // Stores
 export const loadStores = (): Store[] => {
   let stores = loadData<Store[]>(STORES_KEY, [], MOCK_STORES);
-  // Ensure isCheckedIn property exists and defaults to false if undefined
   let migrated = false;
   stores = stores.map(store => {
+    const migratedStore = { ...store };
     if (typeof store.isCheckedIn === 'undefined') {
+      migratedStore.isCheckedIn = false;
       migrated = true;
-      return { ...store, isCheckedIn: false };
     }
-    return store;
+    if (typeof store.isMatrix === 'undefined') {
+      // Default new stores or stores without this field to be a matrix
+      migratedStore.isMatrix = true; 
+      migrated = true;
+    }
+    if (migratedStore.isMatrix === true && typeof store.matrixStoreId !== 'undefined') {
+      // A matrix should not have a matrixStoreId
+      migratedStore.matrixStoreId = undefined;
+      migrated = true;
+    }
+    // If it's a branch (isMatrix: false) but matrixStoreId is missing, it's an invalid state.
+    // For now, we'll let it be, admin might need to correct it.
+    // Or, we could default it to a matrix if matrixStoreId is missing.
+    // if (migratedStore.isMatrix === false && typeof migratedStore.matrixStoreId === 'undefined') {
+    //   migratedStore.isMatrix = true; // Make it a matrix to avoid inconsistent state
+    //   migrated = true;
+    // }
+    return migratedStore;
   });
   if (migrated && typeof window !== 'undefined') {
-    saveData(STORES_KEY, stores); // Save back if migration occurred
+    saveData(STORES_KEY, stores); 
   }
   return stores;
 };
@@ -124,18 +141,15 @@ export const loadUsers = (): User[] => {
     }
   } catch (error) {
     console.error(`Error parsing ${USERS_KEY} from localStorage:`, error);
-    // If parsing fails, treat as if no users exist to force recreation of Alcides.
     users = [];
   }
 
   const alcidesUserIndex = users.findIndex(u => u.email === alcidesEmail);
 
   if (alcidesUserIndex !== -1) {
-    // Alcides exists, ensure password and role are correct
     const alcides = users[alcidesUserIndex];
     if (alcides.password !== alcidesPassword || !alcides.password || alcides.role !== 'admin' || alcides.name !== 'Alcides' || alcides.id !== alcidesUserId) {
       users[alcidesUserIndex] = {
-        // Spread existing data only if ID matches, otherwise use defaults to ensure consistency
         ...(alcides.id === alcidesUserId ? alcides : {}), 
         id: alcidesUserId,
         name: 'Alcides',
@@ -146,7 +160,6 @@ export const loadUsers = (): User[] => {
       updateLocalStorage = true;
     }
   } else {
-    // Alcides does not exist, add him
     const defaultAdmin: User = {
       id: alcidesUserId,
       name: 'Alcides',
@@ -160,10 +173,9 @@ export const loadUsers = (): User[] => {
 
   if (updateLocalStorage) {
     saveData<User[]>(USERS_KEY, users);
-    // Ensure other mock/default data is present if Alcides was just created/updated due to empty/corrupt state
     if (!window.localStorage.getItem(EVENT_KEY)) loadEvent();
     if (!window.localStorage.getItem(AWARD_TIERS_KEY)) loadAwardTiers();
-    if (!window.localStorage.getItem(STORES_KEY)) loadStores();
+    if (!window.localStorage.getItem(STORES_KEY)) loadStores(); // Reload stores to ensure migration if Alcides was new
     if (!window.localStorage.getItem(VENDORS_KEY)) loadVendors();
     if (!window.localStorage.getItem(SALESPEOPLE_KEY)) loadSalespeople();
   }
