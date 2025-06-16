@@ -23,13 +23,27 @@ import { useToast } from '@/hooks/use-toast';
 
 const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'manager'];
 
-const userFormSchema = z.object({
+const userFormSchemaBase = z.object({
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres." }),
   email: z.string().email({ message: "Endereço de email inválido." }),
   role: z.custom<UserRole>(val => ASSIGNABLE_ROLES.includes(val as UserRole), {
     message: "Perfil deve ser 'admin' ou 'manager'.",
   }),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(),
+  confirmPassword: z.string().optional(),
 });
+
+const userFormSchema = userFormSchemaBase.superRefine((data, ctx) => {
+  // Password confirmation check is only relevant if password is being set/changed
+  if (data.password && data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "As senhas não coincidem.",
+      path: ["confirmPassword"],
+    });
+  }
+});
+
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
@@ -41,6 +55,8 @@ interface UserFormDialogContentProps {
 }
 
 const UserFormDialogContentInternal = ({ form, onSubmit, editingUser, isSubmitting }: UserFormDialogContentProps) => {
+  const showPasswordFields = !editingUser; // Show password fields only when creating a new user
+
   return (
     <>
       <DialogHeader>
@@ -71,7 +87,7 @@ const UserFormDialogContentInternal = ({ form, onSubmit, editingUser, isSubmitti
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="usuario@example.com" {...field} />
+                  <Input type="email" placeholder="usuario@example.com" {...field} disabled={!!editingUser} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -105,9 +121,39 @@ const UserFormDialogContentInternal = ({ form, onSubmit, editingUser, isSubmitti
               </FormItem>
             )}
           />
+          {showPasswordFields && (
+            <>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Mínimo 6 caracteres" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirmar Senha</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Repita a senha" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
           <DialogFooter className="pt-3 sm:pt-4">
             <DialogClose asChild>
-               <Button type="button" variant="outline" onClick={() => form.reset() /* Reset handled by parent onOpenChange now */}>Cancelar</Button>
+               <Button type="button" variant="outline" onClick={() => form.reset() }>Cancelar</Button>
             </DialogClose>
             <Button type="submit" disabled={isSubmitting}>
                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
@@ -155,6 +201,8 @@ export default function AdminUsersPage() {
       name: '',
       email: '',
       role: 'manager',
+      password: '',
+      confirmPassword: '',
     },
   });
 
@@ -164,6 +212,8 @@ export default function AdminUsersPage() {
       name: '',
       email: '',
       role: 'manager', 
+      password: '',
+      confirmPassword: '',
     });
     setIsDialogOpen(true);
   };
@@ -174,10 +224,12 @@ export default function AdminUsersPage() {
         return;
     }
     setEditingUser(user);
-    form.reset({
+    form.reset({ // Password fields are not set here as they are not part of edit
         name: user.name,
         email: user.email,
         role: user.role,
+        password: '', // Keep password fields empty for edit mode
+        confirmPassword: '',
     });
     setIsDialogOpen(true);
   };
@@ -190,7 +242,9 @@ export default function AdminUsersPage() {
         return;
     }
 
-    if (userToDelete.role === 'admin' && users.filter(u => u.role === 'admin').length === 1) {
+    // Prevent deleting the very last admin
+    const adminUsers = users.filter(u => u.role === 'admin');
+    if (userToDelete.role === 'admin' && adminUsers.length === 1 && adminUsers[0].id === userToDelete.id) {
       toast({ title: "Ação não permitida", description: "Não é possível excluir o último administrador.", variant: "destructive"});
       return;
     }
@@ -216,12 +270,14 @@ export default function AdminUsersPage() {
 
         updatedUsers = users.map(u => {
           if (u.id === editingUser.id) {
+            // Password is not updated during edit from this form
             const updatedUserEntry: User = {
               ...editingUser,
               name: data.name,
-              email: data.email,
+              // Email cannot be changed for existing users from this form
+              // email: data.email, 
               role: data.role, 
-              storeName: undefined, 
+              storeName: undefined, // Ensure storeName is cleared for admin/manager
             };
             return updatedUserEntry;
           }
@@ -232,18 +288,35 @@ export default function AdminUsersPage() {
             description: `Usuário ${data.name} foi atualizado.`,
         });
 
-    } else { 
+    } else { // Creating a new user
         if (users.some(u => u.email === data.email)) {
             form.setError("email", { type: "manual", message: "Este email já está em uso." });
             toast({ title: "Erro", description: "Email já cadastrado.", variant: "destructive" });
             return;
         }
+        if (!data.password) {
+            form.setError("password", { type: "manual", message: "Senha é obrigatória para novo usuário." });
+            toast({ title: "Erro", description: "Senha é obrigatória.", variant: "destructive" });
+            return;
+        }
+        if (data.password.length < 6) {
+             form.setError("password", { type: "manual", message: "Senha deve ter pelo menos 6 caracteres." });
+            toast({ title: "Erro", description: "Senha deve ter pelo menos 6 caracteres.", variant: "destructive" });
+            return;
+        }
+        if (data.password !== data.confirmPassword) {
+            form.setError("confirmPassword", { type: "manual", message: "As senhas não coincidem." });
+            toast({ title: "Erro", description: "As senhas não coincidem.", variant: "destructive" });
+            return;
+        }
+
         const newUser: User = {
           id: `user_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
           name: data.name,
           email: data.email,
           role: data.role, 
-          storeName: undefined,
+          password: data.password, // Save the password
+          storeName: undefined, // Ensure storeName is cleared for admin/manager
         };
         updatedUsers = [...users, newUser];
         toast({
@@ -348,3 +421,4 @@ export default function AdminUsersPage() {
   );
 }
 
+    
