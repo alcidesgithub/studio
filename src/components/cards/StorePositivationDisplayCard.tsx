@@ -73,8 +73,8 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
       <CardFooter>
         <Button
           className={cn(
-            "w-full h-16 text-base font-semibold",
-            "flex justify-center" // Explicitly ensure centering
+            "w-full h-16 text-base font-semibold"
+            // Removed explicit "flex justify-center" as it's default for shadcn Button
           )}
           onClick={() => onPositivar(store.id, store.name)}
           disabled={isDisabled}
@@ -82,7 +82,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
         >
           {isDisabled ? (
             <>
-              <CheckCircle className="h-6 w-6" />
+              <CheckCircle className="h-6 w-6 flex-shrink-0" />
               <span className="truncate">
                 Positivada por {currentVendorCompany.name}
               </span>
@@ -90,7 +90,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
           ) : (
             <>
               {currentVendorCompany.logoUrl ? (
-                <div className="relative w-20 h-10"> 
+                <div className="relative w-20 h-10 flex-shrink-0"> 
                   <Image
                     src={currentVendorCompany.logoUrl}
                     alt={`Logo ${currentVendorCompany.name}`}
@@ -100,9 +100,10 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
                   />
                 </div>
               ) : (
-                <BadgeCheck className="h-6 w-6" />
+                <BadgeCheck className="h-6 w-6 flex-shrink-0" />
               )}
-              <span>Positivar Loja</span>
+              {/* Using a div for the text can sometimes help with flex centering issues */}
+              <div>Positivar Loja</div>
             </>
           )}
         </Button>
@@ -111,3 +112,4 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   );
 });
 StorePositivationDisplayCard.displayName = 'StorePositivationDisplayCard';
+
