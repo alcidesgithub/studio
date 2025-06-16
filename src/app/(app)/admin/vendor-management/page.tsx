@@ -256,7 +256,20 @@ const DynamicVendorFormDialogContent = dynamic<VendorFormDialogContentProps>(() 
     );
   }), {
   ssr: false,
-  loading: () => <div className="p-8 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /> <p className="mt-2">Carregando formulário...</p></div>,
+  loading: () => (
+    <>
+      <DialogHeader>
+        <DialogTitle>Carregando...</DialogTitle>
+      </DialogHeader>
+      <div className="p-8 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-2">Carregando formulário do fornecedor...</p>
+      </div>
+      <DialogFooter>
+        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+      </DialogFooter>
+    </>
+  ),
 });
 
 
@@ -325,7 +338,20 @@ const DynamicSalespersonFormDialogContent = dynamic<SalespersonFormDialogContent
   );
   }), {
   ssr: false,
-  loading: () => <div className="p-8 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /> <p className="mt-2">Carregando formulário...</p></div>,
+  loading: () => (
+    <>
+      <DialogHeader>
+        <DialogTitle>Carregando...</DialogTitle>
+      </DialogHeader>
+      <div className="p-8 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-2">Carregando formulário do vendedor...</p>
+      </div>
+      <DialogFooter>
+        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+      </DialogFooter>
+    </>
+  ),
 });
 
 
@@ -981,3 +1007,4 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
+

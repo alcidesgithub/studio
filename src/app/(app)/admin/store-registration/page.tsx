@@ -285,7 +285,20 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
 
 const DynamicStoreFormDialogContent = dynamic(() => Promise.resolve(StoreFormDialogContentInternal), {
   ssr: false,
-  loading: () => <div className="p-8 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" /> <p className="mt-2">Carregando formulário...</p></div>,
+  loading: () => (
+    <>
+      <DialogHeader>
+        <DialogTitle>Carregando...</DialogTitle>
+      </DialogHeader>
+      <div className="p-8 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-2">Carregando formulário...</p>
+      </div>
+      <DialogFooter>
+        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+      </DialogFooter>
+    </>
+  ),
 });
 
 
@@ -948,3 +961,4 @@ export default function ManageStoresPage() {
     </div>
   );
 }
+
