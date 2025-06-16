@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { loadStores, loadEvent, loadAwardTiers, loadVendors } from '@/lib/localStorageUtils';
 import { getRequiredPositivationsForStore, formatDisplayCNPJ } from '@/lib/utils';
 import type { Store, Event, AwardTier, Vendor } from '@/types';
-import { Store as StoreIcon, Trophy, LayoutDashboard, Briefcase, CheckSquare, Users, Percent, Activity, BadgeCheck, Stamp } from 'lucide-react';
+import { Store as StoreIcon, Trophy, LayoutDashboard, Briefcase, CheckSquare, Users, Percent, Activity, BadgeCheck } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -227,7 +227,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{checkedInStoresCount}</div>
             <p className="text-xs text-muted-foreground">
-              Total de lojas confirmadas.
+              Total de lojas confirmadas
             </p>
           </CardContent>
         </Card>
@@ -355,3 +355,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
