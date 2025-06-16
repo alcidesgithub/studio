@@ -27,7 +27,7 @@ export default function BranchDetailPage() {
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const [accessDenied, setAccessDenied] = useState<string | null>(null);
+  // accessDenied state is removed
 
   useEffect(() => {
     setDataLoading(true);
@@ -47,33 +47,6 @@ export default function BranchDetailPage() {
     if (!branchId || allStores.length === 0) return undefined;
     return allStores.find(s => s.id === branchId);
   }, [branchId, allStores]);
-
-  useEffect(() => {
-    if (authIsLoading || dataLoading) return;
-
-    if (!user || user.role !== 'store') {
-      setAccessDenied("Você não tem permissão para ver esta página.");
-      return;
-    }
-    if (!loggedInStore) {
-      setAccessDenied("Dados da sua loja não encontrados. Verifique seu login.");
-      return;
-    }
-    if (!loggedInStore.isMatrix) {
-      setAccessDenied("Apenas lojas matriz podem visualizar detalhes de filiais.");
-      return;
-    }
-    if (!branchStore) {
-      setAccessDenied(`Filial com ID ${branchId} não encontrada.`);
-      return;
-    }
-    if (branchStore.matrixStoreId !== loggedInStore.id) {
-      setAccessDenied("Esta filial não pertence à sua loja matriz.");
-      return;
-    }
-    setAccessDenied(null); // Clear any previous denial if checks pass
-  }, [user, loggedInStore, branchStore, branchId, authIsLoading, dataLoading]);
-
 
   const positivationsDetailsForBranch = useMemo(() => {
     if (!branchStore || !branchStore.positivationsDetails || allVendors.length === 0) return [];
@@ -138,13 +111,30 @@ export default function BranchDetailPage() {
     );
   }
 
-  if (accessDenied) {
+  // Access control checks after loading is complete
+  if (!user) {
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
         <PageHeader title="Acesso Negado" icon={AlertTriangle} iconClassName="text-destructive" />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-destructive-foreground bg-destructive rounded-md">
-            <p className="text-lg font-semibold">{accessDenied}</p>
+            <p className="text-lg font-semibold">Usuário não autenticado.</p>
+            <Button onClick={() => router.push('/login')} className="mt-4 bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90">
+              Ir para Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (user.role !== 'store') {
+    return (
+      <div className="animate-fadeIn p-4 sm:p-6">
+        <PageHeader title="Acesso Negado" icon={AlertTriangle} iconClassName="text-destructive" />
+        <Card>
+          <CardContent className="p-4 sm:p-6 text-center text-destructive-foreground bg-destructive rounded-md">
+            <p className="text-lg font-semibold">Você não tem permissão para ver esta página (tipo de usuário incorreto).</p>
             <Button onClick={() => router.push('/store/positivacao')} className="mt-4 bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90">
               Voltar para Minhas Positivações
             </Button>
@@ -154,13 +144,79 @@ export default function BranchDetailPage() {
     );
   }
   
-  if (!branchStore || !currentEvent) {
+  if (!loggedInStore) {
+    return (
+      <div className="animate-fadeIn p-4 sm:p-6">
+        <PageHeader title="Erro de Dados" icon={AlertTriangle} iconClassName="text-destructive" />
+        <Card>
+          <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
+            <p className="text-lg font-semibold">Dados da sua loja (matriz) não encontrados.</p>
+            <p className="text-sm">Verifique se você está logado com a conta correta da loja matriz.</p>
+            <Button onClick={() => router.push('/store/positivacao')} className="mt-4">
+              Voltar para Minhas Positivações
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!loggedInStore.isMatrix) {
+     return (
+      <div className="animate-fadeIn p-4 sm:p-6">
+        <PageHeader title="Acesso Negado" icon={AlertTriangle} iconClassName="text-destructive" />
+        <Card>
+          <CardContent className="p-4 sm:p-6 text-center text-destructive-foreground bg-destructive rounded-md">
+            <p className="text-lg font-semibold">Apenas lojas matriz podem visualizar detalhes de filiais.</p>
+            <Button onClick={() => router.push('/store/positivacao')} className="mt-4 bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90">
+              Voltar para Minhas Positivações
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  if (!branchStore) {
+     return (
+      <div className="animate-fadeIn p-4 sm:p-6">
+        <PageHeader title="Filial Não Encontrada" icon={AlertTriangle} iconClassName="text-destructive" />
+        <Card>
+          <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
+            <p className="text-lg font-semibold">Filial com ID '{branchId}' não encontrada.</p>
+             <Button onClick={() => router.push('/store/positivacao')} className="mt-4">
+              Voltar para Visão da Matriz
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (branchStore.matrixStoreId !== loggedInStore.id) {
+    return (
+      <div className="animate-fadeIn p-4 sm:p-6">
+        <PageHeader title="Acesso Negado" icon={AlertTriangle} iconClassName="text-destructive" />
+        <Card>
+          <CardContent className="p-4 sm:p-6 text-center text-destructive-foreground bg-destructive rounded-md">
+            <p className="text-lg font-semibold">Esta filial não pertence à sua loja matriz.</p>
+            <Button onClick={() => router.push('/store/positivacao')} className="mt-4 bg-destructive-foreground text-destructive hover:bg-destructive-foreground/90">
+              Voltar para Visão da Matriz
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // At this point, all checks passed, currentEvent should also be loaded
+  if (!currentEvent) {
      return (
       <div className="animate-fadeIn p-4 sm:p-6">
         <PageHeader title="Erro" icon={AlertTriangle} iconClassName="text-destructive" />
         <Card>
           <CardContent className="p-4 sm:p-6 text-center text-muted-foreground">
-            Não foi possível carregar os dados da filial ou do evento.
+            Não foi possível carregar os dados do evento.
              <Button onClick={() => router.push('/store/positivacao')} className="mt-4">
               Voltar para Minhas Positivações
             </Button>
@@ -274,7 +330,7 @@ export default function BranchDetailPage() {
               ))}
             </div>
           )}
-          {positivacoesDetailsForBranch.length === 0 && allVendors.length > 0 && (
+          {positivationsDetailsForBranch.length === 0 && allVendors.length > 0 && (
             <p className="mt-6 sm:mt-8 text-center text-base sm:text-lg text-white/50">
               Ainda não há selos (positivações) para esta filial.
             </p>
@@ -330,3 +386,5 @@ export default function BranchDetailPage() {
     </div>
   );
 }
+
+    
