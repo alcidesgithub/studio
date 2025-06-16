@@ -103,63 +103,49 @@ export default function VendorPositivacaoPage() {
     if (!lowerSearchTerm) {
         return allStores.filter(store => store.participating);
     }
-    const cleanedSearchTermForCnpj = lowerSearchTerm.replace(/\D/g, '');
 
-    const directlyMatchingMatrix = allStores.find(
-      s => s.code.toLowerCase() === lowerSearchTerm && s.isMatrix && s.participating
+    // Check for an exact code match first
+    const exactCodeMatchStore = allStores.find(
+        s => s.code.toLowerCase() === lowerSearchTerm && s.participating
     );
-    
-    let branchesOfMatchedMatrix: Store[] = [];
-    if (directlyMatchingMatrix) {
-        branchesOfMatchedMatrix = allStores.filter(
-            s => s.matrixStoreId === directlyMatchingMatrix.id && s.participating
-        );
+
+    if (exactCodeMatchStore) {
+        // If an exact code is found, return only that store.
+        return [exactCodeMatchStore];
     }
 
-    const results = allStores.filter(store => {
-      if (!store.participating) return false;
+    // If no exact code match, proceed with a general search across other fields
+    const cleanedSearchTermForCnpj = lowerSearchTerm.replace(/\D/g, '');
 
-      // If a matrix was directly matched by code, include its branches
-      if (directlyMatchingMatrix && store.matrixStoreId === directlyMatchingMatrix.id) {
-        return true;
-      }
-       // Include the matrix itself if it matches the code search
-      if (directlyMatchingMatrix && store.id === directlyMatchingMatrix.id) {
-        return true;
-      }
+    return allStores.filter(store => {
+        if (!store.participating) return false;
 
-      const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
-      
-      const checkCnpj = (cnpjValue?: string) => { 
-        if (!cnpjValue) return false;
-        const cleanedStoreCnpj = cleanCNPJ(cnpjValue);
-        if (cleanedSearchTermForCnpj.length > 0 && cleanedStoreCnpj.includes(cleanedSearchTermForCnpj)) {
-          return true;
-        }
-        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) { // Check raw formatted CNPJ as well
-            return true;
-        }
-        return false;
-      };
+        const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
+        
+        const checkCnpj = (cnpjValue?: string) => { 
+            if (!cnpjValue) return false;
+            const cleanedStoreCnpj = cleanCNPJ(cnpjValue);
+            if (cleanedSearchTermForCnpj.length > 0 && cleanedStoreCnpj.includes(cleanedSearchTermForCnpj)) {
+                return true;
+            }
+            // Keep the original check for formatted CNPJ parts if searchTerm is not purely numeric
+            if (!/^\d+$/.test(lowerSearchTerm) && cnpjValue.toLowerCase().includes(lowerSearchTerm)) {
+                return true;
+            }
+            return false;
+        };
 
-      return (
-        checkString(store.name) ||
-        checkString(store.code) ||
-        checkCnpj(store.cnpj) ||
-        checkString(store.ownerName) ||
-        checkString(store.responsibleName) || 
-        checkString(store.city) ||
-        checkString(store.neighborhood) ||
-        checkString(store.state)
-      );
+        return (
+            checkString(store.name) ||
+            checkString(store.code) || // Allows partial code match if not an exact match above
+            checkCnpj(store.cnpj) ||
+            checkString(store.ownerName) ||
+            checkString(store.responsibleName) || 
+            checkString(store.city) ||
+            checkString(store.neighborhood) ||
+            checkString(store.state)
+        );
     });
-    
-    // Combine results and remove duplicates if any (e.g. matrix matched by name and also by code)
-    const combinedResults = new Set([...results, ...branchesOfMatchedMatrix]);
-    if (directlyMatchingMatrix) combinedResults.add(directlyMatchingMatrix);
-    
-    return Array.from(combinedResults);
-
   }, [searchTerm, allStores, cleanCNPJ]);
 
 
@@ -219,7 +205,7 @@ export default function VendorPositivacaoPage() {
             currentVendorCompany={currentVendorCompany}
             sessionPositivatedStores={sessionPositivatedStores}
             onPositivar={handlePositivar}
-            allStores={allStores} // Pass allStores here
+            allStores={allStores} 
           />
         ))}
       </div>
