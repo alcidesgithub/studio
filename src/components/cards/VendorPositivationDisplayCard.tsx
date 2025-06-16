@@ -29,7 +29,7 @@ export const VendorPositivationDisplayCard = React.memo(function VendorPositivat
       `}
     >
       <div className="flex flex-col items-center">
-        <Avatar className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-2 ${!isPositivated ? 'opacity-60' : ''}`}>
+        <Avatar className={`w-12 h-12 mb-2 ${!isPositivated ? 'opacity-60' : ''}`}>
           <AvatarImage src={vendor.logoUrl} alt={vendor.name} className="object-contain" />
           <AvatarFallback>{vendor.name.substring(0, 2)}</AvatarFallback>
         </Avatar>
@@ -67,3 +67,4 @@ export const VendorPositivationDisplayCard = React.memo(function VendorPositivat
   );
 });
 VendorPositivationDisplayCard.displayName = 'VendorPositivationDisplayCard';
+
