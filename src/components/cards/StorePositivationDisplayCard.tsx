@@ -71,19 +71,22 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
       </CardContent>
       <CardFooter>
         <Button
-          className="w-full h-[70px] sm:h-[80px] text-sm sm:text-lg"
+          className="w-full h-16 text-base font-semibold"
           onClick={() => onPositivar(store.id, store.name)}
           disabled={isDisabled}
+          size="lg" // Use lg for slightly larger default padding, h-16 overrides height
         >
           {isDisabled ? (
             <>
-              <CheckCircle className="mr-2 sm:mr-3 flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6" />
-              <span className="truncate min-w-0">Positivada por {currentVendorCompany.name}</span>
+              <CheckCircle className="h-6 w-6" />
+              <span className="truncate">
+                Positivada por {currentVendorCompany.name}
+              </span>
             </>
           ) : (
             <>
               {currentVendorCompany.logoUrl ? (
-                <div className="relative w-[70px] h-[40px] sm:w-[90px] sm:h-[60px] flex-shrink-0 mr-2 sm:mr-3">
+                <div className="relative w-20 h-10"> {/* Adjusted size */}
                   <Image
                     src={currentVendorCompany.logoUrl}
                     alt={`Logo ${currentVendorCompany.name}`}
@@ -93,9 +96,9 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
                   />
                 </div>
               ) : (
-                <BadgeCheck className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" />
+                <BadgeCheck className="h-6 w-6" />
               )}
-              <span className="truncate min-w-0">Positivar Loja</span>
+              <span>Positivar Loja</span>
             </>
           )}
         </Button>
@@ -104,3 +107,4 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   );
 });
 StorePositivationDisplayCard.displayName = 'StorePositivationDisplayCard';
+
