@@ -88,7 +88,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
               </div>
             </>
           ) : (
-            <>
+            <div className="flex items-center justify-center gap-1.5"> {/* Added wrapper div with smaller gap */}
               {currentVendorCompany.logoUrl ? (
                 <div className="relative w-24 h-12 flex-shrink-0">
                   <Image
@@ -103,7 +103,7 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
                 <BadgeCheck className="h-6 w-6 flex-shrink-0" />
               )}
               <div>Positivar Loja</div>
-            </>
+            </div>
           )}
         </Button>
       </CardFooter>
