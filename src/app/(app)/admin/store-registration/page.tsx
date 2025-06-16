@@ -985,75 +985,74 @@ export default function ManageStoresPage() {
   
   const filteredStores = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase().trim();
-    const storesToFilterFrom = stores; // All stores
-
-    if (!lowerSearchTerm && searchModeFilter === 'all_stores') {
-        return storesToFilterFrom;
-    }
-    if (!lowerSearchTerm && searchModeFilter === 'matrix_only') {
-        return storesToFilterFrom.filter(s => s.isMatrix);
-    }
-    if (!lowerSearchTerm && searchModeFilter === 'branch_only') {
-        return storesToFilterFrom.filter(s => !s.isMatrix);
-    }
-    if (!lowerSearchTerm && searchModeFilter === 'matrix_with_its_branches') {
-        return []; 
-    }
-
+    const storesToFilterFrom = stores; 
     const cleanedSearchTermForCnpj = searchTerm.replace(/\D/g, '');
 
-    if (searchModeFilter === 'matrix_with_its_branches') {
-        const exactMatchingMatrix = storesToFilterFrom.find(
-            s => s.code.toLowerCase() === lowerSearchTerm && s.isMatrix
+    let preliminaryFilteredStores: Store[];
+
+    if (lowerSearchTerm) {
+        const exactCodeMatchStore = storesToFilterFrom.find(
+            s => s.code.toLowerCase() === lowerSearchTerm
         );
-        if (exactMatchingMatrix) {
-            const branches = storesToFilterFrom.filter(
-                s => s.matrixStoreId === exactMatchingMatrix.id
-            );
-            return [exactMatchingMatrix, ...branches.sort((a, b) => a.code.localeCompare(b.code))];
+        if (exactCodeMatchStore && searchModeFilter !== 'branch_only') { // For branch_only with matrix code, we handle differently
+            preliminaryFilteredStores = [exactCodeMatchStore];
+        } else {
+            preliminaryFilteredStores = storesToFilterFrom.filter(store => {
+                const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
+                const checkCnpj = (cnpjValue?: string) => { 
+                    if (!cnpjValue) return false;
+                    const cleanedStoreCnpj = cleanCNPJ(cnpjValue);
+                    if (cleanedSearchTermForCnpj.length > 0 && cleanedStoreCnpj.includes(cleanedSearchTermForCnpj)) return true;
+                    if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) return true;
+                    return false;
+                };
+                return (
+                    checkString(store.code) || checkString(store.name) || checkCnpj(store.cnpj) ||
+                    checkString(store.address) || checkString(store.city) || checkString(store.neighborhood) ||
+                    checkString(getDisplayState(store.state)) || checkString(store.phone) ||
+                    checkString(store.ownerName) || checkString(store.responsibleName) || checkString(store.email)
+                );
+            });
         }
-        return []; 
+    } else {
+        preliminaryFilteredStores = [...storesToFilterFrom];
     }
 
-    let preliminaryFilteredStores = storesToFilterFrom.filter(store => {
-      const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
-      const checkCnpj = (cnpjValue?: string) => { 
-        if (!cnpjValue) return false;
-        const cleanedStoreCnpj = cleanCNPJ(cnpjValue);
-        if (cleanedSearchTermForCnpj.length > 0 && cleanedStoreCnpj.includes(cleanedSearchTermForCnpj)) {
-          return true;
-        }
-        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) { // Check raw formatted CNPJ as well if search term is not just numbers
-            return true;
-        }
-        return false;
-      };
-
-      return (
-        checkString(store.code) ||
-        checkString(store.name) ||
-        checkCnpj(store.cnpj) ||
-        checkString(store.address) ||
-        checkString(store.city) ||
-        checkString(store.neighborhood) ||
-        checkString(getDisplayState(store.state)) ||
-        checkString(store.phone) ||
-        checkString(store.ownerName) ||
-        checkString(store.responsibleName) ||
-        checkString(store.email)
-      );
-    });
-    
     switch (searchModeFilter) {
         case 'matrix_only':
             return preliminaryFilteredStores.filter(s => s.isMatrix);
         case 'branch_only':
-            return preliminaryFilteredStores.filter(s => !s.isMatrix);
+            if (lowerSearchTerm) {
+                const potentialMatrixForBranchSearch = storesToFilterFrom.find(
+                    s => s.code.toLowerCase() === lowerSearchTerm && s.isMatrix
+                );
+                if (potentialMatrixForBranchSearch) {
+                    return storesToFilterFrom.filter(
+                        s => s.matrixStoreId === potentialMatrixForBranchSearch.id && !s.isMatrix
+                    ).sort((a, b) => a.code.localeCompare(b.code));
+                } else {
+                    return preliminaryFilteredStores.filter(s => !s.isMatrix);
+                }
+            } else {
+                return storesToFilterFrom.filter(s => !s.isMatrix);
+            }
+        case 'matrix_with_its_branches':
+            if (lowerSearchTerm) {
+                const exactMatchingMatrix = storesToFilterFrom.find(
+                    s => s.code.toLowerCase() === lowerSearchTerm && s.isMatrix
+                );
+                if (exactMatchingMatrix) {
+                    const branches = storesToFilterFrom.filter(
+                        s => s.matrixStoreId === exactMatchingMatrix.id
+                    );
+                    return [exactMatchingMatrix, ...branches.sort((a, b) => a.code.localeCompare(b.code))];
+                }
+            }
+            return []; 
         case 'all_stores':
         default:
             return preliminaryFilteredStores;
     }
-
   }, [stores, searchTerm, searchModeFilter]);
 
   const isAllStoresSelected = useMemo(() => filteredStores.length > 0 && selectedStoreIds.size === filteredStores.length && filteredStores.every(s => selectedStoreIds.has(s.id)), [filteredStores, selectedStoreIds]);
@@ -1210,7 +1209,7 @@ export default function ManageStoresPage() {
                 <SelectContent>
                     <SelectItem value="all_stores">Todas as Lojas (Padrão)</SelectItem>
                     <SelectItem value="matrix_only">Apenas Matrizes</SelectItem>
-                    <SelectItem value="branch_only">Apenas Filiais</SelectItem>
+                    <SelectItem value="branch_only">Apenas Filiais (ou por cód. matriz)</SelectItem>
                     <SelectItem value="matrix_with_its_branches">Matriz por Código + Filiais</SelectItem>
                 </SelectContent>
             </Select>
@@ -1258,6 +1257,9 @@ export default function ManageStoresPage() {
                         : "Nenhuma loja cadastrada." }
                      {searchModeFilter === 'matrix_with_its_branches' && searchTerm && !filteredStores.some(s => s.code.toLowerCase() === searchTerm.toLowerCase() && s.isMatrix) &&
                         <span className="block mt-1"> Certifique-se de usar o código exato de uma loja matriz para o filtro 'Matriz por Código + Filiais'.</span>
+                     }
+                     {searchModeFilter === 'branch_only' && searchTerm && !filteredStores.some(s => !s.isMatrix) && stores.some(s=> s.code.toLowerCase() === searchTerm.toLowerCase() && s.isMatrix) &&
+                        <span className="block mt-1">Nenhuma filial encontrada para a matriz com código '{searchTerm}'.</span>
                      }
                   </TableCell></TableRow>
                 )}
@@ -1312,4 +1314,5 @@ export default function ManageStoresPage() {
     </div>
   );
 }
+
 
