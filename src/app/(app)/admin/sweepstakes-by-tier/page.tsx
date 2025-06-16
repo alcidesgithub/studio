@@ -78,12 +78,6 @@ export default function AdminTieredSweepstakesPage() {
     setDrawnWinners(loadDrawnWinners());
   }, []);
 
-  useEffect(() => {
-    if (drawnWinners.length > 0 || localStorage.getItem('hiperfarma_drawn_winners')) {
-        saveDrawnWinners(drawnWinners);
-    }
-  }, [drawnWinners]);
-
 
   const awardTiersWithStats = useMemo((): AwardTierWithStats[] => {
     const allDrawnStoreIds = new Set(drawnWinners.map(w => w.storeId));
@@ -137,7 +131,10 @@ export default function AdminTieredSweepstakesPage() {
       drawnAt: new Date(),
     };
 
-    setDrawnWinners(prev => [...prev, newWinnerRecord]);
+    const updatedWinners = [...drawnWinners, newWinnerRecord];
+    setDrawnWinners(updatedWinners);
+    saveDrawnWinners(updatedWinners);
+
     toast({
       title: "Vencedor Sorteado!",
       description: `${winningStore.name} ganhou o prêmio ${currentTierForDialog.rewardName} (da faixa ${currentTierForDialog.name}). Esta loja não poderá ser sorteada novamente.`,
@@ -146,7 +143,7 @@ export default function AdminTieredSweepstakesPage() {
     
     setIsSweepstakeDialogOpen(false);
     setCurrentTierForDialog(null);
-  }, [currentTierForDialog, toast, setDrawnWinners]);
+  }, [currentTierForDialog, toast, drawnWinners]);
 
 
   const handleExportLog = useCallback(() => {
@@ -194,6 +191,7 @@ export default function AdminTieredSweepstakesPage() {
     if (!tierToReset) return;
     const updatedWinners = drawnWinners.filter(w => w.tierId !== tierToReset.id);
     setDrawnWinners(updatedWinners);
+    saveDrawnWinners(updatedWinners);
     toast({ title: "Faixa Resetada", description: `Todos os vencedores da faixa "${tierToReset.name}" foram removidos.`, variant: "destructive" });
     setTierToReset(null);
   }, [drawnWinners, tierToReset, toast]);
@@ -206,6 +204,7 @@ export default function AdminTieredSweepstakesPage() {
     if (!winnerToDelete) return;
     const updatedWinners = drawnWinners.filter(w => w.id !== winnerToDelete.id);
     setDrawnWinners(updatedWinners);
+    saveDrawnWinners(updatedWinners);
     toast({ title: "Vencedor Removido", description: `O prêmio de "${winnerToDelete.storeName}" na faixa "${winnerToDelete.tierName}" foi removido.`, variant: "destructive" });
     setWinnerToDelete(null);
   }, [drawnWinners, winnerToDelete, toast]);
