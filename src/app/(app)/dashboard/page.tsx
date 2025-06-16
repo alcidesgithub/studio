@@ -47,6 +47,11 @@ export default function DashboardPage() {
     participatingStores.filter(s => s.isCheckedIn).length
   , [participatingStores]);
 
+  const checkedInPercentage = useMemo(() => {
+    if (totalStoresCount === 0) return 0;
+    return parseFloat(((checkedInStoresCount / totalStoresCount) * 100).toFixed(1));
+  }, [checkedInStoresCount, totalStoresCount]);
+
   const totalPositivacoes = useMemo(() => 
     participatingStores.reduce((sum, s) => sum + (s.positivationsDetails?.filter(pd => vendors.some(v => v.id === pd.vendorId)).length || 0), 0), 
   [participatingStores, vendors]);
@@ -214,7 +219,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{checkedInStoresCount}</div>
-            <p className="text-xs text-muted-foreground">Confirmaram presença</p>
+            <p className="text-xs text-muted-foreground">
+              {checkedInPercentage}% das lojas cadastradas confirmaram presença
+            </p>
           </CardContent>
         </Card>
 
