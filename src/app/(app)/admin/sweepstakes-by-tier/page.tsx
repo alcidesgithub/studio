@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +40,13 @@ const exportToCSV = (data: any[], filename: string) => {
   document.body.removeChild(link);
 };
 
+type AwardTierWithStats = AwardTier & {
+  remainingQuantity: number;
+  eligibleStores: Store[];
+  winners: SweepstakeWinnerRecord[];
+};
+
+
 export default function AdminTieredSweepstakesPage() {
   const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]);
   const [isLoadingDraw, setIsLoadingDraw] = useState<string | null>(null);
@@ -50,7 +57,6 @@ export default function AdminTieredSweepstakesPage() {
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
 
   useEffect(() => {
-    // Carrega as faixas e ordena pelo sortOrder definido pelo usuário
     setAwardTiers(loadAwardTiers().sort((a,b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)));
     setStores(loadStores());
     setCurrentEvent(loadEvent());
@@ -64,19 +70,17 @@ export default function AdminTieredSweepstakesPage() {
   }, [drawnWinners]);
 
 
-  const awardTiersWithStats = useMemo(() => {
-    const allDrawnStoreIds = new Set(drawnWinners.map(w => w.storeId)); // Stores that have won any prize
+  const awardTiersWithStats = useMemo((): AwardTierWithStats[] => {
+    const allDrawnStoreIds = new Set(drawnWinners.map(w => w.storeId)); 
 
     return awardTiers.map(tier => {
       const winnersForThisTier = drawnWinners.filter(w => w.tierId === tier.id).sort((a,b) => new Date(a.drawnAt).getTime() - new Date(b.drawnAt).getTime());
       const remainingQuantity = tier.quantityAvailable - winnersForThisTier.length;
 
       const eligibleStoresForTier = stores.filter(store => {
-        if (!store.state) return false; // Ensure store has a state for requirement lookup
+        if (!store.state) return false; 
         const requiredPositivations = getRequiredPositivationsForStore(tier, store.state);
         const meetsPositivationRequirement = (store.positivationsDetails?.length || 0) >= requiredPositivations;
-        
-        // Check if the store has ALREADY WON ANY PRIZE IN ANY TIER
         const hasNotWonAnyPrizeYet = !allDrawnStoreIds.has(store.id);
         
         return store.participating && meetsPositivationRequirement && hasNotWonAnyPrizeYet;
@@ -86,12 +90,12 @@ export default function AdminTieredSweepstakesPage() {
         ...tier,
         remainingQuantity,
         eligibleStores: eligibleStoresForTier,
-        winners: winnersForThisTier, // Still show winners for *this* tier
+        winners: winnersForThisTier,
       };
     });
   }, [drawnWinners, awardTiers, stores]);
 
-  const handleDrawWinner = async (tier: typeof awardTiersWithStats[0]) => {
+  const handleDrawWinner = useCallback(async (tier: AwardTierWithStats) => {
     if (tier.remainingQuantity <= 0 || tier.eligibleStores.length === 0) {
       toast({ title: "Não é Possível Sortear", description: "Nenhum prêmio restante nesta faixa ou nenhuma loja elegível (que ainda não ganhou).", variant: "default" });
       return;
@@ -118,9 +122,9 @@ export default function AdminTieredSweepstakesPage() {
       title: "Vencedor Sorteado!",
       description: `${winningStore.name} ganhou o prêmio ${tier.rewardName} (da faixa ${tier.name}). Esta loja não poderá ser sorteada novamente.`,
     });
-  };
+  }, [toast, setDrawnWinners]);
 
-  const handleExportLog = () => {
+  const handleExportLog = useCallback(() => {
     if (drawnWinners.length === 0) {
       toast({ title: "Nenhum vencedor para exportar", description: "Sorteie alguns vencedores primeiro.", variant: "default" });
       return;
@@ -133,7 +137,7 @@ export default function AdminTieredSweepstakesPage() {
     }));
     exportToCSV(dataToExport, `log_vencedores_sorteio_faixas_${currentEvent?.name.replace(/\s+/g, '_') || 'evento'}`);
     toast({ title: "Log Exportado", description: "O log de vencedores do sorteio foi exportado para um arquivo CSV." });
-  };
+  }, [drawnWinners, currentEvent, toast]);
 
   if (!currentEvent) {
     return <div>Carregando dados do sorteio...</div>
@@ -218,7 +222,7 @@ export default function AdminTieredSweepstakesPage() {
                         </Button>
                       )}
                        {isSlotDrawn && (
-                        <div className="w-24 sm:w-28 text-right ml-2"> {/* Mantém a largura para alinhamento caso o botão seja grande */}
+                        <div className="w-24 sm:w-28 text-right ml-2"> 
                             <span className="text-xs text-green-600 font-bold">PREMIADO</span>
                         </div>
                        )}
@@ -269,3 +273,4 @@ export default function AdminTieredSweepstakesPage() {
   );
 }
 
+    

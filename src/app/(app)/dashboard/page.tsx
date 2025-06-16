@@ -3,10 +3,10 @@
 
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { loadStores, loadEvent, loadAwardTiers, loadVendors, loadDrawnWinners } from '@/lib/localStorageUtils';
+import { loadStores, loadEvent, loadAwardTiers, loadVendors } from '@/lib/localStorageUtils';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
-import type { Store, Event, AwardTier, Vendor, SweepstakeWinnerRecord } from '@/types';
-import { Store as StoreIcon, BadgeCheck, Trophy, LayoutDashboard, Briefcase } from 'lucide-react'; // Changed Users to StoreIcon
+import type { Store, Event, AwardTier, Vendor } from '@/types';
+import { Store as StoreIcon, BadgeCheck, Trophy, LayoutDashboard, Briefcase } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -23,14 +23,12 @@ export default function DashboardPage() {
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
   const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  // const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]); // No longer needed for cards
 
   useEffect(() => {
     setStores(loadStores());
     setCurrentEvent(loadEvent());
     setAwardTiers(loadAwardTiers().sort((a, b) => (a.positivacoesRequired?.PR ?? 0) - (b.positivacoesRequired?.PR ?? 0)));
     setVendors(loadVendors());
-    // setDrawnWinners(loadDrawnWinners()); // No longer needed for cards
   }, []);
 
   const participatingStores = useMemo(() => stores.filter(s => s.participating), [stores]);
@@ -42,12 +40,6 @@ export default function DashboardPage() {
 
   const totalVendorsCount = useMemo(() => vendors.length, [vendors]);
   
-  // const totalPrizesAvailable = useMemo(() => 
-  //   awardTiers.reduce((sum, tier) => sum + tier.quantityAvailable, 0), 
-  // [awardTiers]);
-  
-  // const totalPrizesDrawn = useMemo(() => drawnWinners.length, [drawnWinners]);
-
   const storesByHighestTier = useMemo(() => {
     if (awardTiers.length === 0 && participatingStores.length === 0) return {};
     
@@ -119,7 +111,6 @@ export default function DashboardPage() {
     return filteredData.sort((a, b) => {
         if (a.name === 'Nenhuma Faixa') return 1;
         if (b.name === 'Nenhuma Faixa') return -1;
-        // Sort by configured tier order (based on original awardTiers PR sort)
         const tierAIndex = awardTiers.findIndex(t => t.name === a.name);
         const tierBIndex = awardTiers.findIndex(t => t.name === b.name);
         if (tierAIndex !== -1 && tierBIndex !== -1) {
@@ -135,10 +126,9 @@ export default function DashboardPage() {
   }, [chartData]);
 
   const yAxisWidthValue = useMemo(() => {
-    // Approx 6-7px per char for xs/sm font size, plus 20-30px for padding/icon
-    const charWidth = typeof window !== 'undefined' && window.innerWidth < 640 ? 6 : 7; // smaller char width for very small screens
+    const charWidth = typeof window !== 'undefined' && window.innerWidth < 640 ? 6 : 7;
     const padding = typeof window !== 'undefined' && window.innerWidth < 640 ? 20 : 30;
-    return Math.max(60, Math.min(200, (maxLabelLength * charWidth) + padding)); // Adjust min/max if needed
+    return Math.max(60, Math.min(200, (maxLabelLength * charWidth) + padding));
   }, [maxLabelLength]);
 
   const barChartMarginLeft = useMemo(() => {
@@ -227,7 +217,7 @@ export default function DashboardPage() {
                   margin={{ 
                     top: 5, 
                     right: 15, 
-                    left: barChartMarginLeft - (typeof window !== 'undefined' && window.innerWidth < 640 ? 10 : 0), // Adjust left margin for mobile
+                    left: barChartMarginLeft - (typeof window !== 'undefined' && window.innerWidth < 640 ? 10 : 0),
                     bottom: 5
                   }}
                 >
@@ -257,3 +247,4 @@ export default function DashboardPage() {
   );
 }
 
+    

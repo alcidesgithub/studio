@@ -86,7 +86,11 @@ export default function VendorPositivacaoPage() {
       title: "Loja Positivada!",
       description: `Loja ${storeName} positivada com sucesso por ${user.name} (${currentVendorCompany.name}).`,
     });
-  }, [currentVendorCompany, user, toast, setSessionPositivatedStores, setAllStores]);
+  }, [currentVendorCompany, user, toast]);
+
+  const cleanCNPJ = useCallback((cnpj: string = '') => {
+      return cnpj.replace(/\D/g, '');
+  }, []);
 
   const filteredStores = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -104,10 +108,7 @@ export default function VendorPositivacaoPage() {
           return true;
         }
         
-        // Check formatted CNPJ as well (e.g., if user types "XX.XXX.XXX/YYYY-ZZ")
-        // Note: formatDisplayCNPJ is not available here, so direct check or import it.
-        // For simplicity, we'll rely on the cleaned CNPJ for now or assume user types parts of it.
-        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) { // This may catch parts of formatted CNPJ
+        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) {
             return true;
         }
         return false;
@@ -124,11 +125,8 @@ export default function VendorPositivacaoPage() {
         checkString(store.state)
       );
     });
-  }, [searchTerm, allStores]);
+  }, [searchTerm, allStores, cleanCNPJ]);
 
-  const cleanCNPJ = (cnpj: string = '') => {
-      return cnpj.replace(/\D/g, '');
-  };
 
   if (!currentEvent || !currentVendorCompany) {
     return (
@@ -192,3 +190,5 @@ export default function VendorPositivacaoPage() {
     </div>
   );
 }
+
+    
