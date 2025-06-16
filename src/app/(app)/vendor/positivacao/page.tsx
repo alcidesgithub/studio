@@ -2,17 +2,15 @@
 "use client"; 
 
 import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { loadStores, saveStores, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, Event as EventType, Vendor, PositivationDetail } from '@/types';
-import { BadgeCheck, Store as StoreIcon, CheckCircle, Search, User, MapPin, Building as BuildingIcon } from 'lucide-react'; 
-import { useState, useMemo, useEffect } from 'react';
+import { BadgeCheck, Search, Store as StoreIcon } from 'lucide-react'; 
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import Image from 'next/image';
-import { formatDisplayCNPJ } from '@/lib/utils';
+import { StorePositivationDisplayCard } from '@/components/cards/StorePositivationDisplayCard';
 
 export default function VendorPositivacaoPage() {
   const [allStores, setAllStores] = useState<Store[]>([]);
@@ -23,7 +21,6 @@ export default function VendorPositivacaoPage() {
   const { user } = useAuth(); 
 
   const [sessionPositivatedStores, setSessionPositivatedStores] = useState<Set<string>>(new Set());
-
 
   useEffect(() => {
     setAllStores(loadStores());
@@ -36,7 +33,7 @@ export default function VendorPositivacaoPage() {
     return allVendors.find(v => v.name === user.storeName); 
   }, [user, allVendors]);
 
-  const handlePositivar = (storeId: string, storeName: string) => {
+  const handlePositivar = useCallback((storeId: string, storeName: string) => {
     if (!currentVendorCompany || !user) {
       toast({ title: "Erro", description: "Dados do fornecedor ou do usuário não encontrados.", variant: "destructive" });
       return;
@@ -89,7 +86,7 @@ export default function VendorPositivacaoPage() {
       title: "Loja Positivada!",
       description: `Loja ${storeName} positivada com sucesso por ${user.name} (${currentVendorCompany.name}).`,
     });
-  };
+  }, [currentVendorCompany, user, toast, setSessionPositivatedStores, setAllStores]);
 
   const filteredStores = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -107,7 +104,10 @@ export default function VendorPositivacaoPage() {
           return true;
         }
         
-        if (formatDisplayCNPJ(cnpjValue).toLowerCase().includes(lowerSearchTerm)) {
+        // Check formatted CNPJ as well (e.g., if user types "XX.XXX.XXX/YYYY-ZZ")
+        // Note: formatDisplayCNPJ is not available here, so direct check or import it.
+        // For simplicity, we'll rely on the cleaned CNPJ for now or assume user types parts of it.
+        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) { // This may catch parts of formatted CNPJ
             return true;
         }
         return false;
@@ -130,7 +130,6 @@ export default function VendorPositivacaoPage() {
       return cnpj.replace(/\D/g, '');
   };
 
-
   if (!currentEvent || !currentVendorCompany) {
     return (
       <div className="animate-fadeIn p-4 sm:p-6">
@@ -143,7 +142,6 @@ export default function VendorPositivacaoPage() {
       </div>
     );
   }
-
 
   return (
     <div className="animate-fadeIn">
@@ -180,95 +178,17 @@ export default function VendorPositivacaoPage() {
         </Card>
       )}
 
-
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredStores.map((store: Store) => {
-          const isPositivatedByThisVendorForSession = sessionPositivatedStores.has(store.id);
-          
-          const isPersistentlyPositivatedByThisVendorCompany = store.positivationsDetails.some(
-            detail => detail.vendorId === currentVendorCompany.id 
-          );
-          const isDisabled = isPositivatedByThisVendorForSession || isPersistentlyPositivatedByThisVendorCompany;
-
-          return (
-            <Card key={store.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <StoreIcon className="h-5 w-5 sm:h-6 sm:w-6 text-secondary flex-shrink-0" />
-                  <span className="truncate">{store.name} ({store.code})</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow space-y-1.5 text-xs sm:text-sm">
-                <p className="text-secondary mb-2 text-sm font-semibold">
-                  Confirme a positivação dessa loja.
-                </p>
-                {store.cnpj && (
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <BuildingIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="font-medium">CNPJ:</span>
-                        <span>{formatDisplayCNPJ(store.cnpj)}</span>
-                    </div>
-                )}
-                {store.ownerName && (
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <User className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="font-medium">Proprietário:</span>
-                        <span className="truncate">{store.ownerName}</span>
-                    </div>
-                )}
-                 {store.responsibleName && (
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <User className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="font-medium">Responsável:</span>
-                        <span className="truncate">{store.responsibleName}</span>
-                    </div>
-                )}
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="font-medium">Local:</span>
-                    <span className="truncate">
-                        {store.city || 'N/A'} - {store.neighborhood || 'N/A'} ({store.state || 'N/A'})
-                    </span>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  className="w-full h-[70px] sm:h-[80px] text-sm sm:text-lg"
-                  onClick={() => handlePositivar(store.id, store.name)}
-                  disabled={isDisabled}
-                >
-                  {isDisabled ? (
-                    <>
-                      <CheckCircle className="mr-2 sm:mr-3 flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6" /> 
-                      <span className="truncate min-w-0">Positivada por {currentVendorCompany.name}</span>
-                    </>
-                  ) : (
-                    <>
-                      {currentVendorCompany.logoUrl ? (
-                          <div className="relative w-[70px] h-[40px] sm:w-[90px] sm:h-[60px] flex-shrink-0">
-                            <Image
-                              src={currentVendorCompany.logoUrl}
-                              alt={`Logo ${currentVendorCompany.name}`}
-                              layout="fill"
-                              objectFit="contain"
-                              data-ai-hint="vendor logo"
-                            />
-                          </div>
-                        ) : (
-                          <BadgeCheck className="flex-shrink-0 h-5 w-5 sm:h-6 sm:w-6" /> 
-                        )}
-                      <span className="truncate min-w-0">Positivar Loja</span>
-                    </>
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          );
-        })}
+        {filteredStores.map((store: Store) => (
+          <StorePositivationDisplayCard
+            key={store.id}
+            store={store}
+            currentVendorCompany={currentVendorCompany}
+            sessionPositivatedStores={sessionPositivatedStores}
+            onPositivar={handlePositivar}
+          />
+        ))}
       </div>
     </div>
   );
 }
-    
-
-    

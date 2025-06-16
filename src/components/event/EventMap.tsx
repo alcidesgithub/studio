@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
 
@@ -9,7 +10,7 @@ interface EventMapProps {
   address: string;
 }
 
-export function EventMap({ embedUrl, address }: EventMapProps) {
+export const EventMap = React.memo(function EventMap({ embedUrl, address }: EventMapProps) {
   if (!embedUrl || embedUrl.trim() === "") {
     return (
       <Card className="rounded-lg overflow-hidden shadow-lg h-full">
@@ -38,4 +39,5 @@ export function EventMap({ embedUrl, address }: EventMapProps) {
       ></iframe>
     </div>
   );
-}
+});
+EventMap.displayName = 'EventMap';

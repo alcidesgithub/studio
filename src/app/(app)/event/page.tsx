@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import type { Event, Vendor } from '@/types';
 import { EventMap } from '@/components/event/EventMap';
-import { CalendarDays, Clock, MapPin as MapPinIcon, Briefcase } from 'lucide-react'; // Changed Users to Briefcase
+import { CalendarDays, Clock, MapPin as MapPinIcon, Briefcase } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import { VendorEventDisplayCard } from '@/components/cards/VendorEventDisplayCard';
 
 
 export default function EventInfoPage() {
@@ -86,7 +86,7 @@ export default function EventInfoPage() {
       <Card className="shadow-lg mt-8 sm:mt-12">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 sm:gap-3 text-xl sm:text-2xl font-headline">
-            <Briefcase className="h-6 w-6 sm:h-7 sm:w-7 text-secondary" /> Fornecedores Participantes {/* Changed Users to Briefcase */}
+            <Briefcase className="h-6 w-6 sm:h-7 sm:w-7 text-secondary" /> Fornecedores Participantes
           </CardTitle>
           <CardDescription>Conheça os fornecedores que estarão presentes no evento.</CardDescription>
         </CardHeader>
@@ -94,18 +94,7 @@ export default function EventInfoPage() {
           {vendors.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 place-items-center">
               {vendors.map((vendor) => (
-                <div key={vendor.id} className="p-2 sm:p-4 bg-card rounded-lg shadow-md hover:shadow-lg transition-shadow w-full h-28 sm:h-32 flex flex-col items-center justify-center text-center">
-                  <div className="relative w-full h-16 sm:h-20 mb-1">
-                    <Image
-                      src={vendor.logoUrl}
-                      alt={`Logo ${vendor.name}`}
-                      layout="fill"
-                      objectFit="contain"
-                      className="rounded"
-                    />
-                  </div>
-                  <p className="text-xs font-medium text-muted-foreground mt-1 truncate w-full">{vendor.name}</p>
-                </div>
+                <VendorEventDisplayCard key={vendor.id} vendor={vendor} />
               ))}
             </div>
           ) : (

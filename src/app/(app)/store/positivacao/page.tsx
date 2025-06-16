@@ -4,16 +4,14 @@
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
 import { Trophy, TrendingUp, Gift, BadgeCheck } from 'lucide-react';
-import { format, parseISO, isValid } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useEffect, useState, useMemo } from 'react';
+import { VendorPositivationDisplayCard } from '@/components/cards/VendorPositivationDisplayCard';
 
 export default function StorePositivacaoPage() {
   const { user } = useAuth();
@@ -45,7 +43,6 @@ export default function StorePositivacaoPage() {
 
   const sortedAwardTiersForDisplay = useMemo(() => {
     if (!currentStore || !currentStore.state || awardTiers.length === 0) {
-      // Fallback sorting if store state or tiers are unavailable
       const fallbackSortKey = awardTiers[0]?.positivacoesRequired?.PR !== undefined ? 'PR' : (awardTiers[0]?.positivacoesRequired?.SC !== undefined ? 'SC' : null);
       if (fallbackSortKey) {
         return [...awardTiers].sort((a,b) => {
@@ -54,7 +51,7 @@ export default function StorePositivacaoPage() {
             return aReq - bReq;
         });
       }
-      return [...awardTiers]; // Return unsorted or sort by name if no req data
+      return [...awardTiers];
     }
     const storeState = currentStore.state;
     return [...awardTiers].sort((a, b) => 
@@ -83,9 +80,8 @@ export default function StorePositivacaoPage() {
         if (currentTierIndex < sortedAwardTiersForDisplay.length - 1) {
             return sortedAwardTiersForDisplay[currentTierIndex + 1];
         }
-        return undefined; // Max tier achieved
+        return undefined; 
     }
-    // If no tier achieved and there are tiers available, next tier is the first one
     return sortedAwardTiersForDisplay.length > 0 ? sortedAwardTiersForDisplay[0] : undefined;
   }, [sortedAwardTiersForDisplay, currentAchievedTier, currentStore]);
 
@@ -94,10 +90,8 @@ export default function StorePositivacaoPage() {
     const storeState = currentStore.state;
     const requiredForNext = getRequiredPositivationsForStore(nextTier, storeState);
 
-    // Handle case where the next tier requires 0 positivacoes (e.g. entry level tier)
-    if (requiredForNext === 0) return positivacoesCount >= 0 ? 100 : 0; // if any or 0 positivacoes, considered 100%
+    if (requiredForNext === 0) return positivacoesCount >= 0 ? 100 : 0; 
     
-    // Ensure positivacoesCount is not negative (though unlikely) and requiredForNext is positive to avoid NaN/Infinity
     if (requiredForNext <= 0 || positivacoesCount < 0) return 0;
 
     const progress = (positivacoesCount / requiredForNext) * 100;
@@ -138,7 +132,6 @@ export default function StorePositivacaoPage() {
       </div>
     );
   }
-
 
   return (
     <div className="animate-fadeIn">
@@ -221,56 +214,13 @@ export default function StorePositivacaoPage() {
             <p className="text-center text-muted-foreground py-8">Nenhum fornecedor cadastrado para o evento.</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
-              {allVendors.map((vendor: Vendor) => {
-                const positivation = positivationsMap.get(vendor.id);
-                const isPositivated = !!positivation;
-
-                return (
-                  <div
-                    key={vendor.id}
-                    className={`
-                      flex flex-col items-center p-3 sm:p-4 rounded-lg 
-                       text-center min-h-[160px] sm:min-h-[180px] justify-between
-                    `}
-                  >
-                    <div className="flex flex-col items-center">
-                      <Avatar className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-2 ${!isPositivated ? 'opacity-60' : ''}`}>
-                        <AvatarImage src={vendor.logoUrl} alt={vendor.name} className="object-contain" />
-                        <AvatarFallback>{vendor.name.substring(0, 2)}</AvatarFallback>
-                      </Avatar>
-                      <p className={`text-xs sm:text-sm font-semibold text-center w-full ${isPositivated ? 'text-white' : 'text-white/60'}`}>
-                        {vendor.name}
-                      </p>
-                    </div>
-
-                    <div className="text-xs mt-2 w-full">
-                      {isPositivated && positivation?.salespersonName && positivation.date && isValid(parseISO(positivation.date)) ? (
-                        <>
-                          <p className="text-white flex items-center justify-center">
-                            <BadgeCheck className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
-                            <span className="font-semibold">Positivado por: {positivation.salespersonName}</span>
-                          </p>
-                          <p className="text-white/80 mt-0.5">
-                            Em: {format(parseISO(positivation.date), "dd/MM HH:mm", { locale: ptBR })}
-                          </p>
-                        </>
-                      ) : isPositivated && positivation && positivation.date && isValid(parseISO(positivation.date)) ? (
-                         <>
-                          <p className="text-white flex items-center justify-center">
-                            <BadgeCheck className="inline-block h-3.5 w-3.5 mr-1 text-secondary" />
-                            <span className="font-semibold">Positivado!</span>
-                          </p>
-                          <p className="text-white/80 mt-0.5">
-                            Em: {format(parseISO(positivation.date), "dd/MM HH:mm", { locale: ptBR })}
-                          </p>
-                         </>
-                      ) : (
-                        <p className="text-white/50">Ainda não positivado</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {allVendors.map((vendor: Vendor) => (
+                <VendorPositivationDisplayCard
+                  key={vendor.id}
+                  vendor={vendor}
+                  positivation={positivationsMap.get(vendor.id)}
+                />
+              ))}
             </div>
           )}
           {positivacoesCount === 0 && allVendors.length > 0 && (
@@ -329,4 +279,3 @@ export default function StorePositivacaoPage() {
     </div>
   );
 }
-
