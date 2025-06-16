@@ -220,7 +220,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{checkedInStoresCount}</div>
             <p className="text-xs text-muted-foreground">
-              Confirmaram presença no evento.
+              Total de lojas confirmadas.
             </p>
           </CardContent>
         </Card>
