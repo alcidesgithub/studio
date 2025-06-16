@@ -4,19 +4,35 @@
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { loadStores, loadEvent, loadAwardTiers, loadVendors } from '@/lib/localStorageUtils';
-import { getRequiredPositivationsForStore } from '@/lib/utils';
+import { getRequiredPositivationsForStore, formatDisplayCNPJ } from '@/lib/utils';
 import type { Store, Event, AwardTier, Vendor } from '@/types';
-import { Store as StoreIcon, BadgeCheck, Trophy, LayoutDashboard, Briefcase, CheckSquare } from 'lucide-react';
+import { Store as StoreIcon, BadgeCheck, Trophy, LayoutDashboard, Briefcase, CheckSquare, Users, Percent, Globe } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { ALL_BRAZILIAN_STATES } from '@/lib/constants';
 
-const chartConfig = {
+const tierChartConfig = {
   lojas: {
     label: "Lojas",
     color: "hsl(var(--secondary))",
   },
 } satisfies ChartConfig;
+
+const vendorPositivationsChartConfig = {
+  positivations: {
+    label: "Positivações",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
+
+const storesByStateChartConfig = {
+  lojas: {
+    label: "Lojas",
+    color: "hsl(var(--accent))",
+  },
+} satisfies ChartConfig;
+
 
 export default function DashboardPage() {
   const [stores, setStores] = useState<Store[]>([]);
@@ -27,7 +43,7 @@ export default function DashboardPage() {
   useEffect(() => {
     setStores(loadStores());
     setCurrentEvent(loadEvent());
-    setAwardTiers(loadAwardTiers().sort((a, b) => (a.positivacoesRequired?.PR ?? 0) - (b.positivacoesRequired?.PR ?? 0)));
+    setAwardTiers(loadAwardTiers().sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)));
     setVendors(loadVendors());
   }, []);
 
@@ -43,6 +59,11 @@ export default function DashboardPage() {
   [participatingStores, vendors]);
 
   const totalVendorsCount = useMemo(() => vendors.length, [vendors]);
+
+  const averagePositivationsPerCheckedInStore = useMemo(() => {
+    if (checkedInStoresCount === 0 || totalPositivacoes === 0) return 0;
+    return parseFloat((totalPositivacoes / checkedInStoresCount).toFixed(1));
+  }, [totalPositivacoes, checkedInStoresCount]);
   
   const storesByHighestTier = useMemo(() => {
     if (awardTiers.length === 0 && participatingStores.length === 0) return {};
@@ -75,14 +96,14 @@ export default function DashboardPage() {
     });
 
     if (storesWithNoTierCount > 0 && participatingStores.length > 0) {
-      if (Object.values(tierCounts).some(tc => tc.count > 0) || storesWithNoTierCount > 0) {
+       if (Object.values(tierCounts).some(tc => tc.count > 0) || storesWithNoTierCount > 0) {
          tierCounts['none'] = { name: 'Nenhuma Faixa', count: storesWithNoTierCount, reward: '-' };
-      }
+       }
     }
     return tierCounts;
   }, [participatingStores, awardTiers, vendors]);
 
-  const chartData = useMemo(() => {
+  const tierDistributionChartData = useMemo(() => {
     const data = awardTiers
       .map(tier => ({
           name: tier.name,
@@ -108,7 +129,7 @@ export default function DashboardPage() {
     const allOtherTiersAreZero = awardTiers.every(tier => (storesByHighestTier[tier.id]?.count || 0) === 0);
 
     let filteredData = data;
-    if (hasNenhumaFaixaData && allOtherTiersAreZero) {
+    if (hasNenhumaFaixaData && allOtherTiersAreZero && data.length > 1) { // Ensure 'Nenhuma Faixa' is not the only entry
         filteredData = data.filter(d => d.name === 'Nenhuma Faixa' || d.lojas > 0);
     }
     
@@ -124,21 +145,53 @@ export default function DashboardPage() {
     });
 
   }, [awardTiers, storesByHighestTier]);
+  
+  const positivationsByVendorChartData = useMemo(() => {
+    if (participatingStores.length === 0 || vendors.length === 0) return [];
+    const counts: Record<string, number> = {};
+    participatingStores.forEach(store => {
+      store.positivationsDetails?.forEach(pd => {
+        if (vendors.some(v => v.id === pd.vendorId)) {
+          counts[pd.vendorId] = (counts[pd.vendorId] || 0) + 1;
+        }
+      });
+    });
+    return Object.entries(counts)
+      .map(([vendorId, count]) => {
+        const vendor = vendors.find(v => v.id === vendorId);
+        return {
+          name: vendor ? vendor.name : `ID ${vendorId.substring(0,8)}...`,
+          positivations: count,
+        };
+      })
+      .sort((a, b) => b.positivations - a.positivations)
+      .slice(0, 10); // Display top 10
+  }, [participatingStores, vendors]);
 
-  const maxLabelLength = useMemo(() => {
-    return chartData.length > 0 ? Math.max(...chartData.map(d => d.name.length)) : 0;
-  }, [chartData]);
+  const storesByStateChartData = useMemo(() => {
+    if (stores.length === 0) return [];
+    const counts: Record<string, number> = {};
+    stores.forEach(store => {
+      const stateLabel = store.state ? ALL_BRAZILIAN_STATES.find(s => s.value === store.state)?.label.split(' (')[0] || store.state : 'Não Definido';
+      counts[stateLabel] = (counts[stateLabel] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([state, count]) => ({ name: state, lojas: count }))
+      .sort((a, b) => b.lojas - a.lojas);
+  }, [stores]);
 
-  const yAxisWidthValue = useMemo(() => {
+
+  const calculateYAxisWidth = (data: {name: string}[]) => {
+    const maxLabelLength = data.length > 0 ? Math.max(...data.map(d => d.name.length)) : 0;
     const charWidth = typeof window !== 'undefined' && window.innerWidth < 640 ? 6 : 7;
     const padding = typeof window !== 'undefined' && window.innerWidth < 640 ? 20 : 30;
     return Math.max(60, Math.min(200, (maxLabelLength * charWidth) + padding));
-  }, [maxLabelLength]);
+  };
 
-  const barChartMarginLeft = useMemo(() => {
-    return yAxisWidthValue; 
-  }, [yAxisWidthValue]);
-
+  const tierChartYAxisWidth = useMemo(() => calculateYAxisWidth(tierDistributionChartData), [tierDistributionChartData]);
+  const vendorChartYAxisWidth = useMemo(() => calculateYAxisWidth(positivationsByVendorChartData), [positivationsByVendorChartData]);
+  const stateChartYAxisWidth = useMemo(() => calculateYAxisWidth(storesByStateChartData), [storesByStateChartData]);
+  
 
   if (!currentEvent) {
     return (
@@ -150,19 +203,19 @@ export default function DashboardPage() {
 
   const noTiersConfigured = awardTiers.length === 0;
   const noParticipatingStores = participatingStores.length === 0;
-  const noStoresInAnyTierBasedOnChartData = chartData.every(d => d.lojas === 0);
-  const showChart = !noTiersConfigured && !noParticipatingStores && !noStoresInAnyTierBasedOnChartData;
+  const noStoresInAnyTierBasedOnChartData = tierDistributionChartData.every(d => d.lojas === 0) && !(tierDistributionChartData.length === 1 && tierDistributionChartData[0].name === "Nenhuma Faixa");
+  const showTierChart = !noTiersConfigured && !noParticipatingStores && !noStoresInAnyTierBasedOnChartData;
 
 
   return (
-    <div className="animate-fadeIn">
+    <div className="animate-fadeIn space-y-6 sm:space-y-8">
       <PageHeader
-        title="Painel do evento"
-        description=""
+        title="Painel do Evento"
+        description={`Visão geral e métricas chave para ${currentEvent.name}.`}
         icon={LayoutDashboard}
         iconClassName="text-secondary" 
       />
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Lojas Cadastradas</CardTitle>
@@ -195,15 +248,26 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">Em lojas participantes</p>
           </CardContent>
         </Card>
-
+        
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Fornecedores Participantes</CardTitle>
-            <Briefcase className="h-8 w-8 text-secondary" />
+            <Users className="h-8 w-8 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalVendorsCount}</div>
             <p className="text-xs text-muted-foreground">Cadastrados no evento</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Média Selos / Loja Check-in</CardTitle>
+            <Percent className="h-8 w-8 text-secondary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{averagePositivationsPerCheckedInStore}</div>
+            <p className="text-xs text-muted-foreground">Selos por loja presente</p>
           </CardContent>
         </Card>
       </div>
@@ -217,22 +281,20 @@ export default function DashboardPage() {
             Lojas pela maior faixa alcançada, baseado nos requisitos do seu estado (PR/SC).
           </CardDescription>
           <CardContent className="pt-4 px-2 sm:px-6">
-            {noTiersConfigured ? (
-               <p className="text-sm text-muted-foreground text-center py-8">Nenhuma faixa de premiação configurada.</p>
-            ) : noParticipatingStores ? (
-               <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja participando para exibir distribuição.</p>
-            ) : !showChart ? (
-                 <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja atingiu as faixas de premiação ainda.</p>
+            {!showTierChart ? (
+                noTiersConfigured ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma faixa de premiação configurada.</p>
+                : noParticipatingStores ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja participando para exibir distribuição.</p>
+                : <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja atingiu as faixas de premiação ainda.</p>
             ) : (
-              <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] w-full">
+              <ChartContainer config={tierChartConfig} className="h-[250px] sm:h-[300px] w-full">
                 <BarChart
                   layout="vertical"
                   accessibilityLayer 
-                  data={chartData} 
+                  data={tierDistributionChartData} 
                   margin={{ 
                     top: 5, 
                     right: 15, 
-                    left: barChartMarginLeft - (typeof window !== 'undefined' && window.innerWidth < 640 ? 10 : 0),
+                    left: tierChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 10 : 0),
                     bottom: 5
                   }}
                 >
@@ -245,19 +307,66 @@ export default function DashboardPage() {
                     axisLine={false}
                     tickMargin={5}
                     interval={0}
-                    width={yAxisWidthValue} 
+                    width={tierChartYAxisWidth} 
                     className="text-xs"
                   />
                   <ChartTooltip
                     cursor={false}
                     content={<ChartTooltipContent indicator="dot" />}
                   />
-                  <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={chartData.length > 6 ? 18 : (chartData.length > 3 ? 22 : 25)}/>
+                  <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={tierDistributionChartData.length > 6 ? 18 : (tierDistributionChartData.length > 3 ? 22 : 25)}/>
                 </BarChart>
               </ChartContainer>
             )}
           </CardContent>
         </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardHeader>
+                    <CardTitle className="text-base font-semibold">Top Fornecedores por Positivações</CardTitle>
+                    <CardDescription className="text-xs">Fornecedores com mais selos recebidos de lojas participantes.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {positivationsByVendorChartData.length > 0 ? (
+                        <ChartContainer config={vendorPositivationsChartConfig} className="h-[250px] sm:h-[300px] w-full">
+                            <BarChart layout="vertical" data={positivationsByVendorChartData} margin={{ top: 5, right: 15, left: vendorChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : 5) , bottom: 5 }}>
+                                <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                                <XAxis type="number" allowDecimals={false} />
+                                <YAxis type="category" dataKey="name" width={vendorChartYAxisWidth} tickLine={false} axisLine={false} className="text-xs" interval={0} />
+                                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                <Bar dataKey="positivations" fill="var(--color-positivations)" radius={4} barSize={positivationsByVendorChartData.length > 6 ? 18 : (positivationsByVendorChartData.length > 3 ? 22 : 25)} />
+                            </BarChart>
+                        </ChartContainer>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-8">Nenhuma positivação registrada para exibir o ranking.</p>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardHeader>
+                    <CardTitle className="text-base font-semibold">Distribuição de Lojas por Estado</CardTitle>
+                    <CardDescription className="text-xs">Número de lojas cadastradas por estado.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {storesByStateChartData.length > 0 ? (
+                        <ChartContainer config={storesByStateChartConfig} className="h-[250px] sm:h-[300px] w-full">
+                             <BarChart layout="vertical" data={storesByStateChartData} margin={{ top: 5, right: 15, left: stateChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : 5) , bottom: 5 }}>
+                                <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                                <XAxis type="number" allowDecimals={false} />
+                                <YAxis type="category" dataKey="name" width={stateChartYAxisWidth} tickLine={false} axisLine={false} className="text-xs" interval={0}/>
+                                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={storesByStateChartData.length > 6 ? 18 : (storesByStateChartData.length > 3 ? 22 : 25)} />
+                            </BarChart>
+                        </ChartContainer>
+                    ) : (
+                         <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja cadastrada para exibir distribuição por estado.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     </div>
   );
 }
+
