@@ -251,78 +251,78 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full">
+           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-base font-semibold">Distribuição por Faixas de Premiação</CardTitle>
+              <Trophy className="h-8 w-8 text-secondary" />
+            </CardHeader>
+            <CardDescription className="px-4 sm:px-6 text-xs">
+              Lojas pela maior faixa alcançada, baseado nos requisitos do seu estado (PR/SC).
+            </CardDescription>
+            <CardContent className="pt-4 px-2 sm:px-6">
+              {!showTierChart ? (
+                  noTiersConfigured ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma faixa de premiação configurada.</p>
+                  : noParticipatingStores ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja participando para exibir distribuição.</p>
+                  : <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja atingiu as faixas de premiação ainda.</p>
+              ) : (
+                <ChartContainer config={tierChartConfig} className="h-[250px] sm:h-[300px] w-full">
+                  <BarChart
+                    layout="vertical"
+                    accessibilityLayer 
+                    data={tierDistributionChartData} 
+                    margin={{ 
+                      top: 5, 
+                      right: 15, 
+                      left: tierChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 10 : 0),
+                      bottom: 5
+                    }}
+                  >
+                    <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} tickMargin={5} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={5}
+                      interval={0}
+                      width={tierChartYAxisWidth} 
+                      className="text-xs"
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="dot" />}
+                    />
+                    <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={tierDistributionChartData.length > 6 ? 18 : (tierDistributionChartData.length > 3 ? 22 : 25)}/>
+                  </BarChart>
+                </ChartContainer>
+              )}
+            </CardContent>
+          </Card>
 
-      <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full">
-         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-semibold">Distribuição por Faixas de Premiação</CardTitle>
-            <Trophy className="h-8 w-8 text-secondary" />
-          </CardHeader>
-          <CardDescription className="px-4 sm:px-6 text-xs">
-            Lojas pela maior faixa alcançada, baseado nos requisitos do seu estado (PR/SC).
-          </CardDescription>
-          <CardContent className="pt-4 px-2 sm:px-6">
-            {!showTierChart ? (
-                noTiersConfigured ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma faixa de premiação configurada.</p>
-                : noParticipatingStores ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja participando para exibir distribuição.</p>
-                : <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja atingiu as faixas de premiação ainda.</p>
-            ) : (
-              <ChartContainer config={tierChartConfig} className="h-[250px] sm:h-[300px] w-full">
-                <BarChart
-                  layout="vertical"
-                  accessibilityLayer 
-                  data={tierDistributionChartData} 
-                  margin={{ 
-                    top: 5, 
-                    right: 15, 
-                    left: tierChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 10 : 0),
-                    bottom: 5
-                  }}
-                >
-                  <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                  <XAxis type="number" allowDecimals={false} tickMargin={5} />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={5}
-                    interval={0}
-                    width={tierChartYAxisWidth} 
-                    className="text-xs"
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="dot" />}
-                  />
-                  <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={tierDistributionChartData.length > 6 ? 18 : (tierDistributionChartData.length > 3 ? 22 : 25)}/>
-                </BarChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 gap-4 sm:gap-6"> {/* Changed to single column for the remaining chart */}
-            <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <CardHeader>
-                    <CardTitle className="text-base font-semibold">Top Fornecedores por Positivações</CardTitle>
-                    <CardDescription className="text-xs">Fornecedores com mais selos recebidos de lojas participantes.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {positivationsByVendorChartData.length > 0 ? (
-                        <ChartContainer config={vendorPositivationsChartConfig} className="h-[250px] sm:h-[300px] w-full">
-                            <BarChart layout="vertical" data={positivationsByVendorChartData} margin={{ top: 5, right: 15, left: vendorChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : 5) , bottom: 5 }}>
-                                <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                                <XAxis type="number" allowDecimals={false} />
-                                <YAxis type="category" dataKey="name" width={vendorChartYAxisWidth} tickLine={false} axisLine={false} className="text-xs" interval={0} />
-                                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                <Bar dataKey="positivations" fill="var(--color-positivations)" radius={4} barSize={positivationsByVendorChartData.length > 6 ? 18 : (positivationsByVendorChartData.length > 3 ? 22 : 25)} />
-                            </BarChart>
-                        </ChartContainer>
-                    ) : (
-                        <p className="text-sm text-muted-foreground text-center py-8">Nenhuma positivação registrada para exibir o ranking.</p>
-                    )}
-                </CardContent>
-            </Card>
+          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                  <CardTitle className="text-base font-semibold">Top Fornecedores por Positivações</CardTitle>
+                  <CardDescription className="text-xs">Fornecedores com mais selos recebidos de lojas participantes.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  {positivationsByVendorChartData.length > 0 ? (
+                      <ChartContainer config={vendorPositivationsChartConfig} className="h-[250px] sm:h-[300px] w-full">
+                          <BarChart layout="vertical" data={positivationsByVendorChartData} margin={{ top: 5, right: 15, left: vendorChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : 5) , bottom: 5 }}>
+                              <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                              <XAxis type="number" allowDecimals={false} />
+                              <YAxis type="category" dataKey="name" width={vendorChartYAxisWidth} tickLine={false} axisLine={false} className="text-xs" interval={0} />
+                              <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                              <Bar dataKey="positivations" fill="var(--color-positivations)" radius={4} barSize={positivationsByVendorChartData.length > 6 ? 18 : (positivationsByVendorChartData.length > 3 ? 22 : 25)} />
+                          </BarChart>
+                      </ChartContainer>
+                  ) : (
+                      <p className="text-sm text-muted-foreground text-center py-8">Nenhuma positivação registrada para exibir o ranking.</p>
+                  )}
+              </CardContent>
+          </Card>
         </div>
     </div>
   );
