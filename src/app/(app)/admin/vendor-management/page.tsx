@@ -38,21 +38,34 @@ const vendorSchema = z.object({
 });
 type VendorFormValues = z.infer<typeof vendorSchema>;
 
-const salespersonSchemaBase = z.object({
+const salespersonSchema = z.object({
   name: z.string().min(3, "Nome do vendedor é obrigatório."),
   phone: z.string().min(10, "Telefone é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(),
-  confirmPassword: z.string().optional(),
-});
-
-const salespersonSchema = salespersonSchemaBase.superRefine((data, ctx) => {
-  if (data.password && data.password !== data.confirmPassword) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "As senhas não coincidem.",
-      path: ["confirmPassword"],
-    });
+  password: z.string().optional().or(z.literal('')),
+  confirmPassword: z.string().optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+  if (data.password && data.password.length > 0) {
+    if (data.password.length < 6) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Nova senha deve ter pelo menos 6 caracteres.",
+        path: ["password"],
+      });
+    }
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "As senhas não coincidem.",
+        path: ["confirmPassword"],
+      });
+    }
+  } else if (!data.password && data.confirmPassword && data.confirmPassword.length > 0) {
+     ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Nova senha é obrigatória se a confirmação for preenchida.",
+        path: ["password"],
+      });
   }
 });
 
@@ -188,7 +201,7 @@ const DynamicVendorFormDialogContent = dynamic<VendorFormDialogContentProps>(() 
                         {...field}
                         value={field.value}
                         onChange={e => field.onChange(applyCnpjMask(e.target.value))}
-                        disabled={!!viewingVendor}
+                        disabled={!!viewingVendor || !!editingVendor}
                         maxLength={18}
                       />
                     </FormControl>
@@ -283,18 +296,22 @@ interface SalespersonFormDialogContentProps {
 
 const DynamicSalespersonFormDialogContent = dynamic<SalespersonFormDialogContentProps>(() =>
   Promise.resolve(function SalespersonFormDialogContentInternal ({ salespersonForm, onSalespersonSubmit, editingSalesperson, currentVendorForSalespersonName, isSubmittingSalesperson }: SalespersonFormDialogContentProps) {
-  const showPasswordFields = !editingSalesperson;
+  const showPasswordFields = true; // Always show for new and edit
   return (
     <>
       <DialogHeader>
           <DialogTitle>{editingSalesperson ? 'Editar Vendedor' : 'Adicionar Novo Vendedor'}</DialogTitle>
-          <DialogDescription>{editingSalesperson ? `Atualize ${editingSalesperson.name}.` : `Adicione para ${currentVendorForSalespersonName}.`}</DialogDescription>
+          <DialogDescription>
+            {editingSalesperson ? 
+                `Atualize ${editingSalesperson.name}. Deixe os campos de senha em branco para não alterá-la.` 
+                : `Adicione para ${currentVendorForSalespersonName}.`}
+            </DialogDescription>
       </DialogHeader>
       <Form {...salespersonForm}>
           <form onSubmit={salespersonForm.handleSubmit(onSalespersonSubmit)} className="space-y-3 sm:space-y-4 py-4">
               <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} disabled={!!editingSalesperson} /></FormControl><FormMessage /></FormItem>)} />
               {showPasswordFields && (
                 <>
                   <FormField
@@ -302,9 +319,12 @@ const DynamicSalespersonFormDialogContent = dynamic<SalespersonFormDialogContent
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Senha</FormLabel>
+                        <FormLabel>
+                            {editingSalesperson ? "Nova Senha" : "Senha"}
+                            {editingSalesperson && <span className="text-xs text-muted-foreground"> (Deixe em branco para não alterar)</span>}
+                        </FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Mínimo 6 caracteres" {...field} />
+                          <Input type="password" placeholder={editingSalesperson ? "Nova senha (opcional)" : "Mínimo 6 caracteres"} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -315,7 +335,7 @@ const DynamicSalespersonFormDialogContent = dynamic<SalespersonFormDialogContent
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirmar Senha</FormLabel>
+                        <FormLabel>Confirmar {editingSalesperson ? "Nova " : ""}Senha</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="Repita a senha" {...field} />
                         </FormControl>
@@ -484,6 +504,11 @@ export default function ManageVendorsPage() {
     const initialEditingVendor = editingVendor;
 
     if (initialEditingVendor) {
+      if(vendors.some(v => v.cnpj === rawCnpj && v.id !== initialEditingVendor.id)) {
+        vendorForm.setError("cnpj", {type: "manual", message: "Este CNPJ já está cadastrado para outro fornecedor."});
+        toast({ title: "Erro", description: "CNPJ já cadastrado.", variant: "destructive"});
+        return;
+      }
       updatedVendors = vendors.map(v =>
         v.id === initialEditingVendor.id ? { ...initialEditingVendor, ...data, cnpj: rawCnpj } : v
       );
@@ -491,12 +516,16 @@ export default function ManageVendorsPage() {
         toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.` });
       }
     } else {
+      if(vendors.some(v => v.cnpj === rawCnpj)) {
+        vendorForm.setError("cnpj", {type: "manual", message: "Este CNPJ já está cadastrado."});
+        toast({ title: "Erro", description: "CNPJ já cadastrado.", variant: "destructive"});
+        return;
+      }
       const newVendorId = `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
       const newVendor: Vendor = { id: newVendorId, ...data, cnpj: rawCnpj };
       updatedVendors = [...vendors, newVendor];
-      setEditingVendor(newVendor); // Keep dialog open for adding salespeople
+      setEditingVendor(newVendor); 
       toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.` });
-      // vendorForm.reset(data); // Reset with current data, so form is not dirty
     }
     setVendors(updatedVendors);
     saveVendors(updatedVendors);
@@ -506,7 +535,6 @@ export default function ManageVendorsPage() {
         setIsVendorDialogOpen(false);
         setEditingVendor(null);
     } else if (!initialEditingVendor) {
-        // For new vendor, dialog stays open. Resetting form state to current makes it not dirty.
         vendorForm.reset({...data, cnpj: formatDisplayCNPJ(rawCnpj)}); 
     }
   };
@@ -551,42 +579,45 @@ export default function ManageVendorsPage() {
 
     let updatedSalespeople;
     const currentUsers = loadUsers();
-    const userIndex = currentUsers.findIndex(u => u.email === data.email && (u.role === 'vendor' || (editingSalesperson && u.email === editingSalesperson.email)));
-
+    
     if (editingSalesperson) {
-        updatedSalespeople = salespeople.map(sp => sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson } : sp );
+        const userIndex = currentUsers.findIndex(u => u.email === editingSalesperson.email && u.role === 'vendor');
+        updatedSalespeople = salespeople.map(sp => sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson, password: data.password || editingSalesperson.password } : sp );
         toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado.` });
 
         if (userIndex > -1) {
             currentUsers[userIndex].name = data.name;
-            // Password not changed here for existing users
+            currentUsers[userIndex].storeName = vendorForSalesperson.name; // Update vendor company name if it changed
+            if (data.password && data.password.length > 0) {
+                 // Schema ensures password is valid if provided
+                currentUsers[userIndex].password = data.password;
+                toast({
+                    title: "Senha do Vendedor Atualizada!",
+                    description: `A senha para ${currentUsers[userIndex].email} foi atualizada.`,
+                });
+            }
             saveUsers(currentUsers);
-        } else if (data.email !== editingSalesperson.email) {
-            // Handle email change for existing salesperson - complex, could involve creating new user if new email doesnt exist
-             const existingNewEmailUser = currentUsers.find(u => u.email === data.email && u.role === 'vendor');
-             if (!existingNewEmailUser) {
-                // This scenario means email was changed AND a new user should be created. Password should be asked.
-                // For now, new password is not set on salesperson edit.
-             }
         }
     } else { // New salesperson
-        if (!data.password || !data.confirmPassword) {
+        if (!data.password || data.password.length === 0) {
             salespersonForm.setError("password", {type: "manual", message: "Senha é obrigatória para novo cadastro."});
-            toast({ title: "Erro de Validação", description: "Senha é obrigatória.", variant: "destructive"});
+            toast({ title: "Erro de Validação", description: "Senha é obrigatória para criar o usuário do vendedor.", variant: "destructive"});
             return;
         }
-        if (data.password !== data.confirmPassword) {
-            salespersonForm.setError("confirmPassword", {type: "manual", message: "As senhas não coincidem."});
-            toast({ title: "Erro de Validação", description: "As senhas não coincidem.", variant: "destructive"});
+        if (data.password.length < 6 || (data.password !== data.confirmPassword)) {
+            // Schema should catch this, but double check
+            toast({ title: "Erro de Validação", description: "Verifique os campos de senha.", variant: "destructive"});
             return;
         }
-         if (userIndex > -1) { // Check if email already exists for a vendor user
+
+        const existingUserWithEmail = currentUsers.find(u => u.email === data.email && u.role === 'vendor');
+        if (existingUserWithEmail) { 
             salespersonForm.setError("email", { type: "manual", message: "Este email já está em uso por outro vendedor." });
             toast({ title: "Erro", description: "Email já cadastrado para um vendedor.", variant: "destructive" });
             return;
         }
 
-        const newSalesperson: Salesperson = { id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data, vendorId: currentVendorIdForSalesperson };
+        const newSalesperson: Salesperson = { id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data, vendorId: currentVendorIdForSalesperson, password: data.password };
         updatedSalespeople = [...salespeople, newSalesperson];
         toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson.name}.` });
         
@@ -595,8 +626,8 @@ export default function ManageVendorsPage() {
             email: data.email,
             role: 'vendor',
             name: data.name,
-            storeName: vendorForSalesperson.name,
-            password: data.password, // Store the password
+            storeName: vendorForSalesperson.name, // Store vendor company name
+            password: data.password, 
         };
         currentUsers.push(newUserForSalesperson);
         saveUsers(currentUsers);
@@ -650,7 +681,7 @@ export default function ManageVendorsPage() {
         try {
           const validatedData = vendorSchema.parse({
             name: pv.name || '',
-            cnpj: pv.cnpj || '',
+            cnpj: pv.cnpj || '', // CNPJ still passed for validation
             address: pv.address || '',
             city: pv.city || '',
             neighborhood: pv.neighborhood || '',
@@ -667,7 +698,7 @@ export default function ManageVendorsPage() {
           newVendorsToSave.push({
             id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}_${i}`,
             ...validatedData,
-            cnpj: rawCsvCnpj,
+            cnpj: rawCsvCnpj, // Store cleaned CNPJ
           });
           importedCount++;
         } catch (error) {
@@ -986,7 +1017,7 @@ export default function ManageVendorsPage() {
                         aria-label={`Selecionar fornecedor ${vendor.name}`}
                       />
                     </TableCell>
-                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" /></TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" data-ai-hint="vendor logo" /></TableCell>
                     <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.name}</TableCell>
                     <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatDisplayCNPJ(vendor.cnpj)}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.city}</TableCell>

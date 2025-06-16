@@ -37,17 +37,32 @@ const storeRegistrationSchemaBase = z.object({
   ownerName: z.string().min(3, "Nome do proprietário é obrigatório."),
   responsibleName: z.string().min(3, "Nome do responsável é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(),
-  confirmPassword: z.string().optional(),
+  password: z.string().optional().or(z.literal('')),
+  confirmPassword: z.string().optional().or(z.literal('')),
 });
 
 const storeRegistrationSchema = storeRegistrationSchemaBase.superRefine((data, ctx) => {
-  if (data.password && data.password !== data.confirmPassword) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "As senhas não coincidem.",
-      path: ["confirmPassword"],
-    });
+  if (data.password && data.password.length > 0) {
+    if (data.password.length < 6) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Nova senha deve ter pelo menos 6 caracteres.",
+        path: ["password"],
+      });
+    }
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "As senhas não coincidem.",
+        path: ["confirmPassword"],
+      });
+    }
+  } else if (!data.password && data.confirmPassword && data.confirmPassword.length > 0) {
+     ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Nova senha é obrigatória se a confirmação for preenchida.",
+        path: ["password"],
+      });
   }
 });
 
@@ -66,7 +81,7 @@ type StoreCSVData = {
   ownerName?: string;
   responsibleName?: string;
   email?: string;
-  senha?: string; // Corrigido para 'senha' (password em pt-br)
+  senha?: string;
 };
 
 const applyCnpjMask = (value: string = ''): string => {
@@ -118,9 +133,8 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
         "nomeproprietario": "ownerName", "nomeresponsavel": "responsibleName", "email": "email", "senha": "senha"
     };
     
-    // Lista de cabeçalhos obrigatórios no CSV
-    const requiredCsvHeaders = ["codigo", "razaosocial", "cnpj", "email"]; // 'senha' é opcional
-    const expectedHeadersForDescription = Object.keys(headerMap); // Todos os cabeçalhos esperados para descrição
+    const requiredCsvHeaders = ["codigo", "razaosocial", "cnpj", "email"];
+    const expectedHeadersForDescription = Object.keys(headerMap);
 
     const missingRequiredHeaders = requiredCsvHeaders.filter(reqH => !headers.includes(reqH));
     if (missingRequiredHeaders.length > 0) {
@@ -150,12 +164,10 @@ function parseCSVToStores(csvText: string): { data: StoreCSVData[], errors: stri
             hasErrorInRow = true;
         }
         
-        // Validação da senha se fornecida no CSV
         if (storeRow.senha && storeRow.senha.length < 6) {
              errors.push(`Linha ${i + 1} (Loja ${storeRow.code || 'sem código'}): Senha fornecida deve ter pelo menos 6 caracteres.`);
              hasErrorInRow = true;
         }
-
 
         if (!hasErrorInRow) {
             storesData.push(storeRow);
@@ -173,7 +185,7 @@ interface StoreFormDialogContentProps {
 }
 
 const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingStore, isSubmitting }: StoreFormDialogContentProps) => {
-  const showPasswordFields = !editingStore && !viewingStore;
+  const showPasswordFields = !viewingStore; // Show for new and edit, hide for view
   return (
     <>
       <DialogHeader>
@@ -182,7 +194,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
             (viewingStore ? 'Visualizar Loja' : 'Adicionar Nova Loja')}
         </DialogTitle>
         <DialogDescription>
-          {editingStore ? 'Atualize os detalhes desta loja.' :
+          {editingStore ? 'Atualize os detalhes desta loja. Deixe os campos de senha em branco para não alterá-la.' :
           (viewingStore ? 'Detalhes da loja.' : 'Preencha os detalhes da loja.')}
         </DialogDescription>
       </DialogHeader>
@@ -206,7 +218,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
                         {...field}
                         value={field.value}
                         onChange={e => field.onChange(applyCnpjMask(e.target.value))}
-                        disabled={!!viewingStore}
+                        disabled={!!viewingStore || !!editingStore} // Disable CNPJ for edit as well
                         maxLength={18}
                       />
                     </FormControl>
@@ -240,7 +252,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
                   <FormItem><FormLabel>Nome do Responsável (login sistema)</FormLabel><FormControl><Input placeholder="Ex: Maria Oliveira" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
               )}/>
               <FormField control={form.control} name="email" render={({ field }) => (
-                  <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} disabled={!!viewingStore || !!editingStore} /></FormControl><FormMessage /></FormItem>
               )}/>
               {showPasswordFields && (
                 <>
@@ -249,9 +261,12 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Senha</FormLabel>
+                        <FormLabel>
+                          {editingStore ? "Nova Senha" : "Senha"}
+                          {editingStore && <span className="text-xs text-muted-foreground"> (Deixe em branco para não alterar)</span>}
+                        </FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Mínimo 6 caracteres" {...field} />
+                          <Input type="password" placeholder={editingStore ? "Nova senha (opcional)" : "Mínimo 6 caracteres"} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -262,7 +277,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirmar Senha</FormLabel>
+                        <FormLabel>Confirmar {editingStore ? "Nova " : ""}Senha</FormLabel>
                         <FormControl>
                           <Input type="password" placeholder="Repita a senha" {...field} />
                         </FormControl>
@@ -466,9 +481,9 @@ export default function ManageStoresPage() {
     };
 
     const currentUsers = loadUsers();
-    const userIndex = currentUsers.findIndex(u => u.email === data.email && (u.role === 'store' || (editingStore && u.email === editingStore.email)));
-
+    
     if (editingStore) {
+      const userIndex = currentUsers.findIndex(u => u.email === editingStore.email && u.role === 'store');
       updatedStores = stores.map(s =>
         s.id === editingStore.id
           ? { ...s, ...storeDataToSave } : s
@@ -477,32 +492,51 @@ export default function ManageStoresPage() {
         title: "Loja Atualizada!",
         description: `Loja ${data.code} - ${data.razaoSocial} foi atualizada.`,
       });
+      
       if (userIndex > -1) {
         currentUsers[userIndex].name = data.responsibleName;
         currentUsers[userIndex].storeName = data.razaoSocial;
+        if (data.password && data.password.length > 0) {
+          // Schema ensures password is valid if provided
+          currentUsers[userIndex].password = data.password;
+           toast({
+            title: "Senha do Usuário Atualizada!",
+            description: `A senha para ${currentUsers[userIndex].email} foi atualizada.`,
+          });
+        }
         saveUsers(currentUsers);
-      } else if (data.email !== editingStore.email) {
-          const existingNewEmailUser = currentUsers.find(u => u.email === data.email && u.role === 'store');
-          if (!existingNewEmailUser) {
-          }
+      }
+    } else { // New store
+      if (!data.password || data.password.length === 0) {
+        form.setError("password", {type: "manual", message: "Senha é obrigatória para novo cadastro."});
+        toast({ title: "Erro de Validação", description: "Senha é obrigatória para criar o usuário da loja.", variant: "destructive"});
+        return;
+      }
+      if (data.password.length < 6 || (data.password !== data.confirmPassword)) {
+         // Schema should catch this, but double check
+        toast({ title: "Erro de Validação", description: "Verifique os campos de senha.", variant: "destructive"});
+        return;
       }
 
-    } else { 
-      if (!data.password || !data.confirmPassword) {
-        form.setError("password", {type: "manual", message: "Senha é obrigatória para novo cadastro."});
-        toast({ title: "Erro de Validação", description: "Senha é obrigatória.", variant: "destructive"});
-        return;
-      }
-      if (data.password !== data.confirmPassword) {
-         form.setError("confirmPassword", {type: "manual", message: "As senhas não coincidem."});
-         toast({ title: "Erro de Validação", description: "As senhas não coincidem.", variant: "destructive"});
-        return;
-      }
-      if (userIndex > -1) { 
+      const existingUserWithEmail = currentUsers.find(u => u.email === data.email && u.role === 'store');
+      if (existingUserWithEmail) { 
         form.setError("email", { type: "manual", message: "Este email já está em uso por outro usuário de loja." });
         toast({ title: "Erro", description: "Email já cadastrado para um usuário de loja.", variant: "destructive" });
         return;
       }
+      const existingStoreWithCNPJ = stores.find(s => s.cnpj === cleanCNPJ(data.cnpj));
+      if (existingStoreWithCNPJ) {
+        form.setError("cnpj", { type: "manual", message: "Este CNPJ já está cadastrado." });
+        toast({ title: "Erro", description: "CNPJ já cadastrado.", variant: "destructive" });
+        return;
+      }
+      const existingStoreWithCode = stores.find(s => s.code === data.code);
+      if (existingStoreWithCode) {
+        form.setError("code", { type: "manual", message: "Este Código de Loja já está cadastrado." });
+        toast({ title: "Erro", description: "Código de Loja já cadastrado.", variant: "destructive" });
+        return;
+      }
+
 
       const newStore: Store = {
         id: `store_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
@@ -604,12 +638,13 @@ export default function ManageStoresPage() {
         try {
           const cleanedCsvCnpj = cleanCNPJ(ps.cnpj || "");
           const passwordFromCsv = ps.senha;
-          const passwordForUser = (passwordFromCsv && passwordFromCsv.length >= 6) ? passwordFromCsv : "PadraoHiper123!"; // Senha padrão se não fornecida ou inválida
+          // Use password from CSV if valid, otherwise a strong default.
+          const passwordForUser = (passwordFromCsv && passwordFromCsv.length >= 6) ? passwordFromCsv : "PadraoHiper123!"; 
 
           const storeInputData = {
             code: ps.code || "",
             razaoSocial: ps.razaoSocial || "",
-            cnpj: cleanedCsvCnpj,
+            cnpj: cleanedCsvCnpj, // Pass cleaned CNPJ here for schema validation
             address: ps.address || "",
             city: ps.city || "",
             neighborhood: ps.neighborhood || "",
@@ -622,6 +657,7 @@ export default function ManageStoresPage() {
             confirmPassword: passwordForUser, 
           };
 
+          // Validate against the Zod schema
           const validationResult = storeRegistrationSchema.safeParse(storeInputData);
 
           if (!validationResult.success) {
@@ -630,7 +666,7 @@ export default function ManageStoresPage() {
             continue;
           }
 
-          const validatedData = validationResult.data;
+          const validatedData = validationResult.data; // Now use validatedData
 
           if (currentLocalStores.some(s => s.code === validatedData.code) || newStoresToSave.some(s => s.code === validatedData.code)) {
             validationErrors.push(`Linha ${i + 2}: Código de loja ${validatedData.code} já existe e foi ignorado.`);
@@ -649,7 +685,7 @@ export default function ManageStoresPage() {
             id: `store_csv_${Date.now()}_${i}`,
             code: validatedData.code,
             name: validatedData.razaoSocial,
-            cnpj: validatedData.cnpj,
+            cnpj: validatedData.cnpj, // Use the validated (and cleaned) CNPJ
             address: validatedData.address,
             city: validatedData.city,
             neighborhood: validatedData.neighborhood,
@@ -665,14 +701,14 @@ export default function ManageStoresPage() {
           newStoresToSave.push(newStore);
 
           const existingUser = currentLocalUsers.find(u => u.email === validatedData.email);
-          if (!existingUser) {
+          if (!existingUser) { // Create user only if email is not taken by any user
             const newUserForStore: User = {
               id: `user_store_csv_${Date.now()}_${i}`,
               email: validatedData.email,
               role: 'store',
               name: validatedData.responsibleName,
               storeName: validatedData.razaoSocial,
-              password: passwordForUser, 
+              password: passwordForUser, // Use the determined password
             };
             newUsersToSave.push(newUserForStore);
           } else {
@@ -680,6 +716,7 @@ export default function ManageStoresPage() {
           }
           importedCount++;
         } catch (error) {
+            // This catch block might not be strictly necessary if Zod catches all validation
             validationErrors.push(`Linha ${i + 2} (Loja ${ps.code || 'sem nome'}): Erro inesperado - ${(error as Error).message}`);
         }
       }
@@ -851,7 +888,7 @@ export default function ManageStoresPage() {
               <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">codigo,razaosocial,cnpj,email</code>
               E opcionalmente:
               <code className="block bg-muted p-2 rounded-md my-1 text-xs break-all">endereco,cidade,bairro,estado,telefone,nomeproprietario,nomeresponsavel,senha</code>
-              A coluna 'senha' é opcional; se não fornecida ou inválida, uma senha padrão será usada.
+              A coluna 'senha' é opcional; se não fornecida ou inválida (menos de 6 caracteres), uma senha padrão será usada.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 sm:space-y-4 py-4">
