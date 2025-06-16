@@ -213,9 +213,11 @@ export default function VendorPositivacaoPage() {
             currentVendorCompany={currentVendorCompany}
             sessionPositivatedStores={sessionPositivatedStores}
             onPositivar={handlePositivar}
+            allStores={allStores} // Pass allStores here
           />
         ))}
       </div>
     </div>
   );
 }
+

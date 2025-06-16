@@ -15,6 +15,7 @@ interface StorePositivationDisplayCardProps {
   currentVendorCompany: Vendor;
   sessionPositivatedStores: Set<string>;
   onPositivar: (storeId: string, storeName: string) => void;
+  allStores: Store[]; // Added to find matrix store info
 }
 
 export const StorePositivationDisplayCard = React.memo(function StorePositivationDisplayCard({
@@ -22,12 +23,16 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   currentVendorCompany,
   sessionPositivatedStores,
   onPositivar,
+  allStores, // Added
 }: StorePositivationDisplayCardProps) {
   const isPositivatedByThisVendorForSession = sessionPositivatedStores.has(store.id);
   const isPersistentlyPositivatedByThisVendorCompany = store.positivationsDetails.some(
     detail => detail.vendorId === currentVendorCompany.id
   );
   const isDisabled = isPositivatedByThisVendorForSession || isPersistentlyPositivatedByThisVendorCompany;
+
+  const matrixStore = !store.isMatrix && store.matrixStoreId ? allStores.find(s => s.id === store.matrixStoreId) : null;
+  const matrixStoreCode = matrixStore ? matrixStore.code : null;
 
   return (
     <Card key={store.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
@@ -37,6 +42,11 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
           <div>
             <span className="block font-semibold truncate" title={store.name}>{store.name}</span>
             <span className="block text-sm text-muted-foreground truncate" title={`Código: ${store.code}`}>({store.code})</span>
+            {!store.isMatrix && matrixStoreCode && (
+              <span className="block text-xs text-muted-foreground/80 truncate" title={`Matriz: ${matrixStoreCode}`}>
+                Filial de: {matrixStoreCode}
+              </span>
+            )}
           </div>
         </CardTitle>
       </CardHeader>
@@ -114,4 +124,5 @@ export const StorePositivationDisplayCard = React.memo(function StorePositivatio
   );
 });
 StorePositivationDisplayCard.displayName = 'StorePositivationDisplayCard';
+
 
