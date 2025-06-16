@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound } from 'lucide-react';
+import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound, Search } from 'lucide-react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { ALL_BRAZILIAN_STATES } from '@/lib/constants'; // Updated import
@@ -390,6 +390,7 @@ export default function ManageVendorsPage() {
   const { toast } = useToast();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
   const [isVendorViewDialogOpen, setIsVendorViewDialogOpen] = useState(false);
@@ -792,10 +793,10 @@ export default function ManageVendorsPage() {
   };
 
   const handleSelectAllVendors = () => {
-    if (selectedVendorIds.size === vendors.length) {
+    if (selectedVendorIds.size === filteredVendors.length) { // Use filteredVendors for "select all" logic
       setSelectedVendorIds(new Set());
     } else {
-      setSelectedVendorIds(new Set(vendors.map(v => v.id)));
+      setSelectedVendorIds(new Set(filteredVendors.map(v => v.id)));
     }
   };
 
@@ -829,7 +830,38 @@ export default function ManageVendorsPage() {
     setIsDeleteSelectedConfirmOpen(false);
   };
   
-  const isAllVendorsSelected = useMemo(() => vendors.length > 0 && selectedVendorIds.size === vendors.length, [vendors, selectedVendorIds]);
+  const filteredVendors = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return vendors;
+    }
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const cleanedSearchTermForCnpj = searchTerm.replace(/\D/g, '');
+
+    return vendors.filter(vendor => {
+      const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
+      const checkCnpj = (cnpjValue?: string) => { 
+        if (!cnpjValue) return false;
+        if (cleanedSearchTermForCnpj.length > 0 && cleanCNPJ(cnpjValue).includes(cleanedSearchTermForCnpj)) {
+          return true;
+        }
+        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) {
+            return true;
+        }
+        return false;
+      };
+
+      return (
+        checkString(vendor.name) ||
+        checkCnpj(vendor.cnpj) ||
+        checkString(vendor.address) ||
+        checkString(vendor.city) ||
+        checkString(vendor.neighborhood) ||
+        checkString(vendor.state)
+      );
+    });
+  }, [vendors, searchTerm]);
+
+  const isAllVendorsSelected = useMemo(() => filteredVendors.length > 0 && selectedVendorIds.size === filteredVendors.length && filteredVendors.every(v => selectedVendorIds.has(v.id)), [filteredVendors, selectedVendorIds]);
 
   return (
     <div className="animate-fadeIn space-y-6 sm:space-y-8">
@@ -990,7 +1022,18 @@ export default function ManageVendorsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Card className="shadow-lg mt-6 sm:mt-8">
+      <div className="mb-4 sm:mb-6 relative flex items-center max-w-full sm:max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input 
+          type="text"
+          placeholder="Buscar fornecedores..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      <Card className="shadow-lg mt-0">
         <CardHeader className="px-4 py-5 sm:p-6">
             <CardTitle>Fornecedores Cadastrados</CardTitle>
             <CardDescription>Lista de todos os fornecedores no sistema.</CardDescription>
@@ -1004,8 +1047,8 @@ export default function ManageVendorsPage() {
                      <Checkbox
                         checked={isAllVendorsSelected}
                         onCheckedChange={handleSelectAllVendors}
-                        aria-label="Selecionar todos os fornecedores"
-                        disabled={vendors.length === 0}
+                        aria-label="Selecionar todos os fornecedores visíveis"
+                        disabled={filteredVendors.length === 0}
                       />
                   </TableHead>
                   <TableHead className="w-[60px] sm:w-[80px] px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Logo</TableHead>
@@ -1018,8 +1061,12 @@ export default function ManageVendorsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vendors.length === 0 && (<TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">Nenhum fornecedor cadastrado.</TableCell></TableRow>)}
-                {vendors.map((vendor) => (
+                {filteredVendors.length === 0 && (
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">
+                     {searchTerm ? "Nenhum fornecedor encontrado com o termo pesquisado." : "Nenhum fornecedor cadastrado."}
+                  </TableCell></TableRow>
+                )}
+                {filteredVendors.map((vendor) => (
                   <TableRow key={vendor.id} data-state={selectedVendorIds.has(vendor.id) ? "selected" : ""}>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <Checkbox

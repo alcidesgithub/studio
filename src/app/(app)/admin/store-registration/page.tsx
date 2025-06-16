@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound, CheckSquare } from 'lucide-react';
+import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound, CheckSquare, Search } from 'lucide-react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -331,6 +331,7 @@ const DynamicStoreFormDialogContent = dynamic(() => Promise.resolve(StoreFormDia
 export default function ManageStoresPage() {
   const { toast } = useToast();
   const [stores, setStores] = useState<Store[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
@@ -818,8 +819,45 @@ export default function ManageStoresPage() {
       description: `${storeName} ${checked ? 'agora está com check-in.' : 'não está mais com check-in.'}`,
     });
   };
+  
+  const filteredStores = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return stores;
+    }
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const cleanedSearchTermForCnpj = searchTerm.replace(/\D/g, '');
 
-  const isAllStoresSelected = useMemo(() => stores.length > 0 && selectedStoreIds.size === stores.length, [stores, selectedStoreIds]);
+    return stores.filter(store => {
+      const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
+      const checkCnpj = (cnpjValue?: string) => { 
+        if (!cnpjValue) return false;
+        if (cleanedSearchTermForCnpj.length > 0 && cleanCNPJ(cnpjValue).includes(cleanedSearchTermForCnpj)) {
+          return true;
+        }
+        // Also check if the raw CNPJ string (potentially with formatting) includes the search term
+        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) {
+            return true;
+        }
+        return false;
+      };
+
+      return (
+        checkString(store.code) ||
+        checkString(store.name) ||
+        checkCnpj(store.cnpj) ||
+        checkString(store.address) ||
+        checkString(store.city) ||
+        checkString(store.neighborhood) ||
+        checkString(store.state) ||
+        checkString(store.phone) ||
+        checkString(store.ownerName) ||
+        checkString(store.responsibleName) ||
+        checkString(store.email)
+      );
+    });
+  }, [stores, searchTerm]);
+
+  const isAllStoresSelected = useMemo(() => filteredStores.length > 0 && selectedStoreIds.size === filteredStores.length && filteredStores.every(s => selectedStoreIds.has(s.id)), [filteredStores, selectedStoreIds]);
 
 
   return (
@@ -947,8 +985,18 @@ export default function ManageStoresPage() {
         </DialogContent>
       </Dialog>
 
+      <div className="my-4 sm:my-6 relative flex items-center max-w-full sm:max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input 
+          type="text"
+          placeholder="Buscar lojas..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
 
-      <Card className="shadow-lg mt-6 sm:mt-8">
+      <Card className="shadow-lg mt-0">
         <CardHeader className="px-4 py-5 sm:p-6">
           <CardTitle>Lojas Cadastradas</CardTitle>
           <CardDescription>Lista de todas as lojas no sistema.</CardDescription>
@@ -962,8 +1010,8 @@ export default function ManageStoresPage() {
                      <Checkbox
                         checked={isAllStoresSelected}
                         onCheckedChange={handleSelectAllStores}
-                        aria-label="Selecionar todas as lojas"
-                        disabled={stores.length === 0}
+                        aria-label="Selecionar todas as lojas visíveis"
+                        disabled={filteredStores.length === 0}
                       />
                   </TableHead>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Código</TableHead>
@@ -977,10 +1025,12 @@ export default function ManageStoresPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stores.length === 0 && (
-                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">Nenhuma loja cadastrada.</TableCell></TableRow>
+                {filteredStores.length === 0 && (
+                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">
+                    {searchTerm ? "Nenhuma loja encontrada com o termo pesquisado." : "Nenhuma loja cadastrada."}
+                  </TableCell></TableRow>
                 )}
-                {stores.map((store) => (
+                {filteredStores.map((store) => (
                   <TableRow key={store.id} data-state={selectedStoreIds.has(store.id) ? "selected" : ""}>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                        <Checkbox
