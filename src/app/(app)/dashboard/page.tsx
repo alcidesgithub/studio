@@ -31,8 +31,8 @@ export default function DashboardPage() {
     setVendors(loadVendors());
   }, []);
 
+  const totalStoresCount = useMemo(() => stores.length, [stores]);
   const participatingStores = useMemo(() => stores.filter(s => s.participating), [stores]);
-  const participatingStoresCount = useMemo(() => participatingStores.length, [participatingStores]);
   
   const checkedInStoresCount = useMemo(() =>
     participatingStores.filter(s => s.isCheckedIn).length
@@ -149,7 +149,7 @@ export default function DashboardPage() {
   }
 
   const noTiersConfigured = awardTiers.length === 0;
-  const noParticipatingStores = participatingStoresCount === 0;
+  const noParticipatingStores = participatingStores.length === 0;
   const noStoresInAnyTierBasedOnChartData = chartData.every(d => d.lojas === 0);
   const showChart = !noTiersConfigured && !noParticipatingStores && !noStoresInAnyTierBasedOnChartData;
 
@@ -165,12 +165,12 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lojas Participantes</CardTitle>
+            <CardTitle className="text-sm font-medium">Lojas Cadastradas</CardTitle>
             <StoreIcon className="h-8 w-8 text-secondary" /> 
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{participatingStoresCount}</div>
-            <p className="text-xs text-muted-foreground">Cadastradas no evento</p>
+            <div className="text-2xl font-bold">{totalStoresCount}</div>
+            <p className="text-xs text-muted-foreground">Total de lojas no sistema</p>
           </CardContent>
         </Card>
 
