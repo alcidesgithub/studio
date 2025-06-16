@@ -11,7 +11,7 @@ const AUTH_STORAGE_KEY = 'hiperfarma_auth_user';
 interface UseAuthReturn {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password?: string) => Promise<User | null>; // Made password optional for now
+  login: (email: string, password?: string) => Promise<User | null>;
   logout: () => void;
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; message: string; }>;
 }
@@ -41,18 +41,18 @@ export function useAuth(): UseAuthReturn {
     const foundUser = allSystemUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
 
     if (foundUser) {
-      // If password is provided, check it. Otherwise, for now, allow login (maintaining old behavior if password not sent from form)
-      // In a real app, password would always be required and checked.
-      if (password && foundUser.password !== password) {
+      // Strict password check: password must be provided and must match.
+      if (password && foundUser.password === password) {
+        setUser(foundUser);
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(foundUser));
         setIsLoading(false);
-        return null; // Password incorrect
+        return foundUser;
       }
-      // If no password provided by login form, or if password matches
-      setUser(foundUser);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(foundUser));
+      // If password doesn't match or wasn't provided (and user has one registered)
       setIsLoading(false);
-      return foundUser;
+      return null;
     }
+    // User not found
     setIsLoading(false);
     return null;
   }, []);
