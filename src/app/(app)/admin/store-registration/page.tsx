@@ -414,11 +414,13 @@ const DynamicStoreFormDialogContent = dynamic(() => Promise.resolve(StoreFormDia
   ),
 });
 
+type SearchModeFilterType = 'all_stores' | 'matrix_only' | 'branch_only' | 'matrix_with_its_branches';
 
 export default function ManageStoresPage() {
   const { toast } = useToast();
   const [stores, setStores] = useState<Store[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchModeFilter, setSearchModeFilter] = useState<SearchModeFilterType>('all_stores');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
@@ -983,35 +985,45 @@ export default function ManageStoresPage() {
   
   const filteredStores = useMemo(() => {
     const lowerSearchTerm = searchTerm.toLowerCase().trim();
-    if (!lowerSearchTerm) {
-      return stores; // Return all stores if search term is empty
+    const storesToFilterFrom = stores; // All stores
+
+    if (!lowerSearchTerm && searchModeFilter === 'all_stores') {
+        return storesToFilterFrom;
     }
+    if (!lowerSearchTerm && searchModeFilter === 'matrix_only') {
+        return storesToFilterFrom.filter(s => s.isMatrix);
+    }
+    if (!lowerSearchTerm && searchModeFilter === 'branch_only') {
+        return storesToFilterFrom.filter(s => !s.isMatrix);
+    }
+    if (!lowerSearchTerm && searchModeFilter === 'matrix_with_its_branches') {
+        return []; 
+    }
+
     const cleanedSearchTermForCnpj = searchTerm.replace(/\D/g, '');
 
-    const directlyMatchingMatrix = stores.find(
-      s => s.code.toLowerCase() === lowerSearchTerm && s.isMatrix
-    );
-    
-    let branchesOfMatchedMatrix: Store[] = [];
-    if (directlyMatchingMatrix) {
-        branchesOfMatchedMatrix = stores.filter(
-            s => s.matrixStoreId === directlyMatchingMatrix.id
+    if (searchModeFilter === 'matrix_with_its_branches') {
+        const exactMatchingMatrix = storesToFilterFrom.find(
+            s => s.code.toLowerCase() === lowerSearchTerm && s.isMatrix
         );
+        if (exactMatchingMatrix) {
+            const branches = storesToFilterFrom.filter(
+                s => s.matrixStoreId === exactMatchingMatrix.id
+            );
+            return [exactMatchingMatrix, ...branches.sort((a, b) => a.code.localeCompare(b.code))];
+        }
+        return []; 
     }
 
-    const results = stores.filter(store => {
-      // If a matrix was directly matched by code, include its branches (already handled by branchesOfMatchedMatrix)
-      // and the matrix itself (also handled if directlyMatchingMatrix exists)
-
+    let preliminaryFilteredStores = storesToFilterFrom.filter(store => {
       const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
-      
       const checkCnpj = (cnpjValue?: string) => { 
         if (!cnpjValue) return false;
         const cleanedStoreCnpj = cleanCNPJ(cnpjValue);
         if (cleanedSearchTermForCnpj.length > 0 && cleanedStoreCnpj.includes(cleanedSearchTermForCnpj)) {
           return true;
         }
-        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) { // Check raw formatted CNPJ as well
+        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) { // Check raw formatted CNPJ as well if search term is not just numbers
             return true;
         }
         return false;
@@ -1032,13 +1044,17 @@ export default function ManageStoresPage() {
       );
     });
     
-    // Combine results and remove duplicates if any (e.g. matrix matched by name and also by code)
-    const combinedResults = new Set([...results, ...branchesOfMatchedMatrix]);
-    if (directlyMatchingMatrix) combinedResults.add(directlyMatchingMatrix);
-    
-    return Array.from(combinedResults);
+    switch (searchModeFilter) {
+        case 'matrix_only':
+            return preliminaryFilteredStores.filter(s => s.isMatrix);
+        case 'branch_only':
+            return preliminaryFilteredStores.filter(s => !s.isMatrix);
+        case 'all_stores':
+        default:
+            return preliminaryFilteredStores;
+    }
 
-  }, [stores, searchTerm]);
+  }, [stores, searchTerm, searchModeFilter]);
 
   const isAllStoresSelected = useMemo(() => filteredStores.length > 0 && selectedStoreIds.size === filteredStores.length && filteredStores.every(s => selectedStoreIds.has(s.id)), [filteredStores, selectedStoreIds]);
 
@@ -1170,16 +1186,40 @@ export default function ManageStoresPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="my-4 sm:my-6 relative flex items-center max-w-full sm:max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input 
-          type="text"
-          placeholder="Buscar lojas..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
+      <div className="my-4 sm:my-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div className="md:col-span-2">
+           <Label htmlFor="store-search-term">Buscar Loja</Label>
+           <div className="relative flex items-center mt-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              id="store-search-term"
+              type="text"
+              placeholder="Nome, código, CNPJ, local..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <div>
+            <Label htmlFor="store-type-filter">Filtrar Por Tipo</Label>
+            <Select value={searchModeFilter} onValueChange={(value) => setSearchModeFilter(value as SearchModeFilterType)}>
+                <SelectTrigger id="store-type-filter" className="mt-1">
+                    <SelectValue placeholder="Selecione o tipo de filtro" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all_stores">Todas as Lojas (Padrão)</SelectItem>
+                    <SelectItem value="matrix_only">Apenas Matrizes</SelectItem>
+                    <SelectItem value="branch_only">Apenas Filiais</SelectItem>
+                    <SelectItem value="matrix_with_its_branches">Matriz por Código + Filiais</SelectItem>
+                </SelectContent>
+            </Select>
+             {searchModeFilter === 'matrix_with_its_branches' && (
+                <p className="text-xs text-muted-foreground mt-1">Para este filtro, busque pelo código exato da matriz.</p>
+            )}
+        </div>
       </div>
+
 
       <Card className="shadow-lg mt-0">
         <CardHeader className="px-4 py-5 sm:p-6">
@@ -1213,7 +1253,12 @@ export default function ManageStoresPage() {
               <TableBody>
                 {filteredStores.length === 0 && (
                   <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">
-                    {searchTerm ? "Nenhuma loja encontrada com o termo pesquisado." : "Nenhuma loja cadastrada."}
+                    {searchTerm || searchModeFilter !== 'all_stores' 
+                        ? "Nenhuma loja encontrada com os critérios de busca e filtro selecionados." 
+                        : "Nenhuma loja cadastrada." }
+                     {searchModeFilter === 'matrix_with_its_branches' && searchTerm && !filteredStores.some(s => s.code.toLowerCase() === searchTerm.toLowerCase() && s.isMatrix) &&
+                        <span className="block mt-1"> Certifique-se de usar o código exato de uma loja matriz para o filtro 'Matriz por Código + Filiais'.</span>
+                     }
                   </TableCell></TableRow>
                 )}
                 {filteredStores.map((store) => (
