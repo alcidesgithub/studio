@@ -242,7 +242,7 @@ export default function DashboardPage() {
 
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Média Selos / Loja Check-in</CardTitle>
+            <CardTitle className="text-sm font-medium">Média Selos / Loja Presente</CardTitle>
             <Percent className="h-8 w-8 text-secondary" />
           </CardHeader>
           <CardContent>
