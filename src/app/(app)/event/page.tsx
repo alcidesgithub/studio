@@ -96,7 +96,7 @@ export default function EventInfoPage() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="font-headline text-lg sm:text-xl flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-secondary"/> Guias do Evento
+                  <FileText className="h-5 w-5 text-secondary"/> Guia
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
