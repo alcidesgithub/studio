@@ -2,7 +2,7 @@
 // src/lib/localStorageUtils.ts
 "use client";
 import type { Event, AwardTier, Store, Vendor, Salesperson, User, SweepstakeWinnerRecord } from '@/types';
-import { MOCK_USERS } from './constants'; // Adicionada importação de MOCK_USERS
+import { MOCK_EVENT, MOCK_AWARD_TIERS, MOCK_STORES, MOCK_VENDORS, MOCK_SALESPEOPLE, MOCK_USERS } from './constants';
 
 const EVENT_KEY = 'hiperfarma_event_details';
 const AWARD_TIERS_KEY = 'hiperfarma_award_tiers';
@@ -71,28 +71,27 @@ function saveData<T>(key: string, data: T): void {
 }
 
 // Event
-export const loadEvent = (): Event => loadData<Event>(EVENT_KEY, defaultEvent);
+export const loadEvent = (): Event => loadData<Event>(EVENT_KEY, defaultEvent, MOCK_EVENT);
 export const saveEvent = (event: Event): void => saveData<Event>(EVENT_KEY, event);
 
 // Award Tiers
-export const loadAwardTiers = (): AwardTier[] => loadData<AwardTier[]>(AWARD_TIERS_KEY, []);
+export const loadAwardTiers = (): AwardTier[] => loadData<AwardTier[]>(AWARD_TIERS_KEY, [], MOCK_AWARD_TIERS);
 export const saveAwardTiers = (tiers: AwardTier[]): void => saveData<AwardTier[]>(AWARD_TIERS_KEY, tiers);
 
 // Stores
-export const loadStores = (): Store[] => loadData<Store[]>(STORES_KEY, []);
+export const loadStores = (): Store[] => loadData<Store[]>(STORES_KEY, [], MOCK_STORES);
 export const saveStores = (stores: Store[]): void => saveData<Store[]>(STORES_KEY, stores);
 
 // Vendors
-export const loadVendors = (): Vendor[] => loadData<Vendor[]>(VENDORS_KEY, []);
+export const loadVendors = (): Vendor[] => loadData<Vendor[]>(VENDORS_KEY, [], MOCK_VENDORS);
 export const saveVendors = (vendors: Vendor[]): void => saveData<Vendor[]>(VENDORS_KEY, vendors);
 
 // Salespeople
-export const loadSalespeople = (): Salesperson[] => loadData<Salesperson[]>(SALESPEOPLE_KEY, []);
+export const loadSalespeople = (): Salesperson[] => loadData<Salesperson[]>(SALESPEOPLE_KEY, [], MOCK_SALESPEOPLE);
 export const saveSalespeople = (salespeople: Salesperson[]): void => saveData<Salesperson[]>(SALESPEOPLE_KEY, salespeople);
 
 // Users
-// Alterado para não usar MOCK_USERS como fallback na inicialização.
-export const loadUsers = (): User[] => loadData<User[]>(USERS_KEY, []);
+export const loadUsers = (): User[] => loadData<User[]>(USERS_KEY, [], MOCK_USERS);
 export const saveUsers = (users: User[]): void => saveData<User[]>(USERS_KEY, users);
 
 // Drawn Winners

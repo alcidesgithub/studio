@@ -38,17 +38,17 @@ export function LoginForm() {
 
   const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
     setIsLoading(true);
-    const user = await login(data.email);
+    const loggedInUser = await login(data.email, data.password); // Pass password to login
     setIsLoading(false);
 
-    if (user) {
+    if (loggedInUser) {
       toast({
         title: "Login Bem-sucedido",
-        description: `Bem-vindo(a) de volta, ${user.name}!`,
+        description: `Bem-vindo(a) de volta, ${loggedInUser.name}!`,
       });
-      if (user.role === 'store') {
+      if (loggedInUser.role === 'store') {
         router.push('/store/positivacao');
-      } else if (user.role === 'vendor') {
+      } else if (loggedInUser.role === 'vendor') {
         router.push('/vendor/positivacao');
       } else {
         router.push('/dashboard'); // For admin, manager
@@ -56,7 +56,7 @@ export function LoginForm() {
     } else {
       toast({
         title: "Falha no Login",
-        description: "Credenciais inválidas. Por favor, tente novamente.",
+        description: "Email ou senha inválidos. Por favor, tente novamente.",
         variant: "destructive",
       });
     }
