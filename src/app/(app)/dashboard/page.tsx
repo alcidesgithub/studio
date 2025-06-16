@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { loadStores, loadEvent, loadAwardTiers, loadVendors } from '@/lib/localStorageUtils';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
 import type { Store, Event, AwardTier, Vendor } from '@/types';
-import { Store as StoreIcon, BadgeCheck, Trophy, LayoutDashboard, Briefcase } from 'lucide-react';
+import { Store as StoreIcon, BadgeCheck, Trophy, LayoutDashboard, Briefcase, CheckSquare } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -34,6 +34,10 @@ export default function DashboardPage() {
   const participatingStores = useMemo(() => stores.filter(s => s.participating), [stores]);
   const participatingStoresCount = useMemo(() => participatingStores.length, [participatingStores]);
   
+  const checkedInStoresCount = useMemo(() =>
+    participatingStores.filter(s => s.isCheckedIn).length
+  , [participatingStores]);
+
   const totalPositivacoes = useMemo(() => 
     participatingStores.reduce((sum, s) => sum + (s.positivationsDetails?.filter(pd => vendors.some(v => v.id === pd.vendorId)).length || 0), 0), 
   [participatingStores, vendors]);
@@ -158,7 +162,7 @@ export default function DashboardPage() {
         icon={LayoutDashboard}
         iconClassName="text-secondary" 
       />
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Lojas Participantes</CardTitle>
@@ -167,6 +171,17 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{participatingStoresCount}</div>
             <p className="text-xs text-muted-foreground">Cadastradas no evento</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lojas com Check-in</CardTitle>
+            <CheckSquare className="h-8 w-8 text-secondary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{checkedInStoresCount}</div>
+            <p className="text-xs text-muted-foreground">Confirmaram presença</p>
           </CardContent>
         </Card>
 
@@ -246,5 +261,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

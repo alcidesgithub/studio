@@ -46,6 +46,7 @@ export interface Store {
   ownerName?: string;
   responsibleName?: string;
   email?: string;
+  isCheckedIn: boolean; // Added for check-in status
 }
 
 export interface AwardTier {

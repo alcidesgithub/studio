@@ -79,7 +79,22 @@ export const loadAwardTiers = (): AwardTier[] => loadData<AwardTier[]>(AWARD_TIE
 export const saveAwardTiers = (tiers: AwardTier[]): void => saveData<AwardTier[]>(AWARD_TIERS_KEY, tiers);
 
 // Stores
-export const loadStores = (): Store[] => loadData<Store[]>(STORES_KEY, [], MOCK_STORES);
+export const loadStores = (): Store[] => {
+  let stores = loadData<Store[]>(STORES_KEY, [], MOCK_STORES);
+  // Ensure isCheckedIn property exists and defaults to false if undefined
+  let migrated = false;
+  stores = stores.map(store => {
+    if (typeof store.isCheckedIn === 'undefined') {
+      migrated = true;
+      return { ...store, isCheckedIn: false };
+    }
+    return store;
+  });
+  if (migrated && typeof window !== 'undefined') {
+    saveData(STORES_KEY, stores); // Save back if migration occurred
+  }
+  return stores;
+};
 export const saveStores = (stores: Store[]): void => saveData<Store[]>(STORES_KEY, stores);
 
 // Vendors
@@ -160,4 +175,3 @@ export const saveUsers = (users: User[]): void => saveData<User[]>(USERS_KEY, us
 // Drawn Winners
 export const loadDrawnWinners = (): SweepstakeWinnerRecord[] => loadData<SweepstakeWinnerRecord[]>(DRAWN_WINNERS_KEY, []);
 export const saveDrawnWinners = (winners: SweepstakeWinnerRecord[]): void => saveData<SweepstakeWinnerRecord[]>(DRAWN_WINNERS_KEY, winners);
-

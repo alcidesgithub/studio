@@ -13,9 +13,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound } from 'lucide-react';
+import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound, CheckSquare } from 'lucide-react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -486,7 +487,7 @@ export default function ManageStoresPage() {
       const userIndex = currentUsers.findIndex(u => u.email === editingStore.email && u.role === 'store');
       updatedStores = stores.map(s =>
         s.id === editingStore.id
-          ? { ...s, ...storeDataToSave } : s
+          ? { ...s, ...storeDataToSave, isCheckedIn: s.isCheckedIn } : s // Preserve isCheckedIn
       );
       toast({
         title: "Loja Atualizada!",
@@ -544,6 +545,7 @@ export default function ManageStoresPage() {
         participating: true,
         goalProgress: 0,
         positivationsDetails: [],
+        isCheckedIn: false, // Default for new stores
       };
       updatedStores = [...stores, newStore];
       toast({
@@ -697,6 +699,7 @@ export default function ManageStoresPage() {
             participating: true,
             goalProgress: 0,
             positivationsDetails: [],
+            isCheckedIn: false, // Default for imported stores
           };
           newStoresToSave.push(newStore);
 
@@ -803,6 +806,19 @@ export default function ManageStoresPage() {
     setIsDeleteSelectedConfirmOpen(false);
   };
 
+  const handleToggleCheckIn = (storeId: string, checked: boolean) => {
+    const updatedStores = stores.map(s =>
+      s.id === storeId ? { ...s, isCheckedIn: checked } : s
+    );
+    setStores(updatedStores);
+    saveStores(updatedStores);
+    const storeName = updatedStores.find(s => s.id === storeId)?.name || 'Loja';
+    toast({
+      title: `Check-in ${checked ? 'Confirmado' : 'Desfeito'}`,
+      description: `${storeName} ${checked ? 'agora está com check-in.' : 'não está mais com check-in.'}`,
+    });
+  };
+
   const isAllStoresSelected = useMemo(() => stores.length > 0 && selectedStoreIds.size === stores.length, [stores, selectedStoreIds]);
 
 
@@ -810,7 +826,7 @@ export default function ManageStoresPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title="Lojas"
-        description="Adicione, edite ou remova lojas participantes."
+        description="Adicione, edite ou remova lojas participantes. Confirme o check-in das lojas presentes."
         icon={StoreIcon}
         iconClassName="text-secondary"
         actions={
@@ -956,12 +972,13 @@ export default function ManageStoresPage() {
                   <TableHead className="hidden lg:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Email (Login)</TableHead>
                   <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Município</TableHead>
                   <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Estado</TableHead>
+                  <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 text-center">Check-in</TableHead>
                   <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {stores.length === 0 && (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">Nenhuma loja cadastrada.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">Nenhuma loja cadastrada.</TableCell></TableRow>
                 )}
                 {stores.map((store) => (
                   <TableRow key={store.id} data-state={selectedStoreIds.has(store.id) ? "selected" : ""}>
@@ -978,6 +995,15 @@ export default function ManageStoresPage() {
                     <TableCell className="hidden lg:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{store.email || 'N/A'}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.city || 'N/A'}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{getDisplayState(store.state)}</TableCell>
+                    <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 text-center">
+                      <Switch
+                        checked={store.isCheckedIn}
+                        onCheckedChange={(checked) => handleToggleCheckIn(store.id, checked)}
+                        aria-label={`Marcar check-in para ${store.name}`}
+                        disabled={!store.participating}
+                        title={!store.participating ? "Loja não participante" : (store.isCheckedIn ? "Desfazer Check-in" : "Confirmar Check-in")}
+                      />
+                    </TableCell>
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleView(store)}>
                         <Eye className="h-4 w-4" /><span className="sr-only">Visualizar</span>
