@@ -136,7 +136,7 @@ export default function LandingPage() {
             <h2 id="fornecedores-heading" className="text-2xl sm:text-3xl font-semibold text-center mb-8 sm:mb-10 text-accent uppercase tracking-wider">FORNECEDORES PARTICIPANTES</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8 items-center px-4">
               {vendors.map(vendor => (
-                <div key={vendor.id} className="relative h-20 w-full">
+                <div key={vendor.id} className="relative h-28 w-full">
                   <Image
                     src={vendor.logoUrl}
                     alt={vendor.name}
