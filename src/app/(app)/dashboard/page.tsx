@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { loadStores, loadEvent, loadAwardTiers, loadVendors } from '@/lib/localStorageUtils';
 import { getRequiredPositivationsForStore, formatDisplayCNPJ } from '@/lib/utils';
 import type { Store, Event, AwardTier, Vendor } from '@/types';
-import { Store as StoreIcon, Trophy, LayoutDashboard, Briefcase, CheckSquare, Users, Percent, Activity } from 'lucide-react';
+import { Store as StoreIcon, Trophy, LayoutDashboard, Briefcase, CheckSquare, Users, Percent, Activity, Stamp } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -220,7 +220,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{checkedInStoresCount}</div>
             <p className="text-xs text-muted-foreground">
-              Total de lojas que confirmaram presença no evento.
+              Confirmaram presença no evento.
             </p>
           </CardContent>
         </Card>
@@ -244,6 +244,17 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{totalVendorsCount}</div>
             <p className="text-xs text-muted-foreground">Cadastrados no evento</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Selos (Positivações)</CardTitle>
+            <Stamp className="h-8 w-8 text-secondary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalPositivacoes}</div>
+            <p className="text-xs text-muted-foreground">Em lojas participantes do evento</p>
           </CardContent>
         </Card>
 
