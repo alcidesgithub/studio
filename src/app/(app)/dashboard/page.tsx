@@ -26,13 +26,6 @@ const vendorPositivationsChartConfig = {
   },
 } satisfies ChartConfig;
 
-const storesByStateChartConfig = {
-  lojas: {
-    label: "Lojas",
-    color: "hsl(var(--accent))",
-  },
-} satisfies ChartConfig;
-
 
 export default function DashboardPage() {
   const [stores, setStores] = useState<Store[]>([]);
@@ -168,18 +161,6 @@ export default function DashboardPage() {
       .slice(0, 10); // Display top 10
   }, [participatingStores, vendors]);
 
-  const storesByStateChartData = useMemo(() => {
-    if (stores.length === 0) return [];
-    const counts: Record<string, number> = {};
-    stores.forEach(store => {
-      const stateLabel = store.state ? ALL_BRAZILIAN_STATES.find(s => s.value === store.state)?.label.split(' (')[0] || store.state : 'Não Definido';
-      counts[stateLabel] = (counts[stateLabel] || 0) + 1;
-    });
-    return Object.entries(counts)
-      .map(([state, count]) => ({ name: state, lojas: count }))
-      .sort((a, b) => b.lojas - a.lojas);
-  }, [stores]);
-
 
   const calculateYAxisWidth = (data: {name: string}[]) => {
     const maxLabelLength = data.length > 0 ? Math.max(...data.map(d => d.name.length)) : 0;
@@ -190,7 +171,6 @@ export default function DashboardPage() {
 
   const tierChartYAxisWidth = useMemo(() => calculateYAxisWidth(tierDistributionChartData), [tierDistributionChartData]);
   const vendorChartYAxisWidth = useMemo(() => calculateYAxisWidth(positivationsByVendorChartData), [positivationsByVendorChartData]);
-  const stateChartYAxisWidth = useMemo(() => calculateYAxisWidth(storesByStateChartData), [storesByStateChartData]);
   
 
   if (!currentEvent) {
@@ -321,7 +301,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6"> {/* Changed to single column for the remaining chart */}
             <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader>
                     <CardTitle className="text-base font-semibold">Top Fornecedores por Positivações</CardTitle>
@@ -340,28 +320,6 @@ export default function DashboardPage() {
                         </ChartContainer>
                     ) : (
                         <p className="text-sm text-muted-foreground text-center py-8">Nenhuma positivação registrada para exibir o ranking.</p>
-                    )}
-                </CardContent>
-            </Card>
-
-            <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <CardHeader>
-                    <CardTitle className="text-base font-semibold">Distribuição de Lojas por Estado</CardTitle>
-                    <CardDescription className="text-xs">Número de lojas cadastradas por estado.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {storesByStateChartData.length > 0 ? (
-                        <ChartContainer config={storesByStateChartConfig} className="h-[250px] sm:h-[300px] w-full">
-                             <BarChart layout="vertical" data={storesByStateChartData} margin={{ top: 5, right: 15, left: stateChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : 5) , bottom: 5 }}>
-                                <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                                <XAxis type="number" allowDecimals={false} />
-                                <YAxis type="category" dataKey="name" width={stateChartYAxisWidth} tickLine={false} axisLine={false} className="text-xs" interval={0}/>
-                                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                <Bar dataKey="lojas" fill="var(--color-lojas)" radius={4} barSize={storesByStateChartData.length > 6 ? 18 : (storesByStateChartData.length > 3 ? 22 : 25)} />
-                            </BarChart>
-                        </ChartContainer>
-                    ) : (
-                         <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja cadastrada para exibir distribuição por estado.</p>
                     )}
                 </CardContent>
             </Card>
