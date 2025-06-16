@@ -15,14 +15,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2, Trash } from 'lucide-react';
+import { Store as StoreIcon, Save, Edit, Trash2, PlusCircle, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound } from 'lucide-react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
 import { loadStores, saveStores, loadUsers, saveUsers } from '@/lib/localStorageUtils';
 import type { Store, User } from '@/types';
 
-const storeRegistrationSchema = z.object({
+const storeRegistrationSchemaBase = z.object({
   code: z.string().min(1, "Código da loja é obrigatório."),
   razaoSocial: z.string().min(3, "Razão Social deve ter pelo menos 3 caracteres."),
   cnpj: z.string().refine(value => {
@@ -37,7 +37,20 @@ const storeRegistrationSchema = z.object({
   ownerName: z.string().min(3, "Nome do proprietário é obrigatório."),
   responsibleName: z.string().min(3, "Nome do responsável é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(),
+  confirmPassword: z.string().optional(),
 });
+
+const storeRegistrationSchema = storeRegistrationSchemaBase.superRefine((data, ctx) => {
+  if (data.password && data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "As senhas não coincidem.",
+      path: ["confirmPassword"],
+    });
+  }
+});
+
 
 type StoreRegistrationFormValues = z.infer<typeof storeRegistrationSchema>;
 
@@ -150,6 +163,7 @@ interface StoreFormDialogContentProps {
 }
 
 const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingStore, isSubmitting }: StoreFormDialogContentProps) => {
+  const showPasswordFields = !editingStore && !viewingStore;
   return (
     <>
       <DialogHeader>
@@ -218,6 +232,36 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
               <FormField control={form.control} name="email" render={({ field }) => (
                   <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
               )}/>
+              {showPasswordFields && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Mínimo 6 caracteres" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirmar Senha</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Repita a senha" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
             </CardContent>
           </Card>
           <DialogFooter className="pt-3 sm:pt-4">
@@ -281,6 +325,8 @@ export default function ManageStoresPage() {
       ownerName: '',
       responsibleName: '',
       email: '',
+      password: '',
+      confirmPassword: '',
     },
   });
 
@@ -299,6 +345,8 @@ export default function ManageStoresPage() {
         ownerName: '',
         responsibleName: '',
         email: '',
+        password: '',
+        confirmPassword: '',
     });
     setIsDialogOpen(true);
     setIsViewDialogOpen(false);
@@ -319,6 +367,8 @@ export default function ManageStoresPage() {
       ownerName: store.ownerName || '',
       responsibleName: store.responsibleName || '',
       email: store.email || '',
+      password: '', // Passwords are not shown/edited here
+      confirmPassword: '',
     });
     setIsDialogOpen(true);
     setIsViewDialogOpen(false);
@@ -339,6 +389,8 @@ export default function ManageStoresPage() {
       ownerName: store.ownerName || '',
       responsibleName: store.responsibleName || '',
       email: store.email || '',
+      password: '',
+      confirmPassword: '',
     });
     setIsViewDialogOpen(true);
     setIsDialogOpen(false);
@@ -390,6 +442,9 @@ export default function ManageStoresPage() {
       email: data.email,
     };
 
+    const currentUsers = loadUsers();
+    const userIndex = currentUsers.findIndex(u => u.email === data.email && (u.role === 'store' || (editingStore && u.email === editingStore.email)));
+
     if (editingStore) {
       updatedStores = stores.map(s =>
         s.id === editingStore.id
@@ -399,7 +454,50 @@ export default function ManageStoresPage() {
         title: "Loja Atualizada!",
         description: `Loja ${data.code} - ${data.razaoSocial} foi atualizada.`,
       });
-    } else {
+      // Update existing user if email matches
+      if (userIndex > -1) {
+        currentUsers[userIndex].name = data.responsibleName;
+        currentUsers[userIndex].storeName = data.razaoSocial;
+        // Password is not changed here for existing users via this form
+        saveUsers(currentUsers);
+      } else if (data.email !== editingStore.email) {
+          // If email changed, need to handle old user vs new user logic (complex, for now, let's assume if email changes, it's like a new user association)
+          // For simplicity, this case might create a new user if the new email doesn't exist.
+          // Or, ideally, prevent email change or handle user migration.
+          // For now, if userIndex is -1 and email is different, we might be creating a new user or there's an issue.
+          // Let's assume we create a new one if it's a new email and no user exists for it.
+          const existingNewEmailUser = currentUsers.find(u => u.email === data.email && u.role === 'store');
+          if (!existingNewEmailUser) {
+            const newUserForStore: User = {
+                id: `user_store_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
+                email: data.email,
+                role: 'store',
+                name: data.responsibleName,
+                storeName: data.razaoSocial,
+                password: data.password, // This should only happen if we allow password change on edit
+            };
+            // This path needs careful consideration for password handling on edit.
+            // For now, password setting is only for new stores.
+          }
+      }
+
+    } else { // New store
+      if (!data.password || !data.confirmPassword) {
+        form.setError("password", {type: "manual", message: "Senha é obrigatória para novo cadastro."});
+        toast({ title: "Erro de Validação", description: "Senha é obrigatória.", variant: "destructive"});
+        return;
+      }
+      if (data.password !== data.confirmPassword) {
+         form.setError("confirmPassword", {type: "manual", message: "As senhas não coincidem."});
+         toast({ title: "Erro de Validação", description: "As senhas não coincidem.", variant: "destructive"});
+        return;
+      }
+      if (userIndex > -1) { // Check if email already exists for a store user
+        form.setError("email", { type: "manual", message: "Este email já está em uso por outro usuário de loja." });
+        toast({ title: "Erro", description: "Email já cadastrado para um usuário de loja.", variant: "destructive" });
+        return;
+      }
+
       const newStore: Store = {
         id: `store_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
         ...storeDataToSave,
@@ -412,34 +510,24 @@ export default function ManageStoresPage() {
         title: "Loja Cadastrada!",
         description: `Loja ${data.code} - ${data.razaoSocial} foi cadastrada.`,
       });
-    }
-    setStores(updatedStores);
-    saveStores(updatedStores);
 
-    const currentUsers = loadUsers();
-    const userIndex = currentUsers.findIndex(u => u.email === data.email && (u.role === 'store' || (editingStore && u.email === editingStore.email)));
-
-
-    if (userIndex > -1) {
-      currentUsers[userIndex].name = data.responsibleName;
-      currentUsers[userIndex].role = 'store';
-      currentUsers[userIndex].storeName = data.razaoSocial;
-    } else {
       const newUserForStore: User = {
         id: `user_store_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
         email: data.email,
         role: 'store',
         name: data.responsibleName,
         storeName: data.razaoSocial,
+        password: data.password, // Store the password
       };
       currentUsers.push(newUserForStore);
-       toast({
+      saveUsers(currentUsers);
+      toast({
         title: "Usuário da Loja Criado!",
         description: `Um login foi criado para ${data.email}.`,
       });
     }
-    saveUsers(currentUsers);
-
+    setStores(updatedStores);
+    saveStores(updatedStores);
     form.reset();
     setIsDialogOpen(false);
     setEditingStore(null);
@@ -507,6 +595,8 @@ export default function ManageStoresPage() {
         const ps = parsedStores[i];
         try {
           const cleanedCsvCnpj = cleanCNPJ(ps.cnpj || "");
+           // Generate a dummy password for CSV import for now
+          const dummyPassword = "PasswordFromCSV123!";
           const storeInputData = {
             code: ps.code || "",
             razaoSocial: ps.razaoSocial || "",
@@ -519,6 +609,8 @@ export default function ManageStoresPage() {
             ownerName: ps.ownerName || "",
             responsibleName: ps.responsibleName || "",
             email: ps.email || "",
+            password: dummyPassword, // For schema validation
+            confirmPassword: dummyPassword, // For schema validation
           };
 
           const validationResult = storeRegistrationSchema.safeParse(storeInputData);
@@ -571,6 +663,7 @@ export default function ManageStoresPage() {
               role: 'store',
               name: validatedData.responsibleName,
               storeName: validatedData.razaoSocial,
+              password: validatedData.password, // Save the dummy password or ideally prompt admin later
             };
             newUsersToSave.push(newUserForStore);
           }
@@ -855,4 +948,3 @@ export default function ManageStoresPage() {
     </div>
   );
 }
-

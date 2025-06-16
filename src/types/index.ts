@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;
   name: string;
   storeName?: string; // For store users (vendor's company name) or store's own name
+  password?: string; // Added password field
 }
 
 export interface Event {
@@ -106,4 +107,3 @@ export interface SweepstakeWinnerRecord {
   storeName: string; // Includes Code, Name, CNPJ, State for easy display
   drawnAt: Date | string;
 }
-

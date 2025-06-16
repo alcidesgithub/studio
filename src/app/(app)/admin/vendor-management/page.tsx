@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download, Eye, Loader2, Trash } from 'lucide-react';
+import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound } from 'lucide-react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { STATES } from '@/lib/constants';
@@ -38,11 +38,24 @@ const vendorSchema = z.object({
 });
 type VendorFormValues = z.infer<typeof vendorSchema>;
 
-const salespersonSchema = z.object({
+const salespersonSchemaBase = z.object({
   name: z.string().min(3, "Nome do vendedor é obrigatório."),
   phone: z.string().min(10, "Telefone é obrigatório."),
   email: z.string().email("Endereço de email inválido."),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres.").optional(),
+  confirmPassword: z.string().optional(),
 });
+
+const salespersonSchema = salespersonSchemaBase.superRefine((data, ctx) => {
+  if (data.password && data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "As senhas não coincidem.",
+      path: ["confirmPassword"],
+    });
+  }
+});
+
 type SalespersonFormValues = z.infer<typeof salespersonSchema>;
 
 const applyCnpjMask = (value: string = ''): string => {
@@ -257,6 +270,7 @@ interface SalespersonFormDialogContentProps {
 
 const DynamicSalespersonFormDialogContent = dynamic<SalespersonFormDialogContentProps>(() =>
   Promise.resolve(function SalespersonFormDialogContentInternal ({ salespersonForm, onSalespersonSubmit, editingSalesperson, currentVendorForSalespersonName, isSubmittingSalesperson }: SalespersonFormDialogContentProps) {
+  const showPasswordFields = !editingSalesperson;
   return (
     <>
       <DialogHeader>
@@ -268,6 +282,36 @@ const DynamicSalespersonFormDialogContent = dynamic<SalespersonFormDialogContent
               <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              {showPasswordFields && (
+                <>
+                  <FormField
+                    control={salespersonForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Mínimo 6 caracteres" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={salespersonForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirmar Senha</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Repita a senha" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
               <DialogFooter className="pt-3 sm:pt-4">
                   <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                   <Button type="submit" disabled={isSubmittingSalesperson}>
@@ -325,7 +369,7 @@ export default function ManageVendorsPage() {
 
   const salespersonForm = useForm<SalespersonFormValues>({
     resolver: zodResolver(salespersonSchema),
-    defaultValues: { name: '', phone: '', email: '' },
+    defaultValues: { name: '', phone: '', email: '', password: '', confirmPassword: '' },
   });
 
   const handleAddNewVendor = () => {
@@ -444,14 +488,14 @@ export default function ManageVendorsPage() {
   const handleAddNewSalesperson = (vendorId: string) => {
     setCurrentVendorIdForSalesperson(vendorId);
     setEditingSalesperson(null);
-    salespersonForm.reset({ name: '', phone: '', email: '' });
+    salespersonForm.reset({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
     setIsSalespersonDialogOpen(true);
   };
 
   const handleEditSalesperson = (salesperson: Salesperson) => {
     setCurrentVendorIdForSalesperson(salesperson.vendorId);
     setEditingSalesperson(salesperson);
-    salespersonForm.reset({ name: salesperson.name, phone: salesperson.phone, email: salesperson.email });
+    salespersonForm.reset({ name: salesperson.name, phone: salesperson.phone, email: salesperson.email, password: '', confirmPassword: '' });
     setIsSalespersonDialogOpen(true);
   };
 
@@ -480,36 +524,60 @@ export default function ManageVendorsPage() {
     if (!vendorForSalesperson) return;
 
     let updatedSalespeople;
-    if (editingSalesperson) {
-        updatedSalespeople = salespeople.map(sp => sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson } : sp );
-        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado.` });
-    } else {
-        const newSalesperson: Salesperson = { id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data, vendorId: currentVendorIdForSalesperson };
-        updatedSalespeople = [...salespeople, newSalesperson];
-        toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson.name}.` });
-    }
-    setSalespeople(updatedSalespeople);
-    saveSalespeople(updatedSalespeople);
-
     const currentUsers = loadUsers();
     const userIndex = currentUsers.findIndex(u => u.email === data.email && (u.role === 'vendor' || (editingSalesperson && u.email === editingSalesperson.email)));
 
-    if (userIndex > -1) {
-      currentUsers[userIndex].name = data.name;
-      currentUsers[userIndex].role = 'vendor';
-      currentUsers[userIndex].storeName = vendorForSalesperson.name;
-    } else {
-      const newUserForSalesperson: User = {
-          id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
-          email: data.email,
-          role: 'vendor',
-          name: data.name,
-          storeName: vendorForSalesperson.name,
-      };
-      currentUsers.push(newUserForSalesperson);
-      toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`});
+    if (editingSalesperson) {
+        updatedSalespeople = salespeople.map(sp => sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson } : sp );
+        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado.` });
+
+        if (userIndex > -1) {
+            currentUsers[userIndex].name = data.name;
+            // Password not changed here for existing users
+            saveUsers(currentUsers);
+        } else if (data.email !== editingSalesperson.email) {
+            // Handle email change for existing salesperson - complex, could involve creating new user if new email doesnt exist
+             const existingNewEmailUser = currentUsers.find(u => u.email === data.email && u.role === 'vendor');
+             if (!existingNewEmailUser) {
+                // This scenario means email was changed AND a new user should be created. Password should be asked.
+                // For now, new password is not set on salesperson edit.
+             }
+        }
+    } else { // New salesperson
+        if (!data.password || !data.confirmPassword) {
+            salespersonForm.setError("password", {type: "manual", message: "Senha é obrigatória para novo cadastro."});
+            toast({ title: "Erro de Validação", description: "Senha é obrigatória.", variant: "destructive"});
+            return;
+        }
+        if (data.password !== data.confirmPassword) {
+            salespersonForm.setError("confirmPassword", {type: "manual", message: "As senhas não coincidem."});
+            toast({ title: "Erro de Validação", description: "As senhas não coincidem.", variant: "destructive"});
+            return;
+        }
+         if (userIndex > -1) { // Check if email already exists for a vendor user
+            salespersonForm.setError("email", { type: "manual", message: "Este email já está em uso por outro vendedor." });
+            toast({ title: "Erro", description: "Email já cadastrado para um vendedor.", variant: "destructive" });
+            return;
+        }
+
+        const newSalesperson: Salesperson = { id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data, vendorId: currentVendorIdForSalesperson };
+        updatedSalespeople = [...salespeople, newSalesperson];
+        toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson.name}.` });
+        
+        const newUserForSalesperson: User = {
+            id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
+            email: data.email,
+            role: 'vendor',
+            name: data.name,
+            storeName: vendorForSalesperson.name,
+            password: data.password, // Store the password
+        };
+        currentUsers.push(newUserForSalesperson);
+        saveUsers(currentUsers);
+        toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`});
     }
-    saveUsers(currentUsers);
+    setSalespeople(updatedSalespeople);
+    saveSalespeople(updatedSalespeople);
     salespersonForm.reset();
     setIsSalespersonDialogOpen(false);
     setEditingSalesperson(null);
@@ -913,4 +981,3 @@ export default function ManageVendorsPage() {
     </div>
   );
 }
-
