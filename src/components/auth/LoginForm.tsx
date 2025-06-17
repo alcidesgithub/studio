@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, type AuthenticatedUser } from '@/hooks/use-auth'; // Import AuthenticatedUser
 import { LogIn, Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
@@ -38,21 +38,22 @@ export function LoginForm() {
 
   const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
     setIsLoading(true);
-    const loggedInUser = await login(data.email, data.password); // Pass password to login
+    const loggedInUser: AuthenticatedUser | null = await login(data.email, data.password);
     setIsLoading(false);
 
     if (loggedInUser) {
       toast({
         title: "Login Bem-sucedido",
-        description: `Bem-vindo(a) de volta, ${loggedInUser.name}!`,
+        description: `Bem-vindo(a) de volta, ${loggedInUser.user_name}!`, // Use user_name from AuthenticatedUser
         variant: "success",
       });
-      if (loggedInUser.role === 'store') {
+      // Use app_role from AuthenticatedUser for routing
+      if (loggedInUser.app_role === 'store') {
         router.push('/store/positivacao');
-      } else if (loggedInUser.role === 'vendor') {
+      } else if (loggedInUser.app_role === 'vendor') {
         router.push('/vendor/positivacao');
-      } else {
-        router.push('/dashboard'); // For admin, manager
+      } else { // admin, manager
+        router.push('/dashboard');
       }
     } else {
       toast({
