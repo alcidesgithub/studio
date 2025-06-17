@@ -292,7 +292,7 @@ export default function DashboardPage() {
                   : noActiveParticipatingStores ? <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja com check-in para exibir distribuição.</p>
                   : <p className="text-sm text-muted-foreground text-center py-8">Nenhuma loja com check-in atingiu as faixas de premiação ainda.</p>
               ) : (
-                <ChartContainer config={tierChartConfig} className="h-[250px] sm:h-[300px] w-full">
+                <ChartContainer config={tierChartConfig} className="w-full">
                   <BarChart
                     layout="vertical"
                     accessibilityLayer 
@@ -337,7 +337,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                   {positivationsByVendorChartData.length > 0 ? (
-                      <ChartContainer config={vendorPositivationsChartConfig} className="h-[250px] sm:h-[300px] w-full">
+                      <ChartContainer config={vendorPositivationsChartConfig} className="w-full">
                           <BarChart layout="vertical" data={positivationsByVendorChartData} margin={{ top: 5, right: 15, left: vendorChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : 5) , bottom: 5 }}>
                               <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                               <XAxis type="number" allowDecimals={false} />
