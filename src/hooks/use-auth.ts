@@ -1,159 +1,108 @@
 
 "use client";
 
-import type { User as AppUser, UserRole } from '@/types'; // Renamed to AppUser to avoid conflict
-import { supabase } from '@/lib/supabaseClient';
+import type { User, UserRole } from '@/types';
+import { loadUsers, saveUsers } from '@/lib/localStorageUtils';
 import { useState, useEffect, useCallback } from 'react';
-import type { User as SupabaseAuthUser, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
-// Combine Supabase user data with our application-specific profile data
-export interface AuthenticatedUser extends SupabaseAuthUser {
-  app_role: UserRole; // Our application-specific role
-  user_name: string; // Our application-specific name
-  store_name?: string; // Our application-specific store/vendor name
+// This is our application's representation of an authenticated user.
+// It might differ from what a backend auth system like Supabase provides directly.
+export interface AuthenticatedUser extends User {
+  // For localStorage auth, User already has what we need.
+  // If switching to Supabase, this might combine Supabase user with profile data.
 }
 
 interface UseAuthReturn {
   user: AuthenticatedUser | null;
-  isLoading: boolean;
-  login: (email: string, password?: string) => Promise<AuthenticatedUser | null>;
+  isLoading: boolean; // Added to reflect that auth state might be loading
+  login: (email: string, password?: string) => Promise<AuthenticatedUser | null>; // Password optional if not always needed (e.g. magic link)
   logout: () => Promise<void>;
-  changePassword: (newPassword: string) => Promise<{ success: boolean; message: string; }>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
 }
-
-// Helper function to fetch user profile data from Supabase
-async function fetchUserProfile(userId: string): Promise<{ app_role: UserRole; user_name: string; store_name?: string } | null> {
-  try {
-    const { data, error } = await supabase
-      .from('profiles') // Assuming you have a 'profiles' table
-      .select('role, name, store_name')
-      .eq('id', userId)
-      .single();
-
-    if (error) {
-      console.error('Error fetching user profile:', error);
-      return null;
-    }
-    if (data) {
-      return { app_role: data.role as UserRole, user_name: data.name, store_name: data.store_name };
-    }
-    return null;
-  } catch (e) {
-    console.error('Exception fetching user profile:', e);
-    return null;
-  }
-}
-
 
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Start as true
 
   useEffect(() => {
     setIsLoading(true);
-    const getInitialUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id);
-        if (profile) {
-          setUser({ ...session.user, ...profile });
+    const storedUserJson = typeof window !== 'undefined' ? localStorage.getItem('currentUser') : null;
+    if (storedUserJson) {
+      try {
+        const storedUser = JSON.parse(storedUserJson) as AuthenticatedUser;
+        // Re-validate against the "DB" (localStorage users) to ensure consistency, e.g., if role changed
+        const users = loadUsers();
+        const validatedUser = users.find(u => u.id === storedUser.id);
+        if (validatedUser) {
+          setUser(validatedUser as AuthenticatedUser);
         } else {
-          // Profile not found, might indicate an issue or incomplete signup
-          // For now, treat as logged out to force re-auth or profile creation flow
-          await supabase.auth.signOut();
+          // User in session storage doesn't exist in "DB", clear it
+          localStorage.removeItem('currentUser');
           setUser(null);
         }
-      } else {
+      } catch (e) {
+        console.error("Failed to parse current user from localStorage", e);
+        localStorage.removeItem('currentUser');
         setUser(null);
       }
-      setIsLoading(false);
-    };
-
-    getInitialUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        setIsLoading(true);
-        if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile) {
-            setUser({ ...session.user, ...profile });
-          } else {
-            // If profile is missing after auth event, sign out to prevent partial login state
-            await supabase.auth.signOut();
-            setUser(null);
-            console.warn("User signed in but profile not found. Signing out.");
-          }
-        } else {
-          setUser(null);
-        }
-        setIsLoading(false);
-      }
-    );
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
+    }
+    setIsLoading(false);
   }, []);
 
   const login = useCallback(async (email: string, password?: string): Promise<AuthenticatedUser | null> => {
-    if (!password) {
-      console.error("Password is required for login with Supabase Auth.");
-      return null;
-    }
     setIsLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        console.error('Supabase login error:', error.message);
-        setIsLoading(false);
-        return null;
+    const users = loadUsers();
+    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+
+    if (foundUser) {
+      const authenticatedUser = { ...foundUser } as AuthenticatedUser;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('currentUser', JSON.stringify(authenticatedUser));
       }
-      if (data.user) {
-        const profile = await fetchUserProfile(data.user.id);
-        if (profile) {
-          const authenticatedUser = { ...data.user, ...profile };
-          setUser(authenticatedUser);
-          setIsLoading(false);
-          return authenticatedUser;
-        } else {
-          // User signed in but no profile, this is an issue. Sign them out.
-          await supabase.auth.signOut();
-          console.error('Login successful but profile not found for user:', data.user.id);
-          setIsLoading(false);
-          return null;
-        }
-      }
+      setUser(authenticatedUser);
       setIsLoading(false);
-      return null;
-    } catch (e) {
-      console.error('Exception during login:', e);
-      setIsLoading(false);
-      return null;
+      return authenticatedUser;
     }
+    setIsLoading(false);
+    return null;
   }, []);
 
   const logout = useCallback(async () => {
     setIsLoading(true);
-    await supabase.auth.signOut();
-    setUser(null); // setUser is already handled by onAuthStateChange, but this is for immediate UI update
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUser');
+    }
+    setUser(null);
     setIsLoading(false);
   }, []);
 
-  const changePassword = useCallback(async (newPassword: string): Promise<{ success: boolean; message: string; }> => {
-    // Supabase requires the user to be logged in to change their password.
-    // The old password is not required for the updateUser method if using a secure session.
-    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
-
-    if (error) {
-      console.error('Supabase change password error:', error.message);
-      return { success: false, message: error.message || "Erro ao alterar senha." };
+  const changePassword = useCallback(async (oldPassword: string, newPassword: string): Promise<{ success: boolean; message: string; }> => {
+    if (!user) {
+      return { success: false, message: "Nenhum usuário logado." };
     }
-    // The user object in state will be updated by onAuthStateChange if successful,
-    // or if any metadata changed that we'd care about.
-    // For password change, Supabase handles the session update.
+    const users = loadUsers();
+    const userIndex = users.findIndex(u => u.id === user.id);
+
+    if (userIndex === -1) {
+      return { success: false, message: "Usuário não encontrado." };
+    }
+
+    if (users[userIndex].password !== oldPassword) {
+      return { success: false, message: "Senha antiga incorreta." };
+    }
+
+    users[userIndex].password = newPassword;
+    saveUsers(users);
+
+    // Update user in state and localStorage
+    const updatedUser = { ...users[userIndex] } as AuthenticatedUser;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    }
+    setUser(updatedUser);
+
     return { success: true, message: "Senha alterada com sucesso!" };
-  }, []);
+  }, [user]);
 
   return { user, isLoading, login, logout, changePassword };
 }

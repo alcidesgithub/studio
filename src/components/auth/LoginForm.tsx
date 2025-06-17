@@ -44,13 +44,13 @@ export function LoginForm() {
     if (loggedInUser) {
       toast({
         title: "Login Bem-sucedido",
-        description: `Bem-vindo(a) de volta, ${loggedInUser.user_name}!`, // Use user_name from AuthenticatedUser
+        description: `Bem-vindo(a) de volta, ${loggedInUser.name}!`, 
         variant: "success",
       });
-      // Use app_role from AuthenticatedUser for routing
-      if (loggedInUser.app_role === 'store') {
+      
+      if (loggedInUser.role === 'store') {
         router.push('/store/positivacao');
-      } else if (loggedInUser.app_role === 'vendor') {
+      } else if (loggedInUser.role === 'vendor') {
         router.push('/vendor/positivacao');
       } else { // admin, manager
         router.push('/dashboard');

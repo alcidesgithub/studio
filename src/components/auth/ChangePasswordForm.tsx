@@ -10,10 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2, Save } from 'lucide-react'; // KeyRound removed
+import { Loader2, Save, KeyRound } from 'lucide-react';
 
-// For Supabase, we only need the new password and confirmation. Old password is not sent.
 const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, "Senha antiga é obrigatória."),
   newPassword: z.string().min(6, "Nova senha deve ter pelo menos 6 caracteres."),
   confirmPassword: z.string().min(6, "Confirmação de senha deve ter pelo menos 6 caracteres."),
 }).refine(data => data.newPassword === data.confirmPassword, {
@@ -28,31 +28,22 @@ interface ChangePasswordFormProps {
 }
 
 export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
-  const { changePassword, user } = useAuth(); // Get user to ensure one is logged in
+  const { changePassword } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ChangePasswordFormValues>({
     resolver: zodResolver(changePasswordSchema),
     defaultValues: {
+      oldPassword: '',
       newPassword: '',
       confirmPassword: '',
     },
   });
 
   const onSubmit: SubmitHandler<ChangePasswordFormValues> = async (data) => {
-    if (!user) {
-      toast({
-        title: "Erro",
-        description: "Você precisa estar logado para alterar a senha.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
-    // The oldPassword is not needed for Supabase's updateUser method for password change
-    const result = await changePassword(data.newPassword);
+    const result = await changePassword(data.oldPassword, data.newPassword);
     setIsLoading(false);
 
     if (result.success) {
@@ -75,6 +66,19 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="oldPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Senha Antiga</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="Sua senha atual" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="newPassword"
@@ -104,7 +108,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
         <Button
           type="submit"
           className="w-full font-semibold"
-          disabled={isLoading || !user} // Disable if no user is logged in
+          disabled={isLoading}
         >
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Alterar Senha
