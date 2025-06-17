@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, PlayCircle, CheckCircle, Gift, Store as StoreIcon } from 'lucide-react'; // Changed Users to StoreIcon
+import { Loader2, PlayCircle, CheckCircle, Gift, Store as StoreIcon } from 'lucide-react';
 import type { Store } from '@/types';
 import type { AwardTierWithStats } from '@/app/(app)/admin/sweepstakes-by-tier/page'; // Adjust path as necessary
 
@@ -100,7 +100,9 @@ export const SweepstakeAnimationDialog: React.FC<SweepstakeAnimationDialogProps>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-2xl text-center">Sorteio da Faixa: {tier.name}</DialogTitle>
+          <DialogTitle className="text-2xl text-center">
+            Sorteio da Faixa: <br /> {tier.name}
+          </DialogTitle>
           <DialogDescription className="text-center">
             Prêmio: <span className="font-semibold text-primary">{tier.rewardName}</span>
           </DialogDescription>
