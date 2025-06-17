@@ -278,33 +278,9 @@ export default function DashboardPage() {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div>
-                  <CardTitle className="text-base font-semibold">Top Fornecedores (Positivações em Lojas com Check-in)</CardTitle>
-                   <CardDescription className="text-xs mt-1">Fornecedores que mais concederam selos a lojas participantes com check-in.</CardDescription>
-                </div>
-                <Briefcase className="h-8 w-8 text-secondary" />
-              </CardHeader>
-              <CardContent>
-                  {positivationsByVendorChartData.length > 0 ? (
-                      <ChartContainer config={vendorPositivationsChartConfig} className="w-full">
-                          <BarChart layout="vertical" data={positivationsByVendorChartData} margin={{ top: 5, right: 15, left: vendorChartYAxisWidth - (typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : 5) , bottom: 5 }}>
-                              <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                              <XAxis type="number" allowDecimals={false} />
-                              <YAxis type="category" dataKey="name" width={vendorChartYAxisWidth} tickLine={false} axisLine={false} className="text-xs" interval={0} />
-                              <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                              <Bar dataKey="positivations" fill="var(--color-positivations)" radius={4} barSize={positivationsByVendorChartData.length > 6 ? 18 : (positivationsByVendorChartData.length > 3 ? 22 : 25)} />
-                          </BarChart>
-                      </ChartContainer>
-                  ) : (
-                      <p className="text-sm text-muted-foreground text-center py-8">Nenhuma positivação em lojas com check-in registrada para exibir o ranking.</p>
-                  )}
-              </CardContent>
-          </Card>
-        </div>
+          {/* The "Top Fornecedores" card has been removed from here */}
+      </div>
     </div>
   );
 }
     
-
