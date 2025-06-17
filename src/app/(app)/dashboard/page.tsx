@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { loadStores, loadEvent, loadAwardTiers, loadVendors } from '@/lib/localStorageUtils';
 import { getRequiredPositivationsForStore, formatDisplayCNPJ } from '@/lib/utils';
 import type { Store, Event, AwardTier, Vendor } from '@/types';
-import { Store as StoreIcon, Trophy, LayoutDashboard, Briefcase, CheckSquare, Users, Percent, Activity, BadgeCheck } from 'lucide-react';
+import { Store as StoreIcon, Trophy, LayoutDashboard, Briefcase, CheckSquare, Users, Percent, Activity, BadgeCheck, Hash } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
@@ -235,7 +235,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Percentual de Check-in</CardTitle>
-            <Activity className="h-8 w-8 text-secondary" />
+            <Percent className="h-8 w-8 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{checkedInPercentage}%</div>
@@ -268,7 +268,7 @@ export default function DashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Média Selos / Loja Presente</CardTitle>
-            <Percent className="h-8 w-8 text-secondary" />
+            <Hash className="h-8 w-8 text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{averagePositivationsPerCheckedInStore}</div>
@@ -284,3 +284,4 @@ export default function DashboardPage() {
   );
 }
     
+
