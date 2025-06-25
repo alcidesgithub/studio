@@ -32,7 +32,6 @@ const navItemsByRole = {
     { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
     { href: '/event', label: 'Info Evento', icon: MapPin },
     { group: 'Visualização' },
-    { href: '/admin/event-management', label: 'Gerenciar Evento', icon: Edit3 },
     { href: '/admin/vendor-management', label: 'Fornecedores', icon: Briefcase },
     { href: '/admin/store-registration', label: 'Lojas', icon: Store },
     { href: '/admin/awards', label: 'Premiação', icon: Trophy },
