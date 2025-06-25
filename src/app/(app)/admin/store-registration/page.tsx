@@ -896,7 +896,7 @@ export default function ManageStoresPage() {
           }
           importedCount++;
         } catch (error) {
-            validationErrors.push(`Linha ${i + 2} (Loja ${ps.code || 'sem nome'}): Erro inesperado - ${(error as Error).message}`);
+            validationErrors.push(`Linha ${i + 2} (Loja ${ps.code || 'Sem nome'}): Erro inesperado - ${(error as Error).message}`);
         }
       }
 
@@ -991,7 +991,6 @@ export default function ManageStoresPage() {
   };
 
   const handleToggleCheckIn = (storeId: string, checked: boolean) => {
-    if (isManager) return;
     const updatedStores = stores.map(s =>
       s.id === storeId ? { ...s, isCheckedIn: checked } : s
     );
@@ -1316,7 +1315,7 @@ export default function ManageStoresPage() {
                         checked={store.isCheckedIn}
                         onCheckedChange={(checked) => handleToggleCheckIn(store.id, checked)}
                         aria-label={`Marcar check-in para ${store.name}`}
-                        disabled={!store.participating || isManager}
+                        disabled={!store.participating}
                         title={!store.participating ? "Loja não participante" : (store.isCheckedIn ? "Desfazer Check-in" : "Confirmar Check-in")}
                       />
                     </TableCell>
