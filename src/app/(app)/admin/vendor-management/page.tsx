@@ -166,14 +166,13 @@ interface VendorFormDialogContentProps {
   handleEditSalesperson: (salesperson: Salesperson) => void;
   confirmDeleteSalesperson: (salesperson: Salesperson) => void;
   isSubmittingVendor: boolean;
-  isManager: boolean;
 }
 
 const DynamicVendorFormDialogContent = dynamic<VendorFormDialogContentProps>(() =>
   Promise.resolve(function VendorFormDialogContentInternal ({
     vendorForm, onVendorSubmit, editingVendor, viewingVendor, currentVendorInDialog,
     salespeopleForCurrentVendorInDialog, handleAddNewSalesperson, handleEditSalesperson,
-    confirmDeleteSalesperson, isSubmittingVendor, isManager
+    confirmDeleteSalesperson, isSubmittingVendor
   }: VendorFormDialogContentProps) {
     return (
       <>
@@ -189,7 +188,7 @@ const DynamicVendorFormDialogContent = dynamic<VendorFormDialogContentProps>(() 
         </DialogHeader>
         <Form {...vendorForm}>
           <form onSubmit={vendorForm.handleSubmit(onVendorSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
-            <fieldset disabled={!!viewingVendor || isManager}>
+            <fieldset disabled={!!viewingVendor}>
               <Card>
                 <CardHeader><CardTitle className="text-lg sm:text-xl">Informações do Fornecedor</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
@@ -233,7 +232,7 @@ const DynamicVendorFormDialogContent = dynamic<VendorFormDialogContentProps>(() 
               <Card className="mt-4 sm:mt-6">
                 <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <div><CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
-                  {!viewingVendor && !isManager && (
+                  {!viewingVendor && (
                       <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(currentVendorInDialog.id)} className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
                   )}
                 </CardHeader>
@@ -244,14 +243,14 @@ const DynamicVendorFormDialogContent = dynamic<VendorFormDialogContentProps>(() 
                           <TableHead className="px-2 py-3 sm:px-4">Nome</TableHead>
                           <TableHead className="px-2 py-3 sm:px-4">Email (Login)</TableHead>
                           <TableHead className="hidden sm:table-cell px-2 py-3 sm:px-4">Telefone</TableHead>
-                          {!viewingVendor && !isManager && <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>}
+                          {!viewingVendor && <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>}
                       </TableRow></TableHeader>
                       <TableBody>{salespeopleForCurrentVendorInDialog.map(sp => (
                           <TableRow key={sp.id}>
                               <TableCell className="px-2 py-3 sm:px-4">{sp.name}</TableCell>
                               <TableCell className="px-2 py-3 sm:px-4 break-words">{sp.email}</TableCell>
                               <TableCell className="hidden sm:table-cell px-2 py-3 sm:px-4">{sp.phone}</TableCell>
-                              {!viewingVendor && !isManager && (
+                              {!viewingVendor && (
                                   <TableCell className="text-right px-2 py-3 sm:px-4">
                                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
                                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button>
@@ -270,7 +269,7 @@ const DynamicVendorFormDialogContent = dynamic<VendorFormDialogContentProps>(() 
                       {viewingVendor ? 'Fechar' : 'Cancelar'}
                   </Button>
               </DialogClose>
-              {!viewingVendor && !isManager && (
+              {!viewingVendor && (
                   <Button type="submit" disabled={isSubmittingVendor}>
                     {isSubmittingVendor ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                      {editingVendor ? 'Salvar Alterações' : 'Cadastrar'}
@@ -436,7 +435,6 @@ export default function ManageVendorsPage() {
   });
 
   const handleAddNewVendor = () => {
-    if (isManager) return;
     setEditingVendor(null);
     setViewingVendor(null);
     vendorForm.reset({
@@ -448,7 +446,6 @@ export default function ManageVendorsPage() {
   };
 
   const handleEditVendor = (vendor: Vendor) => {
-    if (isManager) return;
     setEditingVendor(vendor);
     setViewingVendor(null);
     vendorForm.reset({
@@ -482,12 +479,11 @@ export default function ManageVendorsPage() {
 
 
   const confirmDeleteVendor = (vendor: Vendor) => {
-    if (isManager) return;
     setVendorToDelete(vendor);
   };
 
   const handleDeleteVendor = () => {
-    if (!vendorToDelete || isManager) return;
+    if (!vendorToDelete) return;
     const currentUsers = loadUsers();
     let usersModified = false;
     const salespeopleOfVendor = salespeople.filter(sp => sp.vendorId === vendorToDelete.id);
@@ -519,10 +515,6 @@ export default function ManageVendorsPage() {
   };
 
   const onVendorSubmit = (data: VendorFormValues) => {
-    if (isManager) {
-        toast({ title: "Acesso Negado", description: "Você não tem permissão para modificar fornecedores.", variant: "destructive"});
-        return;
-    }
     let updatedVendors;
     const rawCnpj = cleanCNPJ(data.cnpj);
     const initialEditingVendor = editingVendor;
@@ -564,7 +556,6 @@ export default function ManageVendorsPage() {
   };
 
   const handleAddNewSalesperson = (vendorId: string) => {
-    if (isManager) return;
     setCurrentVendorIdForSalesperson(vendorId);
     setEditingSalesperson(null);
     salespersonForm.reset({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
@@ -572,7 +563,6 @@ export default function ManageVendorsPage() {
   };
 
   const handleEditSalesperson = (salesperson: Salesperson) => {
-    if (isManager) return;
     setCurrentVendorIdForSalesperson(salesperson.vendorId);
     setEditingSalesperson(salesperson);
     salespersonForm.reset({ name: salesperson.name, phone: salesperson.phone, email: salesperson.email, password: '', confirmPassword: '' });
@@ -580,12 +570,11 @@ export default function ManageVendorsPage() {
   };
 
   const confirmDeleteSalesperson = (salesperson: Salesperson) => {
-    if (isManager) return;
     setSalespersonToDelete(salesperson);
   };
 
   const handleDeleteSalesperson = () => {
-    if (!salespersonToDelete || isManager) return;
+    if (!salespersonToDelete) return;
     const currentUsers = loadUsers();
     const usersToKeep = currentUsers.filter(u => !(u.email === salespersonToDelete.email && u.role === 'vendor'));
     if (usersToKeep.length < currentUsers.length) {
@@ -600,7 +589,7 @@ export default function ManageVendorsPage() {
   };
 
   const onSalespersonSubmit = (data: SalespersonFormValues) => {
-    if (isManager || !currentVendorIdForSalesperson) return;
+    if (!currentVendorIdForSalesperson) return;
     const vendorForSalesperson = vendors.find(v => v.id === currentVendorIdForSalesperson);
     if (!vendorForSalesperson) return;
 
@@ -669,7 +658,6 @@ export default function ManageVendorsPage() {
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (isManager) return;
     const file = event.target.files?.[0];
     if (file) {
       setCsvFile(file);
@@ -682,7 +670,6 @@ export default function ManageVendorsPage() {
   };
 
   const handleProcessImport = async () => {
-    if (isManager) return;
     if (!csvFile) {
       toast({ title: "Nenhum arquivo selecionado", description: "Por favor, selecione um arquivo CSV.", variant: "destructive" });
       return;
@@ -799,7 +786,6 @@ export default function ManageVendorsPage() {
   }, [salespeople, currentVendorInDialog]);
 
   const handleSelectVendor = (vendorId: string) => {
-    if (isManager) return;
     setSelectedVendorIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(vendorId)) {
@@ -812,7 +798,6 @@ export default function ManageVendorsPage() {
   };
 
   const handleSelectAllVendors = () => {
-    if (isManager) return;
     if (selectedVendorIds.size === filteredVendors.length) { // Use filteredVendors for "select all" logic
       setSelectedVendorIds(new Set());
     } else {
@@ -821,7 +806,7 @@ export default function ManageVendorsPage() {
   };
 
   const handleConfirmDeleteSelectedVendors = () => {
-    if (isManager || selectedVendorIds.size === 0) return;
+    if (selectedVendorIds.size === 0) return;
 
     const currentUsers = loadUsers();
     let usersModified = false;
@@ -887,25 +872,23 @@ export default function ManageVendorsPage() {
     <div className="animate-fadeIn space-y-6 sm:space-y-8">
       <PageHeader
         title="Fornecedores"
-        description={isManager ? "Visualizando fornecedores. Apenas administradores podem editar." : "Adicione, edite ou remova fornecedores e gerencie seus vendedores."}
+        description="Adicione, edite ou remova fornecedores e gerencie seus vendedores."
         icon={Briefcase}
         iconClassName="text-secondary"
         actions={
-          !isManager && (
-            <div className="flex flex-col sm:flex-row gap-2">
-              {selectedVendorIds.size > 0 && (
-                <Button onClick={() => setIsDeleteSelectedConfirmOpen(true)} variant="destructive" className="w-full sm:w-auto">
-                  <Trash className="mr-2 h-4 w-4" /> Excluir ({selectedVendorIds.size})
-                </Button>
-              )}
-              <Button onClick={() => setIsImportDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
-                <UploadCloud className="mr-2 h-4 w-4" /> Importar (CSV)
+          <div className="flex flex-col sm:flex-row gap-2">
+            {selectedVendorIds.size > 0 && (
+              <Button onClick={() => setIsDeleteSelectedConfirmOpen(true)} variant="destructive" className="w-full sm:w-auto">
+                <Trash className="mr-2 h-4 w-4" /> Excluir ({selectedVendorIds.size})
               </Button>
-              <Button onClick={handleAddNewVendor} className="w-full sm:w-auto">
-                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fornecedor
-              </Button>
-            </div>
-          )
+            )}
+            <Button onClick={() => setIsImportDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
+              <UploadCloud className="mr-2 h-4 w-4" /> Importar (CSV)
+            </Button>
+            <Button onClick={handleAddNewVendor} className="w-full sm:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fornecedor
+            </Button>
+          </div>
         }
       />
 
@@ -950,7 +933,6 @@ export default function ManageVendorsPage() {
               handleEditSalesperson={handleEditSalesperson}
               confirmDeleteSalesperson={confirmDeleteSalesperson}
               isSubmittingVendor={vendorForm.formState.isSubmitting}
-              isManager={isManager}
             />
           )}
         </DialogContent>
@@ -1000,7 +982,6 @@ export default function ManageVendorsPage() {
                 accept=".csv"
                 onChange={handleFileSelect}
                 className="h-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                disabled={isManager}
               />
             </div>
             {csvFileName && (
@@ -1024,7 +1005,7 @@ export default function ManageVendorsPage() {
             <DialogClose asChild>
               <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button onClick={handleProcessImport} disabled={!csvFile || importLoading || isManager}>
+            <Button onClick={handleProcessImport} disabled={!csvFile || importLoading}>
               {importLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
               {importLoading ? 'Importando...' : 'Importar Arquivo'}
             </Button>
@@ -1072,7 +1053,7 @@ export default function ManageVendorsPage() {
                         checked={isAllVendorsSelected}
                         onCheckedChange={handleSelectAllVendors}
                         aria-label="Selecionar todos os fornecedores visíveis"
-                        disabled={filteredVendors.length === 0 || isManager}
+                        disabled={filteredVendors.length === 0}
                       />
                   </TableHead>
                   <TableHead className="w-[60px] sm:w-[80px] px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Logo</TableHead>
@@ -1097,7 +1078,6 @@ export default function ManageVendorsPage() {
                         checked={selectedVendorIds.has(vendor.id)}
                         onCheckedChange={() => handleSelectVendor(vendor.id)}
                         aria-label={`Selecionar fornecedor ${vendor.name}`}
-                        disabled={isManager}
                       />
                     </TableCell>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" data-ai-hint="vendor logo" /></TableCell>
@@ -1108,12 +1088,10 @@ export default function ManageVendorsPage() {
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleViewVendor(vendor)}><Eye className="h-4 w-4" /><span className="sr-only">Visualizar</span></Button>
-                      {!isManager && (
-                        <>
-                          <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
-                          <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteVendor(vendor)}><Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span></Button>
-                        </>
-                      )}
+                      <>
+                        <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
+                        <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteVendor(vendor)}><Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span></Button>
+                      </>
                     </TableCell>
                   </TableRow>
                 ))}
