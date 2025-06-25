@@ -1085,7 +1085,7 @@ export default function ManageStoresPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title="Lojas"
-        description={isReadOnlyForRole ? "Visualizando lojas e fazendo check-in. Apenas administradores podem editar." : "Adicione, edite ou remova lojas participantes. Confirme o check-in das lojas presentes."}
+        description={isReadOnlyForRole ? "Visualizando lojas e fazendo check-in." : "Adicione, edite ou remova lojas participantes. Confirme o check-in das lojas presentes."}
         icon={StoreIcon}
         iconClassName="text-secondary"
         actions={
@@ -1317,7 +1317,7 @@ export default function ManageStoresPage() {
                         checked={store.isCheckedIn}
                         onCheckedChange={(checked) => handleToggleCheckIn(store.id, checked)}
                         aria-label={`Marcar check-in para ${store.name}`}
-                        disabled={!store.participating}
+                        disabled={!store.participating || isReadOnlyForRole}
                         title={!store.participating ? "Loja não participante" : (store.isCheckedIn ? "Desfazer Check-in" : "Confirmar Check-in")}
                       />
                     </TableCell>
