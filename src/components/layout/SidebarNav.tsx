@@ -86,12 +86,11 @@ export function SidebarNav() {
         >
           <Building className="h-8 w-8 text-primary" />
           <Image
-            src="https://i.imgur.com/qlwlELF.png"
+            src="/logo-app.png"
             alt="Logo Hiperfarma BMM"
             width={128}
             height={32}
             className="object-contain group-data-[collapsible=icon]:hidden"
-            data-ai-hint="event logo"
             priority
           />
         </Link>

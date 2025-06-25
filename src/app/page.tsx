@@ -72,12 +72,11 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="mb-6 sm:mb-10 flex justify-center">
             <Image
-              src="https://i.imgur.com/qlwlELF.png"
+              src="/logo-app.png"
               alt="Encontro de Negócios Hiperfarma"
               width={300}
               height={75}
-              style={{ objectFit: "contain" }}
-              data-ai-hint="event logo"
+              className="object-contain"
               priority
             />
           </div>
@@ -156,12 +155,11 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center mb-4">
              <Image
-              src="https://i.imgur.com/qlwlELF.png" 
-              alt="Negócios Hiperfarma"
+              src="/logo-app.png" 
+              alt="Logo Hiperfarma"
               width={180}
               height={45}
-              style={{ objectFit: "contain" }}
-              data-ai-hint="company logo small"
+              className="object-contain"
             />
           </div>
           <p className="text-xs text-muted-foreground">&copy; {currentYear} Rede Hiperfarma. Todos os direitos reservados.</p>
