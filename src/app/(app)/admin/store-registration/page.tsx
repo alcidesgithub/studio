@@ -1317,7 +1317,7 @@ export default function ManageStoresPage() {
                         checked={store.isCheckedIn}
                         onCheckedChange={(checked) => handleToggleCheckIn(store.id, checked)}
                         aria-label={`Marcar check-in para ${store.name}`}
-                        disabled={!store.participating || isReadOnlyForRole}
+                        disabled={!store.participating}
                         title={!store.participating ? "Loja não participante" : (store.isCheckedIn ? "Desfazer Check-in" : "Confirmar Check-in")}
                       />
                     </TableCell>
