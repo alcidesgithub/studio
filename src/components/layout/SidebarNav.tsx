@@ -31,8 +31,12 @@ const navItemsByRole = {
   manager: [
     { href: '/dashboard', label: 'Painel', icon: LayoutDashboard },
     { href: '/event', label: 'Info Evento', icon: MapPin },
-    { href: '/admin/sweepstakes-by-tier', label: 'Sorteios', icon: Dice6 },
+    { group: 'Visualização' },
+    { href: '/admin/event-management', label: 'Gerenciar Evento', icon: Edit3 },
     { href: '/admin/vendor-management', label: 'Fornecedores', icon: Briefcase },
+    { href: '/admin/store-registration', label: 'Lojas', icon: Store },
+    { href: '/admin/awards', label: 'Premiação', icon: Trophy },
+    { href: '/admin/sweepstakes-by-tier', label: 'Sorteios', icon: Dice6 },
   ],
   vendor: [
     { href: '/event', label: 'Info Evento', icon: MapPin },
