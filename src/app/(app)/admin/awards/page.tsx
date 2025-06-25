@@ -17,6 +17,7 @@ import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 const awardTierSchema = z.object({
   name: z.string().min(3, { message: "Nome da faixa deve ter pelo menos 3 caracteres." }),
@@ -39,9 +40,10 @@ interface AwardTierFormDialogContentProps {
   editingTier: AwardTier | null;
   viewingTier: AwardTier | null;
   isSubmitting: boolean;
+  isManager: boolean;
 }
 
-const AwardTierFormDialogContentInternal = ({ form, onSubmit, editingTier, viewingTier, isSubmitting }: AwardTierFormDialogContentProps) => {
+const AwardTierFormDialogContentInternal = ({ form, onSubmit, editingTier, viewingTier, isSubmitting, isManager }: AwardTierFormDialogContentProps) => {
   return (
     <>
       <DialogHeader>
@@ -56,80 +58,82 @@ const AwardTierFormDialogContentInternal = ({ form, onSubmit, editingTier, viewi
       </DialogHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome da Faixa</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: Bronze, Prata, Ouro" {...field} disabled={!!viewingTier} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="rewardName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome / Descrição do Prêmio</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: Cartão Presente R$100, Tablet XYZ" {...field} disabled={!!viewingTier} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="quantityAvailable"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantidade Disponível</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="Ex: 10" {...field} disabled={!!viewingTier} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <fieldset disabled={isManager || !!viewingTier}>
             <FormField
-                control={form.control}
-                name="positivacoesRequiredPR"
-                render={({ field }) => (
+              control={form.control}
+              name="name"
+              render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Positivações Req. (PR)</FormLabel>
-                    <FormControl>
-                    <Input type="number" placeholder="Ex: 5" {...field} disabled={!!viewingTier} />
-                    </FormControl>
-                    <FormMessage />
+                  <FormLabel>Nome da Faixa</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Bronze, Prata, Ouro" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
-                )}
+              )}
             />
             <FormField
-                control={form.control}
-                name="positivacoesRequiredSC"
-                render={({ field }) => (
+              control={form.control}
+              name="rewardName"
+              render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Positivações Req. (SC)</FormLabel>
-                    <FormControl>
-                    <Input type="number" placeholder="Ex: 5" {...field} disabled={!!viewingTier} />
-                    </FormControl>
-                    <FormMessage />
+                  <FormLabel>Nome / Descrição do Prêmio</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Cartão Presente R$100, Tablet XYZ" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
-                )}
+              )}
             />
-          </div>
+            <FormField
+              control={form.control}
+              name="quantityAvailable"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantidade Disponível</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="Ex: 10" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <FormField
+                  control={form.control}
+                  name="positivacoesRequiredPR"
+                  render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Positivações Req. (PR)</FormLabel>
+                      <FormControl>
+                      <Input type="number" placeholder="Ex: 5" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                  </FormItem>
+                  )}
+              />
+              <FormField
+                  control={form.control}
+                  name="positivacoesRequiredSC"
+                  render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Positivações Req. (SC)</FormLabel>
+                      <FormControl>
+                      <Input type="number" placeholder="Ex: 5" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                  </FormItem>
+                  )}
+              />
+            </div>
+          </fieldset>
           <DialogFooter className="pt-3 sm:pt-4">
              <DialogClose asChild>
                <Button type="button" variant="outline">
                     {viewingTier ? 'Fechar' : 'Cancelar'}
                </Button>
             </DialogClose>
-            {!viewingTier && (
+            {!viewingTier && !isManager && (
                 <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                      {editingTier ? 'Salvar Alterações' : 'Criar Faixa'}
@@ -168,6 +172,8 @@ export default function AdminAwardsPage() {
   const [viewingTier, setViewingTier] = useState<AwardTier | null>(null);
   const [tiers, setTiers] = useState<AwardTier[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isManager = user?.role === 'manager';
 
   useEffect(() => {
     let loadedTiers = loadAwardTiers();
@@ -195,6 +201,7 @@ export default function AdminAwardsPage() {
   });
 
   const handleAddNew = () => {
+    if (isManager) return;
     setEditingTier(null);
     setViewingTier(null);
     form.reset({
@@ -209,6 +216,7 @@ export default function AdminAwardsPage() {
   };
 
   const handleEdit = (tier: AwardTier) => {
+    if (isManager) return;
     setEditingTier(tier);
     setViewingTier(null);
     form.reset({
@@ -237,6 +245,7 @@ export default function AdminAwardsPage() {
   };
 
   const handleDelete = (tierId: string) => {
+    if (isManager) return;
     let updatedTiers = tiers.filter(t => t.id !== tierId);
     updatedTiers = reassignSortOrders(updatedTiers);
     setTiers(updatedTiers);
@@ -249,6 +258,14 @@ export default function AdminAwardsPage() {
   };
 
   const onSubmit = (data: AwardTierFormValues) => {
+    if (isManager) {
+      toast({
+        title: "Acesso Negado",
+        description: "Você não tem permissão para modificar faixas de premiação.",
+        variant: "destructive"
+      });
+      return;
+    }
     let updatedTiers;
     const tierDataToSave = {
         name: data.name,
@@ -293,6 +310,7 @@ export default function AdminAwardsPage() {
   };
 
   const moveTier = (tierId: string, direction: 'up' | 'down') => {
+    if (isManager) return;
     const currentIndex = tiers.findIndex(t => t.id === tierId);
     if (currentIndex === -1) return;
 
@@ -314,13 +332,15 @@ export default function AdminAwardsPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title="Faixas de premiação"
-        description="Defina e gerencie as faixas de premiação. Use as setas para reordenar."
+        description={isManager ? "Visualizando faixas de premiação. Apenas administradores podem editar." : "Defina e gerencie as faixas de premiação. Use as setas para reordenar."}
         icon={Trophy}
         iconClassName="text-secondary"
         actions={
-          <Button onClick={handleAddNew} className="w-full sm:w-auto">
-            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Faixa
-          </Button>
+          !isManager && (
+            <Button onClick={handleAddNew} className="w-full sm:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Faixa
+            </Button>
+          )
         }
       />
 
@@ -344,6 +364,7 @@ export default function AdminAwardsPage() {
                 editingTier={editingTier}
                 viewingTier={viewingTier}
                 isSubmitting={form.formState.isSubmitting}
+                isManager={isManager}
              />
           )}
         </DialogContent>
@@ -359,7 +380,7 @@ export default function AdminAwardsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ordem</TableHead>
+                  {!isManager && <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ordem</TableHead>}
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Nome da Faixa</TableHead>
                   <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Prêmio</TableHead>
                   <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Quantidade</TableHead>
@@ -371,16 +392,18 @@ export default function AdminAwardsPage() {
               <TableBody>
                 {tiers.map((tier, index) => (
                   <TableRow key={tier.id}>
-                    <TableCell className="w-20 sm:w-24 px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveTier(tier.id, 'up')} disabled={index === 0}>
-                          <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="sr-only">Mover para Cima</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveTier(tier.id, 'down')} disabled={index === tiers.length - 1}>
-                          <ArrowDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="sr-only">Mover para Baixo</span>
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {!isManager && (
+                      <TableCell className="w-20 sm:w-24 px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveTier(tier.id, 'up')} disabled={index === 0}>
+                            <ArrowUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="sr-only">Mover para Cima</span>
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveTier(tier.id, 'down')} disabled={index === tiers.length - 1}>
+                            <ArrowDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span className="sr-only">Mover para Baixo</span>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{tier.name}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{tier.rewardName}</TableCell>
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{tier.quantityAvailable}</TableCell>
@@ -391,14 +414,18 @@ export default function AdminAwardsPage() {
                         <Eye className="h-4 w-4" />
                         <span className="sr-only">Visualizar</span>
                       </Button>
-                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(tier)}>
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Editar</span>
-                      </Button>
-                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleDelete(tier.id)}>
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Excluir</span>
-                      </Button>
+                      {!isManager && (
+                        <>
+                          <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(tier)}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Editar</span>
+                          </Button>
+                          <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleDelete(tier.id)}>
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Excluir</span>
+                          </Button>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -413,4 +440,3 @@ export default function AdminAwardsPage() {
     </div>
   );
 }
-

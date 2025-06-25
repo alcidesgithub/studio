@@ -15,6 +15,7 @@ import { Dice6, ListChecks, Trophy, Download, PlayCircle, RotateCcw, Trash2, Shi
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAuth } from '@/hooks/use-auth';
 
 const SweepstakeAnimationDialog = dynamic(() =>
   import('@/components/dialogs/SweepstakeAnimationDialog').then((mod) => mod.SweepstakeAnimationDialog),
@@ -58,6 +59,8 @@ export type AwardTierWithStats = AwardTier & {
 export default function AdminTieredSweepstakesPage() {
   const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isManager = user?.role === 'manager';
 
   const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
@@ -147,6 +150,7 @@ export default function AdminTieredSweepstakesPage() {
 
 
   const handleExportLog = useCallback(() => {
+    if (isManager) return;
     if (drawnWinners.length === 0) {
       toast({ title: "Nenhum vencedor para exportar", description: "Sorteie alguns vencedores primeiro.", variant: "default" });
       return;
@@ -162,52 +166,56 @@ export default function AdminTieredSweepstakesPage() {
     }));
     exportToCSV(dataToExport, `log_vencedores_sorteio_faixas_${currentEvent?.name.replace(/\s+/g, '_') || 'evento'}`);
     toast({ title: "Log Exportado", description: "O log de vencedores do sorteio foi exportado para um arquivo CSV.", variant: "success" });
-  }, [drawnWinners, currentEvent, toast]);
+  }, [drawnWinners, currentEvent, toast, isManager]);
 
   const openResetAllConfirmDialog = useCallback(() => {
+    if (isManager) return;
     if (drawnWinners.length === 0) {
       toast({ title: "Sorteio já está limpo", description: "Não há vencedores para resetar.", variant: "default" });
       return;
     }
     setIsResetAllConfirmOpen(true);
-  }, [drawnWinners.length, toast]);
+  }, [drawnWinners.length, toast, isManager]);
 
   const handleResetAllSweepstakes = useCallback(() => {
+    if (isManager) return;
     setDrawnWinners([]);
     saveDrawnWinners([]); 
     toast({ title: "Sorteio Resetado", description: "Todos os vencedores sorteados foram removidos.", variant: "destructive" });
     setIsResetAllConfirmOpen(false);
-  }, [toast]);
+  }, [toast, isManager]);
 
   const openResetTierConfirmDialog = useCallback((tier: AwardTierWithStats) => {
+    if (isManager) return;
      if (tier.winners.length === 0) {
       toast({ title: "Faixa já está limpa", description: `Não há vencedores para resetar na faixa ${tier.name}.`, variant: "default" });
       return;
     }
     setTierToReset(tier);
-  }, [toast]);
+  }, [toast, isManager]);
   
   const handleResetTierSweepstakes = useCallback(() => {
-    if (!tierToReset) return;
+    if (!tierToReset || isManager) return;
     const updatedWinners = drawnWinners.filter(w => w.tierId !== tierToReset.id);
     setDrawnWinners(updatedWinners);
     saveDrawnWinners(updatedWinners);
     toast({ title: "Faixa Resetada", description: `Todos os vencedores da faixa "${tierToReset.name}" foram removidos.`, variant: "destructive" });
     setTierToReset(null);
-  }, [drawnWinners, tierToReset, toast]);
+  }, [drawnWinners, tierToReset, toast, isManager]);
 
   const confirmDeleteSingleWinner = useCallback((winner: SweepstakeWinnerRecord) => {
+    if (isManager) return;
     setWinnerToDelete(winner);
-  }, []);
+  }, [isManager]);
 
   const handleDeleteSingleWinner = useCallback(() => {
-    if (!winnerToDelete) return;
+    if (!winnerToDelete || isManager) return;
     const updatedWinners = drawnWinners.filter(w => w.id !== winnerToDelete.id);
     setDrawnWinners(updatedWinners);
     saveDrawnWinners(updatedWinners);
-    toast({ title: "Vencedor Removido", description: `O prêmio de "${winnerToDelete.storeName}" na faixa "${winnerToDelete.tierName}" foi removido.`, variant: "destructive" });
+    toast({ title: "Vencedor Removido", description: `O prêmio de "${winnerToDelete.prizeName}" ganho por "${winnerToDelete.storeName}" na faixa "${winnerToDelete.tierName}" foi removido.`, variant: "destructive" });
     setWinnerToDelete(null);
-  }, [drawnWinners, winnerToDelete, toast]);
+  }, [drawnWinners, winnerToDelete, toast, isManager]);
 
 
   if (!currentEvent) {
@@ -222,14 +230,16 @@ export default function AdminTieredSweepstakesPage() {
         icon={Dice6}
         iconClassName="text-secondary"
         actions={
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={openResetAllConfirmDialog} variant="destructive" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
-              <RotateCcw className="mr-2 h-4 w-4" /> Resetar Todos Sorteios
-            </Button>
-            <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
-              <Download className="mr-2 h-4 w-4" /> Exportar Log (CSV)
-            </Button>
-          </div>
+          !isManager && (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={openResetAllConfirmDialog} variant="destructive" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
+                <RotateCcw className="mr-2 h-4 w-4" /> Resetar Todos Sorteios
+              </Button>
+              <Button onClick={handleExportLog} variant="outline" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
+                <Download className="mr-2 h-4 w-4" /> Exportar Log (CSV)
+              </Button>
+            </div>
+          )
         }
       />
 
@@ -264,16 +274,18 @@ export default function AdminTieredSweepstakesPage() {
                         Total: <span className="font-semibold">{tier.quantityAvailable}</span> | Restantes: <span className="font-semibold">{tier.remainingQuantity}</span>
                     </CardDescription>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => openResetTierConfirmDialog(tier)} 
-                  disabled={tier.winners.length === 0}
-                  className="text-xs hover:bg-destructive/10 hover:text-destructive"
-                  title={`Resetar vencedores da faixa ${tier.name}`}
-                >
-                  <RotateCcw className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Resetar Faixa</span>
-                </Button>
+                {!isManager && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => openResetTierConfirmDialog(tier)} 
+                    disabled={tier.winners.length === 0}
+                    className="text-xs hover:bg-destructive/10 hover:text-destructive"
+                    title={`Resetar vencedores da faixa ${tier.name}`}
+                  >
+                    <RotateCcw className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Resetar Faixa</span>
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-3 sm:space-y-4">
@@ -324,10 +336,12 @@ export default function AdminTieredSweepstakesPage() {
                       ) : (
                         <div className="w-24 sm:w-28 text-right ml-2 flex flex-col items-end"> 
                             <span className="text-xs text-green-600 font-bold">PREMIADO</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive mt-0.5" onClick={() => winnerRecord && confirmDeleteSingleWinner(winnerRecord)} title="Resetar este slot (remover vencedor)">
-                                <Trash2 className="h-3.5 w-3.5"/>
-                                <span className="sr-only">Resetar Slot</span>
-                            </Button>
+                            {!isManager && (
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive mt-0.5" onClick={() => winnerRecord && confirmDeleteSingleWinner(winnerRecord)} title="Resetar este slot (remover vencedor)">
+                                  <Trash2 className="h-3.5 w-3.5"/>
+                                  <span className="sr-only">Resetar Slot</span>
+                              </Button>
+                            )}
                         </div>
                        )}
                     </div>
@@ -423,4 +437,3 @@ export default function AdminTieredSweepstakesPage() {
     </div>
   );
 }
-

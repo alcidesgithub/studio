@@ -24,6 +24,7 @@ import * as z from 'zod';
 import { STATES } from '@/lib/constants';
 import { loadStores, saveStores, loadUsers, saveUsers } from '@/lib/localStorageUtils';
 import type { Store, User } from '@/types';
+import { useAuth } from '@/hooks/use-auth';
 
 const storeRegistrationSchemaBase = z.object({
   code: z.string().min(1, "Código da loja é obrigatório."),
@@ -223,13 +224,14 @@ interface StoreFormDialogContentProps {
   viewingStore: Store | null;
   isSubmitting: boolean;
   allStores: Store[]; // Pass all stores for validation
+  isManager: boolean;
 }
 
-const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingStore, isSubmitting, allStores }: StoreFormDialogContentProps) => {
-  const showPasswordFields = !viewingStore; 
+const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingStore, isSubmitting, allStores, isManager }: StoreFormDialogContentProps) => {
+  const showPasswordFields = !viewingStore && !isManager; 
   const currentIsMatrix = form.watch("isMatrix");
 
-  const disableMatrixFields = !!viewingStore || (!!editingStore && editingStore.isMatrix && allStores.some(s => s.matrixStoreId === editingStore.id && s.id !== editingStore.id));
+  const disableMatrixFields = !!viewingStore || isManager || (!!editingStore && editingStore.isMatrix && allStores.some(s => s.matrixStoreId === editingStore.id && s.id !== editingStore.id));
 
   return (
     <>
@@ -246,144 +248,146 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
       </DialogHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
-          <Card>
-            <CardHeader><CardTitle className="text-lg sm:text-xl">Informações da Loja</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
-              <FormField control={form.control} name="code" render={({ field }) => (
-                  <FormItem><FormLabel>Código da Loja</FormLabel><FormControl><Input placeholder="Ex: 001" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="razaoSocial" render={({ field }) => (
-                  <FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Hiperfarma Medicamentos Ltda." {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="cnpj" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CNPJ</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="00.000.000/0000-00"
-                        {...field}
-                        value={field.value}
-                        onChange={e => field.onChange(applyCnpjMask(e.target.value))}
-                        disabled={!!viewingStore || !!editingStore} 
-                        maxLength={18}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-              )}/>
-              <FormField control={form.control} name="address" render={({ field }) => (
-                  <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Roberto Faria, 180" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="city" render={({ field }) => (
-                  <FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="neighborhood" render={({ field }) => (
-                  <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="state" render={({ field }) => (
-                  <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!!viewingStore}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="phone" render={({ field }) => (
-                  <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-              )}/>
-               <FormField
-                  control={form.control}
-                  name="isMatrix"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2 space-y-2">
-                      <FormLabel>Tipo de Loja</FormLabel>
+          <fieldset disabled={!!viewingStore || isManager}>
+            <Card>
+              <CardHeader><CardTitle className="text-lg sm:text-xl">Informações da Loja</CardTitle></CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
+                <FormField control={form.control} name="code" render={({ field }) => (
+                    <FormItem><FormLabel>Código da Loja</FormLabel><FormControl><Input placeholder="Ex: 001" {...field} disabled={!!editingStore} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="razaoSocial" render={({ field }) => (
+                    <FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Hiperfarma Medicamentos Ltda." {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="cnpj" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CNPJ</FormLabel>
                       <FormControl>
-                        <RadioGroup
-                          onValueChange={(value) => field.onChange(value === 'true')}
-                          value={String(field.value)}
-                          className="flex items-center space-x-4"
-                          disabled={disableMatrixFields}
-                        >
-                          <FormItem className="flex items-center space-x-2">
-                            <RadioGroupItem value="true" id="isMatrix-true" />
-                            <Label htmlFor="isMatrix-true" className="font-normal">Matriz</Label>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2">
-                            <RadioGroupItem value="false" id="isMatrix-false" />
-                            <Label htmlFor="isMatrix-false" className="font-normal">Filial</Label>
-                          </FormItem>
-                        </RadioGroup>
+                        <Input
+                          placeholder="00.000.000/0000-00"
+                          {...field}
+                          value={field.value}
+                          onChange={e => field.onChange(applyCnpjMask(e.target.value))}
+                          disabled={!!editingStore} 
+                          maxLength={18}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
+                )}/>
+                <FormField control={form.control} name="address" render={({ field }) => (
+                    <FormItem><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Roberto Faria, 180" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="city" render={({ field }) => (
+                    <FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="neighborhood" render={({ field }) => (
+                    <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="state" render={({ field }) => (
+                    <FormItem><FormLabel>Estado</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl><SelectContent>{STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="phone" render={({ field }) => (
+                    <FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                 <FormField
+                    control={form.control}
+                    name="isMatrix"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2 space-y-2">
+                        <FormLabel>Tipo de Loja</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={(value) => field.onChange(value === 'true')}
+                            value={String(field.value)}
+                            className="flex items-center space-x-4"
+                            disabled={disableMatrixFields}
+                          >
+                            <FormItem className="flex items-center space-x-2">
+                              <RadioGroupItem value="true" id="isMatrix-true" />
+                              <Label htmlFor="isMatrix-true" className="font-normal">Matriz</Label>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-2">
+                              <RadioGroupItem value="false" id="isMatrix-false" />
+                              <Label htmlFor="isMatrix-false" className="font-normal">Filial</Label>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {currentIsMatrix === false && (
+                    <FormField
+                      control={form.control}
+                      name="matrixStoreCode"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Código da Loja Matriz</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Insira o código da loja matriz" {...field} disabled={disableMatrixFields} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                />
-                {currentIsMatrix === false && (
-                  <FormField
-                    control={form.control}
-                    name="matrixStoreCode"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Código da Loja Matriz</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Insira o código da loja matriz" {...field} disabled={!!viewingStore || disableMatrixFields} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-lg sm:text-xl">Contato e Login (Usuário da Loja)</CardTitle></CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
+                <FormField control={form.control} name="ownerName" render={({ field }) => (
+                    <FormItem><FormLabel>Nome do Proprietário(a)</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="responsibleName" render={({ field }) => (
+                    <FormItem><FormLabel>Nome do Responsável (login sistema)</FormLabel><FormControl><Input placeholder="Ex: Maria Oliveira" {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} disabled={!!editingStore} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                {showPasswordFields && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {editingStore ? "Nova Senha" : "Senha"}
+                            {editingStore && <span className="text-xs text-muted-foreground"> (Deixe em branco para não alterar)</span>}
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder={editingStore ? "Nova senha (opcional)" : "Mínimo 6 caracteres"} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirmar {editingStore ? "Nova " : ""}Senha</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Repita a senha" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
                 )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle className="text-lg sm:text-xl">Contato e Login (Usuário da Loja)</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
-              <FormField control={form.control} name="ownerName" render={({ field }) => (
-                  <FormItem><FormLabel>Nome do Proprietário(a)</FormLabel><FormControl><Input placeholder="Ex: João da Silva" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="responsibleName" render={({ field }) => (
-                  <FormItem><FormLabel>Nome do Responsável (login sistema)</FormLabel><FormControl><Input placeholder="Ex: Maria Oliveira" {...field} disabled={!!viewingStore} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              <FormField control={form.control} name="email" render={({ field }) => (
-                  <FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="loja.login@example.com" {...field} disabled={!!viewingStore || !!editingStore} /></FormControl><FormMessage /></FormItem>
-              )}/>
-              {showPasswordFields && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {editingStore ? "Nova Senha" : "Senha"}
-                          {editingStore && <span className="text-xs text-muted-foreground"> (Deixe em branco para não alterar)</span>}
-                        </FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder={editingStore ? "Nova senha (opcional)" : "Mínimo 6 caracteres"} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirmar {editingStore ? "Nova " : ""}Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Repita a senha" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </fieldset>
           <DialogFooter className="pt-3 sm:pt-4">
             <DialogClose asChild>
                 <Button type="button" variant="outline">
                     {viewingStore ? 'Fechar' : 'Cancelar'}
                 </Button>
             </DialogClose>
-            {!viewingStore && (
+            {!viewingStore && !isManager && (
                 <Button type="submit" disabled={isSubmitting || (disableMatrixFields && !!editingStore)}>
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                   {editingStore ? 'Salvar Alterações' : 'Cadastrar Loja'}
@@ -418,6 +422,8 @@ type SearchModeFilterType = 'all_stores' | 'matrix_only' | 'branch_only' | 'matr
 
 export default function ManageStoresPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isManager = user?.role === 'manager';
   const [stores, setStores] = useState<Store[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchModeFilter, setSearchModeFilter] = useState<SearchModeFilterType>('all_stores');
@@ -462,6 +468,7 @@ export default function ManageStoresPage() {
   });
 
   const handleAddNew = () => {
+    if (isManager) return;
     setEditingStore(null);
     setViewingStore(null);
     form.reset({
@@ -486,6 +493,7 @@ export default function ManageStoresPage() {
   };
 
   const handleEdit = (store: Store) => {
+    if (isManager) return;
     setEditingStore(store);
     setViewingStore(null);
     const matrixStore = store.isMatrix === false && store.matrixStoreId ? stores.find(s => s.id === store.matrixStoreId) : undefined;
@@ -536,6 +544,7 @@ export default function ManageStoresPage() {
   };
 
   const handleDelete = (storeId: string) => {
+    if (isManager) return;
     const storeToDelete = stores.find(s => s.id === storeId);
     if (storeToDelete && storeToDelete.email) {
         const currentUsers = loadUsers();
@@ -573,6 +582,14 @@ export default function ManageStoresPage() {
   };
 
   const onSubmit = (data: StoreRegistrationFormValues) => {
+    if (isManager) {
+        toast({
+            title: "Acesso Negado",
+            description: "Você não tem permissão para modificar lojas.",
+            variant: "destructive"
+        });
+        return;
+    }
     let updatedStores;
     let matrixStoreIdFromCode: string | undefined = undefined;
 
@@ -714,6 +731,7 @@ export default function ManageStoresPage() {
   };
 
   const handleStoreFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (isManager) return;
     const file = event.target.files?.[0];
     if (file) {
       setCsvStoreFile(file);
@@ -747,6 +765,7 @@ export default function ManageStoresPage() {
   };
 
   const handleProcessStoreImport = async () => {
+    if (isManager) return;
     if (!csvStoreFile) {
       toast({ title: "Nenhum arquivo selecionado", description: "Por favor, selecione um arquivo CSV.", variant: "destructive" });
       return;
@@ -918,6 +937,7 @@ export default function ManageStoresPage() {
   };
 
   const handleSelectStore = (storeId: string) => {
+    if (isManager) return;
     setSelectedStoreIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(storeId)) {
@@ -930,6 +950,7 @@ export default function ManageStoresPage() {
   };
 
   const handleSelectAllStores = () => {
+    if (isManager) return;
     if (selectedStoreIds.size === filteredStores.length) {
       setSelectedStoreIds(new Set());
     } else {
@@ -938,7 +959,7 @@ export default function ManageStoresPage() {
   };
 
   const handleConfirmDeleteSelected = () => {
-    if (selectedStoreIds.size === 0) return;
+    if (isManager || selectedStoreIds.size === 0) return;
 
     const storesToDelete = stores.filter(s => selectedStoreIds.has(s.id));
     const emailsOfStoresToDelete = storesToDelete.map(s => s.email).filter(Boolean) as string[];
@@ -970,6 +991,7 @@ export default function ManageStoresPage() {
   };
 
   const handleToggleCheckIn = (storeId: string, checked: boolean) => {
+    if (isManager) return;
     const updatedStores = stores.map(s =>
       s.id === storeId ? { ...s, isCheckedIn: checked } : s
     );
@@ -1062,23 +1084,25 @@ export default function ManageStoresPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title="Lojas"
-        description="Adicione, edite ou remova lojas participantes. Confirme o check-in das lojas presentes."
+        description={isManager ? "Visualizando lojas. Apenas administradores podem adicionar, editar ou remover." : "Adicione, edite ou remova lojas participantes. Confirme o check-in das lojas presentes."}
         icon={StoreIcon}
         iconClassName="text-secondary"
         actions={
-          <div className="flex flex-col sm:flex-row gap-2">
-            {selectedStoreIds.size > 0 && (
-              <Button onClick={() => setIsDeleteSelectedConfirmOpen(true)} variant="destructive" className="w-full sm:w-auto">
-                <Trash className="mr-2 h-4 w-4" /> Excluir ({selectedStoreIds.size})
+          !isManager && (
+            <div className="flex flex-col sm:flex-row gap-2">
+              {selectedStoreIds.size > 0 && (
+                <Button onClick={() => setIsDeleteSelectedConfirmOpen(true)} variant="destructive" className="w-full sm:w-auto">
+                  <Trash className="mr-2 h-4 w-4" /> Excluir ({selectedStoreIds.size})
+                </Button>
+              )}
+              <Button onClick={() => setIsImportStoreDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
+                <UploadCloud className="mr-2 h-4 w-4" /> Importar (CSV)
               </Button>
-            )}
-            <Button onClick={() => setIsImportStoreDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
-              <UploadCloud className="mr-2 h-4 w-4" /> Importar (CSV)
-            </Button>
-            <Button onClick={handleAddNew} className="w-full sm:w-auto">
-              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Loja
-            </Button>
-          </div>
+              <Button onClick={handleAddNew} className="w-full sm:w-auto">
+                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Loja
+              </Button>
+            </div>
+          )
         }
       />
 
@@ -1119,6 +1143,7 @@ export default function ManageStoresPage() {
               viewingStore={viewingStore}
               isSubmitting={form.formState.isSubmitting}
               allStores={stores}
+              isManager={isManager}
             />
           )}
         </DialogContent>
@@ -1154,6 +1179,7 @@ export default function ManageStoresPage() {
                 accept=".csv"
                 onChange={handleStoreFileSelect}
                 className="mt-1 h-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                disabled={isManager}
               />
             </div>
             {csvStoreFileName && (
@@ -1177,7 +1203,7 @@ export default function ManageStoresPage() {
             <DialogClose asChild>
               <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button onClick={handleProcessStoreImport} disabled={!csvStoreFile || importStoreLoading}>
+            <Button onClick={handleProcessStoreImport} disabled={!csvStoreFile || importStoreLoading || isManager}>
               {importStoreLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
               {importStoreLoading ? 'Importando...' : 'Importar Arquivo'}
             </Button>
@@ -1235,7 +1261,7 @@ export default function ManageStoresPage() {
                         checked={isAllStoresSelected}
                         onCheckedChange={handleSelectAllStores}
                         aria-label="Selecionar todas as lojas visíveis"
-                        disabled={filteredStores.length === 0}
+                        disabled={filteredStores.length === 0 || isManager}
                       />
                   </TableHead>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Código</TableHead>
@@ -1270,6 +1296,7 @@ export default function ManageStoresPage() {
                         checked={selectedStoreIds.has(store.id)}
                         onCheckedChange={() => handleSelectStore(store.id)}
                         aria-label={`Selecionar loja ${store.name}`}
+                        disabled={isManager}
                       />
                     </TableCell>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.code}</TableCell>
@@ -1289,7 +1316,7 @@ export default function ManageStoresPage() {
                         checked={store.isCheckedIn}
                         onCheckedChange={(checked) => handleToggleCheckIn(store.id, checked)}
                         aria-label={`Marcar check-in para ${store.name}`}
-                        disabled={!store.participating}
+                        disabled={!store.participating || isManager}
                         title={!store.participating ? "Loja não participante" : (store.isCheckedIn ? "Desfazer Check-in" : "Confirmar Check-in")}
                       />
                     </TableCell>
@@ -1297,12 +1324,16 @@ export default function ManageStoresPage() {
                       <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleView(store)}>
                         <Eye className="h-4 w-4" /><span className="sr-only">Visualizar</span>
                       </Button>
-                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(store)}>
-                        <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
-                      </Button>
-                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleDelete(store.id)}>
-                        <Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span>
-                      </Button>
+                      {!isManager && (
+                        <>
+                          <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(store)}>
+                            <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>
+                          </Button>
+                          <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleDelete(store.id)}>
+                            <Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span>
+                          </Button>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1314,5 +1345,3 @@ export default function ManageStoresPage() {
     </div>
   );
 }
-
-
