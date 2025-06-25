@@ -40,10 +40,10 @@ interface AwardTierFormDialogContentProps {
   editingTier: AwardTier | null;
   viewingTier: AwardTier | null;
   isSubmitting: boolean;
-  isManager: boolean;
+  isReadOnly: boolean;
 }
 
-const AwardTierFormDialogContentInternal = ({ form, onSubmit, editingTier, viewingTier, isSubmitting, isManager }: AwardTierFormDialogContentProps) => {
+const AwardTierFormDialogContentInternal = ({ form, onSubmit, editingTier, viewingTier, isSubmitting, isReadOnly }: AwardTierFormDialogContentProps) => {
   return (
     <>
       <DialogHeader>
@@ -58,7 +58,7 @@ const AwardTierFormDialogContentInternal = ({ form, onSubmit, editingTier, viewi
       </DialogHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4">
-          <fieldset disabled={isManager || !!viewingTier}>
+          <fieldset disabled={isReadOnly || !!viewingTier}>
             <FormField
               control={form.control}
               name="name"
@@ -133,7 +133,7 @@ const AwardTierFormDialogContentInternal = ({ form, onSubmit, editingTier, viewi
                     {viewingTier ? 'Fechar' : 'Cancelar'}
                </Button>
             </DialogClose>
-            {!viewingTier && !isManager && (
+            {!viewingTier && !isReadOnly && (
                 <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                      {editingTier ? 'Salvar Alterações' : 'Criar Faixa'}
@@ -173,7 +173,7 @@ export default function AdminAwardsPage() {
   const [tiers, setTiers] = useState<AwardTier[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
-  const isManager = user?.role === 'manager';
+  const isReadOnly = user?.role === 'manager' || user?.role === 'equipe';
 
   useEffect(() => {
     let loadedTiers = loadAwardTiers();
@@ -201,7 +201,7 @@ export default function AdminAwardsPage() {
   });
 
   const handleAddNew = () => {
-    if (isManager) return;
+    if (isReadOnly) return;
     setEditingTier(null);
     setViewingTier(null);
     form.reset({
@@ -216,7 +216,7 @@ export default function AdminAwardsPage() {
   };
 
   const handleEdit = (tier: AwardTier) => {
-    if (isManager) return;
+    if (isReadOnly) return;
     setEditingTier(tier);
     setViewingTier(null);
     form.reset({
@@ -245,7 +245,7 @@ export default function AdminAwardsPage() {
   };
 
   const handleDelete = (tierId: string) => {
-    if (isManager) return;
+    if (isReadOnly) return;
     let updatedTiers = tiers.filter(t => t.id !== tierId);
     updatedTiers = reassignSortOrders(updatedTiers);
     setTiers(updatedTiers);
@@ -258,7 +258,7 @@ export default function AdminAwardsPage() {
   };
 
   const onSubmit = (data: AwardTierFormValues) => {
-    if (isManager) {
+    if (isReadOnly) {
       toast({
         title: "Acesso Negado",
         description: "Você não tem permissão para modificar faixas de premiação.",
@@ -310,7 +310,7 @@ export default function AdminAwardsPage() {
   };
 
   const moveTier = (tierId: string, direction: 'up' | 'down') => {
-    if (isManager) return;
+    if (isReadOnly) return;
     const currentIndex = tiers.findIndex(t => t.id === tierId);
     if (currentIndex === -1) return;
 
@@ -332,11 +332,11 @@ export default function AdminAwardsPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title="Faixas de premiação"
-        description={isManager ? "Visualizando faixas de premiação. Apenas administradores podem editar." : "Defina e gerencie as faixas de premiação. Use as setas para reordenar."}
+        description={isReadOnly ? "Visualizando faixas de premiação. Apenas administradores podem editar." : "Defina e gerencie as faixas de premiação. Use as setas para reordenar."}
         icon={Trophy}
         iconClassName="text-secondary"
         actions={
-          !isManager && (
+          !isReadOnly && (
             <Button onClick={handleAddNew} className="w-full sm:w-auto">
               <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Nova Faixa
             </Button>
@@ -364,7 +364,7 @@ export default function AdminAwardsPage() {
                 editingTier={editingTier}
                 viewingTier={viewingTier}
                 isSubmitting={form.formState.isSubmitting}
-                isManager={isManager}
+                isReadOnly={isReadOnly}
              />
           )}
         </DialogContent>
@@ -380,7 +380,7 @@ export default function AdminAwardsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {!isManager && <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ordem</TableHead>}
+                  {!isReadOnly && <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ordem</TableHead>}
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Nome da Faixa</TableHead>
                   <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Prêmio</TableHead>
                   <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Quantidade</TableHead>
@@ -392,7 +392,7 @@ export default function AdminAwardsPage() {
               <TableBody>
                 {tiers.map((tier, index) => (
                   <TableRow key={tier.id}>
-                    {!isManager && (
+                    {!isReadOnly && (
                       <TableCell className="w-20 sm:w-24 px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                         <div className="flex items-center gap-1">
                           <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveTier(tier.id, 'up')} disabled={index === 0}>
@@ -414,7 +414,7 @@ export default function AdminAwardsPage() {
                         <Eye className="h-4 w-4" />
                         <span className="sr-only">Visualizar</span>
                       </Button>
-                      {!isManager && (
+                      {!isReadOnly && (
                         <>
                           <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(tier)}>
                             <Edit className="h-4 w-4" />

@@ -49,8 +49,7 @@ export default function AppLayout({
     );
   }
   
-  // Explicitly block managers from user management page
-  if (user.role === 'manager' && pathname.startsWith('/admin/users')) {
+  if (['manager', 'equipe'].includes(user.role) && pathname.startsWith('/admin/users')) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
         <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>
@@ -60,7 +59,7 @@ export default function AppLayout({
     );
   }
 
-  if (pathname.startsWith('/admin') && !['admin', 'manager'].includes(user.role)) {
+  if (pathname.startsWith('/admin') && !['admin', 'manager', 'equipe'].includes(user.role)) {
      return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4">
           <h1 className="text-2xl font-bold mb-4">Acesso Negado</h1>

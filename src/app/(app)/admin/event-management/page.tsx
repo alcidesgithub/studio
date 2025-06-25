@@ -39,7 +39,7 @@ type EventFormValues = z.infer<typeof eventFormSchema>;
 export default function AdminEventManagementPage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const isManager = user?.role === 'manager';
+  const isReadOnly = user?.role === 'manager' || user?.role === 'equipe';
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
 
   const form = useForm<EventFormValues>({
@@ -64,13 +64,13 @@ export default function AdminEventManagementPage() {
   }, [form]);
 
   const handleRemoveGuideUrl = useCallback((fieldName: 'vendorGuideUrl' | 'associateGuideUrl') => {
-    if (isManager) return;
+    if (isReadOnly) return;
     form.setValue(fieldName, '', { shouldValidate: true });
     toast({ title: "URL Removida", description: "A URL do guia será removida ao salvar.", variant: "default" });
-  }, [form, toast, isManager]);
+  }, [form, toast, isReadOnly]);
 
   const onSubmit = (data: EventFormValues) => {
-    if (isManager) {
+    if (isReadOnly) {
       toast({
         title: "Acesso Negado",
         description: "Você não tem permissão para alterar os detalhes do evento.",
@@ -121,13 +121,13 @@ export default function AdminEventManagementPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title="Gerenciar evento"
-        description={isManager ? "Visualizando detalhes do evento. A edição é permitida apenas para administradores." : "Edite os detalhes principais do evento e configure os links para os guias."}
+        description={isReadOnly ? "Visualizando detalhes do evento. A edição é permitida apenas para administradores." : "Edite os detalhes principais do evento e configure os links para os guias."}
         icon={Edit3}
         iconClassName="text-secondary"
       />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
-          <fieldset disabled={isManager}>
+          <fieldset disabled={isReadOnly}>
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>Detalhes do Evento</CardTitle>
@@ -209,7 +209,7 @@ export default function AdminEventManagementPage() {
           </fieldset>
 
           <div className="flex justify-end">
-            <Button type="submit" size="lg" disabled={form.formState.isSubmitting || isManager}>
+            <Button type="submit" size="lg" disabled={form.formState.isSubmitting || isReadOnly}>
               {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Salvar Alterações
             </Button>
           </div>

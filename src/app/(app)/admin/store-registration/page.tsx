@@ -224,14 +224,14 @@ interface StoreFormDialogContentProps {
   viewingStore: Store | null;
   isSubmitting: boolean;
   allStores: Store[]; // Pass all stores for validation
-  isManager: boolean;
+  isReadOnly: boolean;
 }
 
-const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingStore, isSubmitting, allStores, isManager }: StoreFormDialogContentProps) => {
-  const showPasswordFields = !viewingStore && !isManager; 
+const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingStore, isSubmitting, allStores, isReadOnly }: StoreFormDialogContentProps) => {
+  const showPasswordFields = !viewingStore && !isReadOnly; 
   const currentIsMatrix = form.watch("isMatrix");
 
-  const disableMatrixFields = !!viewingStore || isManager || (!!editingStore && editingStore.isMatrix && allStores.some(s => s.matrixStoreId === editingStore.id && s.id !== editingStore.id));
+  const disableMatrixFields = !!viewingStore || isReadOnly || (!!editingStore && editingStore.isMatrix && allStores.some(s => s.matrixStoreId === editingStore.id && s.id !== editingStore.id));
 
   return (
     <>
@@ -248,7 +248,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
       </DialogHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
-          <fieldset disabled={!!viewingStore || isManager}>
+          <fieldset disabled={!!viewingStore || isReadOnly}>
             <Card>
               <CardHeader><CardTitle className="text-lg sm:text-xl">Informações da Loja</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
@@ -387,7 +387,7 @@ const StoreFormDialogContentInternal = ({ form, onSubmit, editingStore, viewingS
                     {viewingStore ? 'Fechar' : 'Cancelar'}
                 </Button>
             </DialogClose>
-            {!viewingStore && !isManager && (
+            {!viewingStore && !isReadOnly && (
                 <Button type="submit" disabled={isSubmitting || (disableMatrixFields && !!editingStore)}>
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                   {editingStore ? 'Salvar Alterações' : 'Cadastrar Loja'}
@@ -423,7 +423,9 @@ type SearchModeFilterType = 'all_stores' | 'matrix_only' | 'branch_only' | 'matr
 export default function ManageStoresPage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const isManager = user?.role === 'manager';
+  const isReadOnlyForRole = user?.role === 'manager' || user?.role === 'equipe';
+  const canEdit = user?.role === 'admin';
+  
   const [stores, setStores] = useState<Store[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchModeFilter, setSearchModeFilter] = useState<SearchModeFilterType>('all_stores');
@@ -468,7 +470,7 @@ export default function ManageStoresPage() {
   });
 
   const handleAddNew = () => {
-    if (isManager) return;
+    if (!canEdit) return;
     setEditingStore(null);
     setViewingStore(null);
     form.reset({
@@ -493,7 +495,7 @@ export default function ManageStoresPage() {
   };
 
   const handleEdit = (store: Store) => {
-    if (isManager) return;
+    if (!canEdit) return;
     setEditingStore(store);
     setViewingStore(null);
     const matrixStore = store.isMatrix === false && store.matrixStoreId ? stores.find(s => s.id === store.matrixStoreId) : undefined;
@@ -544,7 +546,7 @@ export default function ManageStoresPage() {
   };
 
   const handleDelete = (storeId: string) => {
-    if (isManager) return;
+    if (!canEdit) return;
     const storeToDelete = stores.find(s => s.id === storeId);
     if (storeToDelete && storeToDelete.email) {
         const currentUsers = loadUsers();
@@ -582,7 +584,7 @@ export default function ManageStoresPage() {
   };
 
   const onSubmit = (data: StoreRegistrationFormValues) => {
-    if (isManager) {
+    if (!canEdit) {
         toast({
             title: "Acesso Negado",
             description: "Você não tem permissão para modificar lojas.",
@@ -731,7 +733,7 @@ export default function ManageStoresPage() {
   };
 
   const handleStoreFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (isManager) return;
+    if (!canEdit) return;
     const file = event.target.files?.[0];
     if (file) {
       setCsvStoreFile(file);
@@ -765,7 +767,7 @@ export default function ManageStoresPage() {
   };
 
   const handleProcessStoreImport = async () => {
-    if (isManager) return;
+    if (!canEdit) return;
     if (!csvStoreFile) {
       toast({ title: "Nenhum arquivo selecionado", description: "Por favor, selecione um arquivo CSV.", variant: "destructive" });
       return;
@@ -937,7 +939,7 @@ export default function ManageStoresPage() {
   };
 
   const handleSelectStore = (storeId: string) => {
-    if (isManager) return;
+    if (!canEdit) return;
     setSelectedStoreIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(storeId)) {
@@ -950,7 +952,7 @@ export default function ManageStoresPage() {
   };
 
   const handleSelectAllStores = () => {
-    if (isManager) return;
+    if (!canEdit) return;
     if (selectedStoreIds.size === filteredStores.length) {
       setSelectedStoreIds(new Set());
     } else {
@@ -959,7 +961,7 @@ export default function ManageStoresPage() {
   };
 
   const handleConfirmDeleteSelected = () => {
-    if (isManager || selectedStoreIds.size === 0) return;
+    if (!canEdit || selectedStoreIds.size === 0) return;
 
     const storesToDelete = stores.filter(s => selectedStoreIds.has(s.id));
     const emailsOfStoresToDelete = storesToDelete.map(s => s.email).filter(Boolean) as string[];
@@ -1083,11 +1085,11 @@ export default function ManageStoresPage() {
     <div className="animate-fadeIn">
       <PageHeader
         title="Lojas"
-        description={isManager ? "Visualizando lojas. Apenas administradores podem adicionar, editar ou remover." : "Adicione, edite ou remova lojas participantes. Confirme o check-in das lojas presentes."}
+        description={isReadOnlyForRole ? "Visualizando lojas e fazendo check-in. Apenas administradores podem editar." : "Adicione, edite ou remova lojas participantes. Confirme o check-in das lojas presentes."}
         icon={StoreIcon}
         iconClassName="text-secondary"
         actions={
-          !isManager && (
+          canEdit && (
             <div className="flex flex-col sm:flex-row gap-2">
               {selectedStoreIds.size > 0 && (
                 <Button onClick={() => setIsDeleteSelectedConfirmOpen(true)} variant="destructive" className="w-full sm:w-auto">
@@ -1142,7 +1144,7 @@ export default function ManageStoresPage() {
               viewingStore={viewingStore}
               isSubmitting={form.formState.isSubmitting}
               allStores={stores}
-              isManager={isManager}
+              isReadOnly={!canEdit}
             />
           )}
         </DialogContent>
@@ -1178,7 +1180,7 @@ export default function ManageStoresPage() {
                 accept=".csv"
                 onChange={handleStoreFileSelect}
                 className="mt-1 h-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                disabled={isManager}
+                disabled={!canEdit}
               />
             </div>
             {csvStoreFileName && (
@@ -1202,7 +1204,7 @@ export default function ManageStoresPage() {
             <DialogClose asChild>
               <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button onClick={handleProcessStoreImport} disabled={!csvStoreFile || importStoreLoading || isManager}>
+            <Button onClick={handleProcessStoreImport} disabled={!csvStoreFile || importStoreLoading || !canEdit}>
               {importStoreLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
               {importStoreLoading ? 'Importando...' : 'Importar Arquivo'}
             </Button>
@@ -1260,7 +1262,7 @@ export default function ManageStoresPage() {
                         checked={isAllStoresSelected}
                         onCheckedChange={handleSelectAllStores}
                         aria-label="Selecionar todas as lojas visíveis"
-                        disabled={filteredStores.length === 0 || isManager}
+                        disabled={filteredStores.length === 0 || !canEdit}
                       />
                   </TableHead>
                   <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Código</TableHead>
@@ -1295,7 +1297,7 @@ export default function ManageStoresPage() {
                         checked={selectedStoreIds.has(store.id)}
                         onCheckedChange={() => handleSelectStore(store.id)}
                         aria-label={`Selecionar loja ${store.name}`}
-                        disabled={isManager}
+                        disabled={!canEdit}
                       />
                     </TableCell>
                     <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{store.code}</TableCell>
@@ -1323,7 +1325,7 @@ export default function ManageStoresPage() {
                       <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleView(store)}>
                         <Eye className="h-4 w-4" /><span className="sr-only">Visualizar</span>
                       </Button>
-                      {!isManager && (
+                      {canEdit && (
                         <>
                           <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(store)}>
                             <Edit className="h-4 w-4" /><span className="sr-only">Editar</span>

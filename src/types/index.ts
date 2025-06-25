@@ -1,6 +1,6 @@
 
 // This User type is for our application's representation, specific to localStorage auth.
-export type UserRole = 'admin' | 'manager' | 'vendor' | 'store';
+export type UserRole = 'admin' | 'manager' | 'vendor' | 'store' | 'equipe';
 
 export interface User {
   id: string;

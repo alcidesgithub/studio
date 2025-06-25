@@ -98,12 +98,13 @@ export const MOCK_STORES: Store[] = [
 ];
 
 
-export const ROLES: UserRole[] = ['admin', 'manager', 'vendor', 'store'];
+export const ROLES: UserRole[] = ['admin', 'manager', 'vendor', 'store', 'equipe'];
 export const ROLES_TRANSLATIONS: Record<UserRole, string> = {
   admin: 'Administrador',
   manager: 'Gerente',
   vendor: 'Vendedor',
   store: 'Loja',
+  equipe: 'Equipe',
 };
 
 

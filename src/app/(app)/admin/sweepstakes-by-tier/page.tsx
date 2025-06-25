@@ -60,7 +60,7 @@ export default function AdminTieredSweepstakesPage() {
   const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
-  const isManager = user?.role === 'manager';
+  const isReadOnly = user?.role === 'manager' || user?.role === 'equipe';
 
   const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
@@ -109,6 +109,7 @@ export default function AdminTieredSweepstakesPage() {
 
 
   const openSweepstakeDialog = (tier: AwardTierWithStats) => {
+     if (isReadOnly) return;
      if (tier.remainingQuantity <= 0 || tier.eligibleStores.length === 0) {
       toast({ title: "Não é Possível Sortear", description: "Nenhum prêmio restante nesta faixa ou nenhuma loja elegível.", variant: "default" });
       return;
@@ -118,6 +119,7 @@ export default function AdminTieredSweepstakesPage() {
   };
 
   const handleSweepstakeConfirmed = useCallback((winningStore: Store) => {
+    if (isReadOnly) return;
     if (!currentTierForDialog) {
         toast({ title: "Erro no Sorteio", description: "Faixa de premiação não identificada.", variant: "destructive"});
         setIsSweepstakeDialogOpen(false);
@@ -146,11 +148,11 @@ export default function AdminTieredSweepstakesPage() {
     
     setIsSweepstakeDialogOpen(false);
     setCurrentTierForDialog(null);
-  }, [currentTierForDialog, toast, drawnWinners]);
+  }, [currentTierForDialog, toast, drawnWinners, isReadOnly]);
 
 
   const handleExportLog = useCallback(() => {
-    if (isManager) return;
+    if (isReadOnly) return;
     if (drawnWinners.length === 0) {
       toast({ title: "Nenhum vencedor para exportar", description: "Sorteie alguns vencedores primeiro.", variant: "default" });
       return;
@@ -166,56 +168,56 @@ export default function AdminTieredSweepstakesPage() {
     }));
     exportToCSV(dataToExport, `log_vencedores_sorteio_faixas_${currentEvent?.name.replace(/\s+/g, '_') || 'evento'}`);
     toast({ title: "Log Exportado", description: "O log de vencedores do sorteio foi exportado para um arquivo CSV.", variant: "success" });
-  }, [drawnWinners, currentEvent, toast, isManager]);
+  }, [drawnWinners, currentEvent, toast, isReadOnly]);
 
   const openResetAllConfirmDialog = useCallback(() => {
-    if (isManager) return;
+    if (isReadOnly) return;
     if (drawnWinners.length === 0) {
       toast({ title: "Sorteio já está limpo", description: "Não há vencedores para resetar.", variant: "default" });
       return;
     }
     setIsResetAllConfirmOpen(true);
-  }, [drawnWinners.length, toast, isManager]);
+  }, [drawnWinners.length, toast, isReadOnly]);
 
   const handleResetAllSweepstakes = useCallback(() => {
-    if (isManager) return;
+    if (isReadOnly) return;
     setDrawnWinners([]);
     saveDrawnWinners([]); 
     toast({ title: "Sorteio Resetado", description: "Todos os vencedores sorteados foram removidos.", variant: "destructive" });
     setIsResetAllConfirmOpen(false);
-  }, [toast, isManager]);
+  }, [toast, isReadOnly]);
 
   const openResetTierConfirmDialog = useCallback((tier: AwardTierWithStats) => {
-    if (isManager) return;
+    if (isReadOnly) return;
      if (tier.winners.length === 0) {
       toast({ title: "Faixa já está limpa", description: `Não há vencedores para resetar na faixa ${tier.name}.`, variant: "default" });
       return;
     }
     setTierToReset(tier);
-  }, [toast, isManager]);
+  }, [toast, isReadOnly]);
   
   const handleResetTierSweepstakes = useCallback(() => {
-    if (!tierToReset || isManager) return;
+    if (!tierToReset || isReadOnly) return;
     const updatedWinners = drawnWinners.filter(w => w.tierId !== tierToReset.id);
     setDrawnWinners(updatedWinners);
     saveDrawnWinners(updatedWinners);
     toast({ title: "Faixa Resetada", description: `Todos os vencedores da faixa "${tierToReset.name}" foram removidos.`, variant: "destructive" });
     setTierToReset(null);
-  }, [drawnWinners, tierToReset, toast, isManager]);
+  }, [drawnWinners, tierToReset, toast, isReadOnly]);
 
   const confirmDeleteSingleWinner = useCallback((winner: SweepstakeWinnerRecord) => {
-    if (isManager) return;
+    if (isReadOnly) return;
     setWinnerToDelete(winner);
-  }, [isManager]);
+  }, [isReadOnly]);
 
   const handleDeleteSingleWinner = useCallback(() => {
-    if (!winnerToDelete || isManager) return;
+    if (!winnerToDelete || isReadOnly) return;
     const updatedWinners = drawnWinners.filter(w => w.id !== winnerToDelete.id);
     setDrawnWinners(updatedWinners);
     saveDrawnWinners(updatedWinners);
     toast({ title: "Vencedor Removido", description: `O prêmio de "${winnerToDelete.prizeName}" ganho por "${winnerToDelete.storeName}" na faixa "${winnerToDelete.tierName}" foi removido.`, variant: "destructive" });
     setWinnerToDelete(null);
-  }, [drawnWinners, winnerToDelete, toast, isManager]);
+  }, [drawnWinners, winnerToDelete, toast, isReadOnly]);
 
 
   if (!currentEvent) {
@@ -226,11 +228,11 @@ export default function AdminTieredSweepstakesPage() {
     <div className="animate-fadeIn space-y-6 sm:space-y-8">
       <PageHeader
         title="Sorteios por faixa"
-        description="Sorteie vencedores para cada faixa de premiação. Cada loja pode ganhar apenas uma vez. Lojas devem ter check-in para serem elegíveis."
+        description={isReadOnly ? "Visualizando sorteios. Apenas administradores podem sortear e resetar." : "Sorteie vencedores para cada faixa de premiação. Cada loja pode ganhar apenas uma vez. Lojas devem ter check-in para serem elegíveis."}
         icon={Dice6}
         iconClassName="text-secondary"
         actions={
-          !isManager && (
+          !isReadOnly && (
             <div className="flex flex-col sm:flex-row gap-2">
               <Button onClick={openResetAllConfirmDialog} variant="destructive" disabled={drawnWinners.length === 0} className="w-full sm:w-auto">
                 <RotateCcw className="mr-2 h-4 w-4" /> Resetar Todos Sorteios
@@ -274,7 +276,7 @@ export default function AdminTieredSweepstakesPage() {
                         Total: <span className="font-semibold">{tier.quantityAvailable}</span> | Restantes: <span className="font-semibold">{tier.remainingQuantity}</span>
                     </CardDescription>
                 </div>
-                {!isManager && (
+                {!isReadOnly && (
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -326,7 +328,7 @@ export default function AdminTieredSweepstakesPage() {
                         <Button
                           size="lg"
                           onClick={() => openSweepstakeDialog(tier)}
-                          disabled={!canDrawForThisSlot}
+                          disabled={!canDrawForThisSlot || isReadOnly}
                           variant="default"
                           className="w-24 sm:w-28"
                         >
@@ -336,7 +338,7 @@ export default function AdminTieredSweepstakesPage() {
                       ) : (
                         <div className="w-24 sm:w-28 text-right ml-2 flex flex-col items-end"> 
                             <span className="text-xs text-green-600 font-bold">PREMIADO</span>
-                            {!isManager && (
+                            {!isReadOnly && (
                               <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive mt-0.5" onClick={() => winnerRecord && confirmDeleteSingleWinner(winnerRecord)} title="Resetar este slot (remover vencedor)">
                                   <Trash2 className="h-3.5 w-3.5"/>
                                   <span className="sr-only">Resetar Slot</span>

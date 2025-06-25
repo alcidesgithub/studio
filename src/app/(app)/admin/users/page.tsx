@@ -21,13 +21,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 
-const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'manager'];
+const ASSIGNABLE_ROLES: UserRole[] = ['admin', 'manager', 'equipe'];
 
 const userFormSchema = z.object({
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres." }),
   email: z.string().email({ message: "Endereço de email inválido." }),
   role: z.custom<UserRole>(val => ASSIGNABLE_ROLES.includes(val as UserRole), {
-    message: "Perfil deve ser 'admin' ou 'manager'.",
+    message: "Perfil deve ser 'admin', 'manager' ou 'equipe'.",
   }),
   password: z.string().optional(),
   confirmPassword: z.string().optional(),
@@ -71,9 +71,9 @@ const UserFormDialogContentInternal = ({ form, onSubmit, editingUser, isSubmitti
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{editingUser ? 'Editar Administrador/Gerente' : 'Adicionar Novo Administrador/Gerente'}</DialogTitle>
+        <DialogTitle>{editingUser ? 'Editar Usuário Interno' : 'Adicionar Novo Usuário Interno'}</DialogTitle>
         <DialogDescription>
-          {editingUser ? 'Atualize os detalhes do usuário. Deixe os campos de senha em branco para não alterá-la.' : 'Preencha os detalhes para o novo Administrador ou Gerente.'}
+          {editingUser ? 'Atualize os detalhes do usuário. Deixe os campos de senha em branco para não alterá-la.' : 'Preencha os detalhes para o novo Administrador, Gerente ou membro da Equipe.'}
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
@@ -209,7 +209,7 @@ export default function AdminUsersPage() {
     defaultValues: {
       name: '',
       email: '',
-      role: 'manager',
+      role: 'equipe',
       password: '',
       confirmPassword: '',
     },
@@ -220,7 +220,7 @@ export default function AdminUsersPage() {
     form.reset({
       name: '',
       email: '',
-      role: 'manager', 
+      role: 'equipe', 
       password: '',
       confirmPassword: '',
     });
@@ -228,7 +228,7 @@ export default function AdminUsersPage() {
   };
 
   const handleEdit = (user: User) => {
-    if (user.role !== 'admin' && user.role !== 'manager') {
+    if (!ASSIGNABLE_ROLES.includes(user.role)) {
         toast({ title: "Ação não permitida", description: `Usuários de ${ROLES_TRANSLATIONS[user.role]} são gerenciados em suas respectivas telas.`, variant: "default"});
         return;
     }
@@ -246,7 +246,7 @@ export default function AdminUsersPage() {
   const handleDelete = (userId: string) => {
     const userToDelete = users.find(u => u.id === userId);
 
-    if (!userToDelete || (userToDelete.role !== 'admin' && userToDelete.role !== 'manager')) {
+    if (!userToDelete || !ASSIGNABLE_ROLES.includes(userToDelete.role)) {
         toast({ title: "Ação não permitida", description: "Este tipo de usuário não pode ser excluído aqui.", variant: "default"});
         return;
     }
@@ -272,7 +272,7 @@ export default function AdminUsersPage() {
     let passwordChangedMessage = "";
 
     if (editingUser) {
-        if (editingUser.role !== 'admin' && editingUser.role !== 'manager') {
+        if (!ASSIGNABLE_ROLES.includes(editingUser.role)) {
              toast({ title: "Erro", description: "Não é possível modificar este tipo de usuário aqui.", variant: "destructive" });
             return;
         }
@@ -346,18 +346,32 @@ export default function AdminUsersPage() {
     setEditingUser(null);
   };
 
-  const displayUsers = users.filter(user => user.role === 'admin' || user.role === 'manager');
+  const displayUsers = users.filter(user => ASSIGNABLE_ROLES.includes(user.role));
+
+  const getRoleBadgeVariant = (role: UserRole) => {
+    switch (role) {
+      case 'admin':
+        return 'destructive';
+      case 'manager':
+        return 'secondary';
+      case 'equipe':
+        return 'default';
+      default:
+        return 'outline';
+    }
+  };
+
 
   return (
     <div className="animate-fadeIn">
       <PageHeader
-        title="Admins e Gerentes"
-        description="Gerencie contas de Administradores e Gerentes do sistema."
+        title="Usuários Internos"
+        description="Gerencie contas de Administradores, Gerentes e Equipe do sistema."
         icon={UserCog}
         iconClassName="text-secondary"
         actions={
           <Button onClick={handleAddNew} className="w-full sm:w-auto">
-            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Admin/Gerente
+            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Usuário
           </Button>
         }
       />
@@ -383,8 +397,8 @@ export default function AdminUsersPage() {
 
       <Card className="shadow-lg">
         <CardHeader className="px-4 py-5 sm:p-6">
-          <CardTitle>Administradores e Gerentes Cadastrados</CardTitle>
-          <CardDescription>Lista de administradores e gerentes no sistema.</CardDescription>
+          <CardTitle>Usuários Internos Cadastrados</CardTitle>
+          <CardDescription>Lista de administradores, gerentes e equipe no sistema.</CardDescription>
         </CardHeader>
         <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
           <div className="overflow-x-auto">
@@ -402,7 +416,7 @@ export default function AdminUsersPage() {
                   <TableRow key={user.id}>
                     <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{user.name}</TableCell>
                     <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 break-words">{user.email}</TableCell>
-                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
+                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Badge variant={getRoleBadgeVariant(user.role)} className="capitalize">{ROLES_TRANSLATIONS[user.role] || user.role}</Badge></TableCell>
                     <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
                       <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(user)}>
                         <Edit className="h-4 w-4" />
@@ -427,14 +441,10 @@ export default function AdminUsersPage() {
             </Table>
           </div>
            {displayUsers.length === 0 && (
-            <p className="py-4 text-center text-muted-foreground">Nenhum administrador ou gerente cadastrado.</p>
+            <p className="py-4 text-center text-muted-foreground">Nenhum usuário interno cadastrado.</p>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
-
-    
