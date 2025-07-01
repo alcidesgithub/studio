@@ -20,14 +20,13 @@ export default function LandingPage() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+
     const loadedEvent = loadEventClient();
     setEvent(loadedEvent);
     if (loadedEvent) {
       if (loadedEvent.name) {
         document.title = `${loadedEvent.name} - Hiperfarma`;
-      }
-      if (loadedEvent.date && isValid(parseISO(loadedEvent.date))) {
-        setCurrentYear(parseISO(loadedEvent.date).getFullYear());
       }
     } else {
       document.title = 'Encontro de Negócios Hiperfarma';
@@ -168,4 +167,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
