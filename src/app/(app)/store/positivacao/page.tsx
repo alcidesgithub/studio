@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
+import { loadStores, loadAwardTiers, loadEvent, loadVendors, loadDrawnWinners } from '@/lib/localStorageUtils';
 import { useAuth } from '@/hooks/use-auth';
-import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType } from '@/types';
+import type { Store, AwardTier, PositivationDetail, Vendor, Event as EventType, SweepstakeWinnerRecord } from '@/types';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
-import { Trophy, TrendingUp, Gift, BadgeCheck, Building, Eye } from 'lucide-react';
+import { Trophy, TrendingUp, Gift, BadgeCheck, Building, Eye, PartyPopper } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { VendorPositivationDisplayCard } from '@/components/cards/VendorPositivationDisplayCard';
 import Link from 'next/link';
@@ -21,6 +21,7 @@ export default function StorePositivacaoPage() {
   const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
+  const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]);
 
   useEffect(() => {
     setAllStores(loadStores());
@@ -28,12 +29,18 @@ export default function StorePositivacaoPage() {
     setAwardTiers(loadedTiers);
     setCurrentEvent(loadEvent());
     setAllVendors(loadVendors().sort((a,b) => a.name.localeCompare(b.name)));
+    setDrawnWinners(loadDrawnWinners());
   }, []);
 
   const currentStore = useMemo(() => {
     if (!user || !user.email) return undefined;
     return allStores.find(s => s.email === user.email);
   }, [user, allStores]);
+
+  const winnerInfo = useMemo(() => {
+    if (!currentStore) return undefined;
+    return drawnWinners.find(winner => winner.storeId === currentStore.id);
+  }, [drawnWinners, currentStore]);
 
   // Positivations for the currently viewed store (matrix itself, or the logged-in branch/standalone)
   const positivationsDetailsForCurrentStoreView = useMemo(() => {
@@ -138,6 +145,25 @@ export default function StorePositivacaoPage() {
         icon={BadgeCheck}
         iconClassName="text-secondary"
       />
+
+      {winnerInfo && (
+        <Card className="mb-6 sm:mb-8 border-green-500 bg-green-50 dark:bg-green-900/20 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3 text-green-700 dark:text-green-300">
+              <PartyPopper className="h-8 w-8" />
+              Parabéns, você foi premiado!
+            </CardTitle>
+            <CardDescription className="text-green-600 dark:text-green-400">
+              Sua loja foi sorteada e ganhou o seguinte prêmio:
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-bold text-foreground">{winnerInfo.prizeName}</p>
+            <p className="text-sm text-muted-foreground">Da faixa de premiação: {winnerInfo.tierName}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

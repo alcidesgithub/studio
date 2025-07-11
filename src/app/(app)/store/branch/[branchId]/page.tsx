@@ -11,10 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { VendorPositivationDisplayCard } from '@/components/cards/VendorPositivationDisplayCard';
 import { useAuth } from '@/hooks/use-auth';
-import { loadStores, loadAwardTiers, loadEvent, loadVendors } from '@/lib/localStorageUtils';
+import { loadStores, loadAwardTiers, loadEvent, loadVendors, loadDrawnWinners } from '@/lib/localStorageUtils';
 import { getRequiredPositivationsForStore } from '@/lib/utils';
-import type { Store, AwardTier, Event as EventType, Vendor, PositivationDetail } from '@/types';
-import { Trophy, TrendingUp, Gift, BadgeCheck, ArrowLeftCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import type { Store, AwardTier, Event as EventType, Vendor, PositivationDetail, SweepstakeWinnerRecord } from '@/types';
+import { Trophy, TrendingUp, Gift, BadgeCheck, ArrowLeftCircle, AlertTriangle, Loader2, PartyPopper } from 'lucide-react';
 
 export default function BranchDetailPage() {
   const { user, isLoading: authIsLoading } = useAuth();
@@ -26,6 +26,7 @@ export default function BranchDetailPage() {
   const [awardTiers, setAwardTiers] = useState<AwardTier[]>([]);
   const [currentEvent, setCurrentEvent] = useState<EventType | null>(null);
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
+  const [drawnWinners, setDrawnWinners] = useState<SweepstakeWinnerRecord[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function BranchDetailPage() {
     setAwardTiers(loadAwardTiers().sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)));
     setCurrentEvent(loadEvent());
     setAllVendors(loadVendors().sort((a,b) => a.name.localeCompare(b.name)));
+    setDrawnWinners(loadDrawnWinners());
     setDataLoading(false);
   }, []);
 
@@ -46,6 +48,11 @@ export default function BranchDetailPage() {
     if (!branchId || allStores.length === 0) return undefined;
     return allStores.find(s => s.id === branchId);
   }, [branchId, allStores]);
+  
+  const winnerInfo = useMemo(() => {
+    if (!branchStore) return undefined;
+    return drawnWinners.find(winner => winner.storeId === branchStore.id);
+  }, [drawnWinners, branchStore]);
 
   const positivationsDetailsForBranch = useMemo(() => {
     if (!branchStore || !branchStore.positivationsDetails || allVendors.length === 0) return [];
@@ -242,6 +249,25 @@ export default function BranchDetailPage() {
           </Button>
         }
       />
+
+      {winnerInfo && (
+        <Card className="mb-6 sm:mb-8 border-green-500 bg-green-50 dark:bg-green-900/20 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3 text-green-700 dark:text-green-300">
+              <PartyPopper className="h-8 w-8" />
+              Esta filial foi premiada!
+            </CardTitle>
+            <CardDescription className="text-green-600 dark:text-green-400">
+              A filial foi sorteada e ganhou o seguinte prêmio:
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-bold text-foreground">{winnerInfo.prizeName}</p>
+            <p className="text-sm text-muted-foreground">Da faixa de premiação: {winnerInfo.tierName}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
