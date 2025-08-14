@@ -1,377 +1,305 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Briefcase, Save, UserPlus, Edit, Trash2, PlusCircle, Users, UploadCloud, FileText, Download, Eye, Loader2, Trash, KeyRound, Search } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { loadVendors, saveVendors, loadUsers, saveUsers } from '@/lib/localStorageUtils';
+import { ALL_BRAZILIAN_STATES } from '@/lib/constants';
+import type { Vendor, User } from '@/types';
+import { Briefcase, PlusCircle, Edit, Trash2, Save, Search, Eye, Loader2 } from 'lucide-react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ALL_BRAZILIAN_STATES } from '@/lib/constants'; // Updated import
-import { loadVendors, saveVendors, loadSalespeople, saveSalespeople, loadUsers, saveUsers } from '@/lib/localStorageUtils';
-import type { Vendor, Salesperson, User } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import Image from 'next/image';
 
-const vendorSchema = z.object({
-  name: z.string().min(3, "Razão Social da empresa deve ter pelo menos 3 caracteres."),
-  cnpj: z.string().refine(value => {
-    const cleaned = (value || "").replace(/\D/g, '');
-    return cleaned.length === 14;
-  }, { message: "CNPJ deve ter 14 dígitos (após remover formatação)." }),
-  address: z.string().min(5, "Endereço é obrigatório."),
-  city: z.string().min(2, "Município é obrigatório."),
-  neighborhood: z.string().min(2, "Bairro é obrigatório."),
-  state: z.enum(ALL_BRAZILIAN_STATES.map(s => s.value) as [string, ...string[]], { required_error: "Estado é obrigatório." }),
-  logoUrl: z.string().url("Deve ser uma URL válida para o logo."),
-});
-type VendorFormValues = z.infer<typeof vendorSchema>;
-
-const salespersonSchema = z.object({
-  name: z.string().min(3, "Nome do vendedor é obrigatório."),
-  phone: z.string().min(10, "Telefone é obrigatório."),
-  email: z.string().email("Endereço de email inválido."),
-  password: z.string().optional().or(z.literal('')),
-  confirmPassword: z.string().optional().or(z.literal('')),
-}).superRefine((data, ctx) => {
-  if (data.password && data.password.length > 0) {
-    if (data.password.length < 6) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Nova senha deve ter pelo menos 6 caracteres.",
-        path: ["password"],
-      });
-    }
-    if (data.password !== data.confirmPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "As senhas não coincidem.",
-        path: ["confirmPassword"],
-      });
-    }
-  } else if (!data.password && data.confirmPassword && data.confirmPassword.length > 0) {
-     ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Nova senha é obrigatória se a confirmação for preenchida.",
-        path: ["password"],
-      });
-  }
+const vendorFormSchema = z.object({
+  name: z.string().min(5, { message: "Nome da empresa deve ter pelo menos 5 caracteres." }),
+  cnpj: z.string().min(14, { message: "CNPJ deve ter 14 dígitos." }).max(18, { message: "CNPJ muito longo." }),
+  address: z.string().min(10, { message: "Endereço deve ter pelo menos 10 caracteres." }),
+  city: z.string().min(2, { message: "Cidade deve ter pelo menos 2 caracteres." }),
+  neighborhood: z.string().min(2, { message: "Bairro deve ter pelo menos 2 caracteres." }),
+  state: z.string().min(2, { message: "Estado é obrigatório." }),
+  logoUrl: z.string().url({ message: "URL do logo deve ser válida." }),
+  website: z.string().url({ message: "Website deve ser uma URL válida." }).optional().or(z.literal("")),
+  // Salesperson fields
+  salespersonName: z.string().min(3, { message: "Nome do vendedor deve ter pelo menos 3 caracteres." }),
+  salespersonEmail: z.string().email({ message: "Email do vendedor inválido." }),
+  salespersonPhone: z.string().min(10, { message: "Telefone deve ter pelo menos 10 caracteres." }),
+  salespersonPassword: z.string().optional(),
 });
 
-type SalespersonFormValues = z.infer<typeof salespersonSchema>;
-
-const applyCnpjMask = (value: string = ''): string => {
-  const cleaned = value.replace(/\D/g, "").slice(0, 14);
-  const parts = [];
-  if (cleaned.length > 0) parts.push(cleaned.substring(0, 2));
-  if (cleaned.length > 2) parts.push(cleaned.substring(2, 5));
-  if (cleaned.length > 5) parts.push(cleaned.substring(5, 8));
-  if (cleaned.length > 8) parts.push(cleaned.substring(8, 12));
-  if (cleaned.length > 12) parts.push(cleaned.substring(12, 14));
-
-  let masked = parts.shift() || "";
-  if (parts.length > 0) masked += "." + parts.shift();
-  if (parts.length > 0) masked += "." + parts.shift();
-  if (parts.length > 0) masked += "/" + parts.shift();
-  if (parts.length > 0) masked += "-" + parts.shift();
-
-  return masked;
-};
-
-const formatDisplayCNPJ = (cnpj: string = '') => {
-  const cleaned = cnpj.replace(/\D/g, '');
-  if (cleaned.length !== 14) return cnpj;
-  return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-};
-
-const cleanCNPJ = (cnpj: string = '') => {
-    return cnpj.replace(/\D/g, '');
-};
-
-function parseCSVToVendors(csvText: string): { data: Partial<VendorFormValues>[], errors: string[] } {
-    const allLines = csvText.trim().split(/\r\n|\n/);
-    if (allLines.length < 2) {
-        return { data: [], errors: ["Arquivo CSV vazio ou sem dados."] };
-    }
-
-    const headerLine = allLines[0].toLowerCase();
-    const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, ''));
-
-    const headerMap: Record<string, keyof VendorFormValues> = {
-        "nome": "name", "cnpj": "cnpj", "endereco": "address",
-        "cidade": "city", "bairro": "neighborhood", "estado": "state", "urllogo": "logoUrl"
-    };
-
-    const expectedHeaders = Object.keys(headerMap);
-    const missingHeaders = expectedHeaders.filter(eh => !headers.includes(eh));
-
-    if (missingHeaders.length > 0) {
-        return { data: [], errors: [`Cabeçalhos faltando no CSV: ${missingHeaders.join(', ')}. Certifique-se que a primeira linha contém: ${expectedHeaders.join(', ')}`] };
-    }
-
-    const vendorsData: Partial<VendorFormValues>[] = [];
-    const errors: string[] = [];
-
-    for (let i = 1; i < allLines.length; i++) {
-        const line = allLines[i];
-        if (!line.trim()) continue;
-
-        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-        const vendorRow: Partial<VendorFormValues> = {};
-        let hasErrorInRow = false;
-
-        headers.forEach((header, index) => {
-            const mappedKey = headerMap[header];
-            if (mappedKey) {
-                (vendorRow as any)[mappedKey] = values[index];
-            }
-        });
-
-        if (vendorRow.cnpj) {
-        } else {
-            errors.push(`Linha ${i + 1}: CNPJ não fornecido.`);
-            hasErrorInRow = true;
-        }
-         if (!vendorRow.name) {
-            errors.push(`Linha ${i + 1}: Nome do fornecedor não fornecido.`);
-            hasErrorInRow = true;
-        }
-
-        if (!hasErrorInRow) {
-            vendorsData.push(vendorRow);
-        }
-    }
-    return { data: vendorsData, errors };
-}
+type VendorFormValues = z.infer<typeof vendorFormSchema>;
 
 interface VendorFormDialogContentProps {
-  vendorForm: UseFormReturn<VendorFormValues>;
-  onVendorSubmit: (data: VendorFormValues) => void;
+  form: UseFormReturn<VendorFormValues>;
+  onSubmit: (data: VendorFormValues) => void;
   editingVendor: Vendor | null;
   viewingVendor: Vendor | null;
-  currentVendorInDialog: Vendor | null;
-  salespeopleForCurrentVendorInDialog: Salesperson[];
-  handleAddNewSalesperson: (vendorId: string) => void;
-  handleEditSalesperson: (salesperson: Salesperson) => void;
-  confirmDeleteSalesperson: (salesperson: Salesperson) => void;
-  isSubmittingVendor: boolean;
-  canEdit: boolean;
+  isSubmitting: boolean;
+  isReadOnly: boolean;
 }
 
-const DynamicVendorFormDialogContent = dynamic<VendorFormDialogContentProps>(() =>
-  Promise.resolve(function VendorFormDialogContentInternal ({
-    vendorForm, onVendorSubmit, editingVendor, viewingVendor, currentVendorInDialog,
-    salespeopleForCurrentVendorInDialog, handleAddNewSalesperson, handleEditSalesperson,
-    confirmDeleteSalesperson, isSubmittingVendor, canEdit
-  }: VendorFormDialogContentProps) {
-    const isReadOnly = !canEdit;
-    return (
-      <>
-        <DialogHeader>
-          <DialogTitle>
-              {editingVendor ? 'Editar Fornecedor' :
-              (viewingVendor ? 'Visualizar Fornecedor' : 'Adicionar Novo Fornecedor')}
-          </DialogTitle>
-          <DialogDescription>
-              {editingVendor ? 'Atualize os detalhes e gerencie vendedores.' :
-              (viewingVendor ? 'Detalhes do fornecedor e seus vendedores.' : 'Preencha os detalhes do fornecedor.')}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...vendorForm}>
-          <form onSubmit={vendorForm.handleSubmit(onVendorSubmit)} className="space-y-3 sm:space-y-4 py-4 max-h-[70vh] overflow-y-auto pr-1 sm:pr-2">
-            <fieldset disabled={isReadOnly || !!viewingVendor}>
-              <Card>
-                <CardHeader><CardTitle className="text-lg sm:text-xl">Informações do Fornecedor</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-6 gap-y-3 md:gap-y-4">
-                  <FormField control={vendorForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Razão Social</FormLabel><FormControl><Input placeholder="Ex: Soluções Farmacêuticas Ltda." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="cnpj" render={({ field }) => (
+const VendorFormDialogContentInternal = ({ form, onSubmit, editingVendor, viewingVendor, isSubmitting, isReadOnly }: VendorFormDialogContentProps) => {
+  const logoUrl = form.watch("logoUrl");
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>
+          {editingVendor ? 'Editar Fornecedor' : 
+          (viewingVendor ? 'Visualizar Fornecedor' : 'Adicionar Novo Fornecedor')}
+        </DialogTitle>
+        <DialogDescription>
+          {editingVendor ? 'Atualize os detalhes deste fornecedor e seu vendedor.' : 
+          (viewingVendor ? 'Detalhes do fornecedor e vendedor.' : 'Preencha os detalhes para o novo fornecedor e seu vendedor.')}
+        </DialogDescription>
+      </DialogHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+          <fieldset disabled={isReadOnly || !!viewingVendor}>
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Dados da Empresa</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome da Empresa</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome completo da empresa" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="cnpj"
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>CNPJ</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="00.000.000/0000-00"
-                          {...field}
-                          value={field.value}
-                          onChange={e => field.onChange(applyCnpjMask(e.target.value))}
-                          disabled={!!editingVendor}
-                          maxLength={18}
+                        <Input placeholder="00.000.000/0000-00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Endereço</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Rua, número, complemento" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome da cidade" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="neighborhood"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bairro</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome do bairro" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o estado" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ALL_BRAZILIAN_STATES.map(state => (
+                            <SelectItem key={state.value} value={state.value}>
+                              {state.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="logoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>URL do Logo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://example.com/logo.png" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="website"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Website (Opcional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://www.empresa.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {logoUrl && (
+                <div className="flex justify-center">
+                  <div className="relative w-32 h-16 border rounded-md overflow-hidden">
+                    <Image
+                      src={logoUrl}
+                      alt="Preview do logo"
+                      layout="fill"
+                      objectFit="contain"
+                      className="p-2"
+                      onError={() => {}}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-4">Dados do Vendedor</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="salespersonName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome do Vendedor</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome completo do vendedor" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="salespersonPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefone do Vendedor</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(00) 00000-0000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="salespersonEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email do Vendedor (Login)</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="vendedor@empresa.com" {...field} disabled={!!editingVendor} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="salespersonPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Senha do Vendedor 
+                        {editingVendor && <span className="text-xs text-muted-foreground ml-2">(Deixe em branco para não alterar)</span>}
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder={editingVendor ? "Nova senha (opcional)" : "Mínimo 6 caracteres"} 
+                          {...field} 
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )} />
-                  <FormField control={vendorForm.control} name="address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Endereço</FormLabel><FormControl><Input placeholder="Ex: Rua Roberto Faria, 180" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>Município</FormLabel><FormControl><Input placeholder="Ex: Curitiba" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="neighborhood" render={({ field }) => (<FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Ex: Fanny" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={vendorForm.control} name="state" render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>Estado</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl><SelectTrigger><SelectValue placeholder="Selecione o estado" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                  {ALL_BRAZILIAN_STATES.map(s => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
-                              </SelectContent>
-                          </Select>
-                          <FormMessage />
-                      </FormItem>
-                  )} />
-                  <FormField control={vendorForm.control} name="logoUrl" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>URL do Logo</FormLabel><FormControl><Input type="url" placeholder="https://example.com/logo.png" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                </CardContent>
-              </Card>
-            </fieldset>
-            {currentVendorInDialog && (
-              <Card className="mt-4 sm:mt-6">
-                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <div><CardTitle className="text-lg sm:text-xl flex items-center gap-2"><Users /> Vendedores Associados</CardTitle><CardDescription>Gerencie os vendedores.</CardDescription></div>
-                  {canEdit && !viewingVendor && (
-                      <Button type="button" size="sm" onClick={() => handleAddNewSalesperson(currentVendorInDialog.id)} className="w-full sm:w-auto"><UserPlus className="mr-2 h-4 w-4" /> Adicionar Vendedor</Button>
                   )}
-                </CardHeader>
-                <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
-                  {salespeopleForCurrentVendorInDialog.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <Table><TableHeader><TableRow>
-                          <TableHead className="px-2 py-3 sm:px-4">Nome</TableHead>
-                          <TableHead className="px-2 py-3 sm:px-4">Email (Login)</TableHead>
-                          <TableHead className="hidden sm:table-cell px-2 py-3 sm:px-4">Telefone</TableHead>
-                          {canEdit && !viewingVendor && <TableHead className="text-right px-2 py-3 sm:px-4">Ações</TableHead>}
-                      </TableRow></TableHeader>
-                      <TableBody>{salespeopleForCurrentVendorInDialog.map(sp => (
-                          <TableRow key={sp.id}>
-                              <TableCell className="px-2 py-3 sm:px-4">{sp.name}</TableCell>
-                              <TableCell className="px-2 py-3 sm:px-4 break-words">{sp.email}</TableCell>
-                              <TableCell className="hidden sm:table-cell px-2 py-3 sm:px-4">{sp.phone}</TableCell>
-                              {canEdit && !viewingVendor && (
-                                  <TableCell className="text-right px-2 py-3 sm:px-4">
-                                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditSalesperson(sp)}><Edit className="h-4 w-4" /></Button>
-                                      <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteSalesperson(sp)}><Trash2 className="h-4 w-4" /></Button>
-                                  </TableCell>
-                              )}
-                          </TableRow>
-                      ))}</TableBody>
-                    </Table>
-                    </div>
-                  ) : (<p className="text-sm text-muted-foreground text-center py-4">Nenhum vendedor cadastrado.</p>)}
-                </CardContent>
-              </Card>)}
-            <DialogFooter className="pt-3 sm:pt-4">
-              <DialogClose asChild>
-                  <Button type="button" variant="outline">
-                      {viewingVendor ? 'Fechar' : 'Cancelar'}
-                  </Button>
-              </DialogClose>
-              {canEdit && !viewingVendor && (
-                  <Button type="submit" disabled={isSubmittingVendor}>
-                    {isSubmittingVendor ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                     {editingVendor ? 'Salvar Alterações' : 'Cadastrar'}
-                  </Button>
-              )}
-            </DialogFooter>
-          </form>
-        </Form>
-      </>
-    );
-  }), {
-  ssr: false,
-  loading: () => (
-    <>
-      <DialogHeader>
-        <DialogTitle>Carregando...</DialogTitle>
-      </DialogHeader>
-      <div className="p-8 text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2">Carregando formulário do fornecedor...</p>
-      </div>
-      <DialogFooter>
-        <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-      </DialogFooter>
-    </>
-  ),
-});
-
-
-interface SalespersonFormDialogContentProps {
-  salespersonForm: UseFormReturn<SalespersonFormValues>;
-  onSalespersonSubmit: (data: SalespersonFormValues) => void;
-  editingSalesperson: Salesperson | null;
-  currentVendorForSalespersonName: string;
-  isSubmittingSalesperson: boolean;
-}
-
-const DynamicSalespersonFormDialogContent = dynamic<SalespersonFormDialogContentProps>(() =>
-  Promise.resolve(function SalespersonFormDialogContentInternal ({ salespersonForm, onSalespersonSubmit, editingSalesperson, currentVendorForSalespersonName, isSubmittingSalesperson }: SalespersonFormDialogContentProps) {
-  const showPasswordFields = true; // Always show for new and edit
-  return (
-    <>
-      <DialogHeader>
-          <DialogTitle>{editingSalesperson ? 'Editar Vendedor' : 'Adicionar Novo Vendedor'}</DialogTitle>
-          <DialogDescription>
-            {editingSalesperson ? 
-                `Atualize ${editingSalesperson.name}. Deixe os campos de senha em branco para não alterá-la.` 
-                : `Adicione para ${currentVendorForSalespersonName}.`}
-            </DialogDescription>
-      </DialogHeader>
-      <Form {...salespersonForm}>
-          <form onSubmit={salespersonForm.handleSubmit(onSalespersonSubmit)} className="space-y-3 sm:space-y-4 py-4">
-              <FormField control={salespersonForm.control} name="name" render={({ field }) => (<FormItem><FormLabel>Nome do Vendedor(a)</FormLabel><FormControl><Input placeholder="Ex: Ana Beatriz" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={salespersonForm.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Telefone</FormLabel><FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={salespersonForm.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email de Login</FormLabel><FormControl><Input type="email" placeholder="vendas.login@example.com" {...field} disabled={!!editingSalesperson} /></FormControl><FormMessage /></FormItem>)} />
-              {showPasswordFields && (
-                <>
-                  <FormField
-                    control={salespersonForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                            {editingSalesperson ? "Nova Senha" : "Senha"}
-                            {editingSalesperson && <span className="text-xs text-muted-foreground"> (Deixe em branco para não alterar)</span>}
-                        </FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder={editingSalesperson ? "Nova senha (opcional)" : "Mínimo 6 caracteres"} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={salespersonForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirmar {editingSalesperson ? "Nova " : ""}Senha</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Repita a senha" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-              <DialogFooter className="pt-3 sm:pt-4">
-                  <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                  <Button type="submit" disabled={isSubmittingSalesperson}>
-                    {isSubmittingSalesperson ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
-                    {editingSalesperson ? 'Salvar' : 'Cadastrar'}
-                  </Button>
-              </DialogFooter>
-          </form>
+                />
+              </div>
+            </div>
+          </fieldset>
+          <DialogFooter className="pt-4">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                {viewingVendor ? 'Fechar' : 'Cancelar'}
+              </Button>
+            </DialogClose>
+            {!viewingVendor && !isReadOnly && (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                {editingVendor ? 'Salvar Alterações' : 'Criar Fornecedor'}
+              </Button>
+            )}
+          </DialogFooter>
+        </form>
       </Form>
     </>
   );
-  }), {
+};
+
+const DynamicVendorFormDialogContent = dynamic(() => Promise.resolve(VendorFormDialogContentInternal), {
   ssr: false,
   loading: () => (
     <>
@@ -380,7 +308,7 @@ const DynamicSalespersonFormDialogContent = dynamic<SalespersonFormDialogContent
       </DialogHeader>
       <div className="p-8 text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2">Carregando formulário do vendedor...</p>
+        <p className="mt-2">Carregando formulário...</p>
       </div>
       <DialogFooter>
         <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
@@ -389,737 +317,419 @@ const DynamicSalespersonFormDialogContent = dynamic<SalespersonFormDialogContent
   ),
 });
 
-
-export default function ManageVendorsPage() {
+export default function AdminVendorManagementPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
   const { user } = useAuth();
-  const canEdit = user?.role === 'admin' || user?.role === 'manager';
-  const isReadOnly = !canEdit;
+  const isReadOnly = user?.role === 'manager' || user?.role === 'equipe';
 
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [salespeople, setSalespeople] = useState<Salesperson[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
-  const [isVendorViewDialogOpen, setIsVendorViewDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [viewingVendor, setViewingVendor] = useState<Vendor | null>(null);
-  const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const [isSalespersonDialogOpen, setIsSalespersonDialogOpen] = useState(false);
-  const [editingSalesperson, setEditingSalesperson] = useState<Salesperson | null>(null);
-  const [currentVendorIdForSalesperson, setCurrentVendorIdForSalesperson] = useState<string | null>(null);
-  const [salespersonToDelete, setSalespersonToDelete] = useState<Salesperson | null>(null);
-
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [csvFileName, setCsvFileName] = useState<string>("");
-  const [importLoading, setImportLoading] = useState(false);
-  const [importErrors, setImportErrors] = useState<string[]>([]);
-  
-  const [selectedVendorIds, setSelectedVendorIds] = useState<Set<string>>(new Set());
-  const [isDeleteSelectedConfirmOpen, setIsDeleteSelectedConfirmOpen] = useState(false);
+  // Safe search params handling
+  const activeTab = searchParams?.get('tab') || 'all';
 
   useEffect(() => {
     setVendors(loadVendors());
-    setSalespeople(loadSalespeople());
+    setUsers(loadUsers());
   }, []);
 
-  const vendorForm = useForm<VendorFormValues>({
-    resolver: zodResolver(vendorSchema),
+  const form = useForm<VendorFormValues>({
+    resolver: zodResolver(vendorFormSchema),
     defaultValues: {
-      name: '', cnpj: '', address: '', city: '', neighborhood: '', state: undefined,
-      logoUrl: 'https://placehold.co/120x60.png?text=Logo',
+      name: '',
+      cnpj: '',
+      address: '',
+      city: '',
+      neighborhood: '',
+      state: '',
+      logoUrl: '',
+      website: '',
+      salespersonName: '',
+      salespersonEmail: '',
+      salespersonPhone: '',
+      salespersonPassword: '',
     },
   });
 
-  const salespersonForm = useForm<SalespersonFormValues>({
-    resolver: zodResolver(salespersonSchema),
-    defaultValues: { name: '', phone: '', email: '', password: '', confirmPassword: '' },
-  });
-
-  const handleAddNewVendor = () => {
-    if (!canEdit) return;
-    setEditingVendor(null);
-    setViewingVendor(null);
-    vendorForm.reset({
-      name: '', cnpj: '', address: '', city: '', neighborhood: '', state: undefined,
-      logoUrl: 'https://placehold.co/120x60.png?text=NovoLogo',
-    });
-    setIsVendorDialogOpen(true);
-    setIsVendorViewDialogOpen(false);
-  };
-
-  const handleEditVendor = (vendor: Vendor) => {
-    if (!canEdit) return;
-    setEditingVendor(vendor);
-    setViewingVendor(null);
-    vendorForm.reset({
-      name: vendor.name,
-      cnpj: formatDisplayCNPJ(vendor.cnpj),
-      address: vendor.address,
-      city: vendor.city,
-      neighborhood: vendor.neighborhood,
-      state: vendor.state || undefined,
-      logoUrl: vendor.logoUrl,
-    });
-    setIsVendorDialogOpen(true);
-    setIsVendorViewDialogOpen(false);
-  };
-
-  const handleViewVendor = (vendor: Vendor) => {
-    setViewingVendor(vendor);
-    setEditingVendor(null);
-    vendorForm.reset({
-      name: vendor.name,
-      cnpj: formatDisplayCNPJ(vendor.cnpj),
-      address: vendor.address,
-      city: vendor.city,
-      neighborhood: vendor.neighborhood,
-      state: vendor.state || undefined,
-      logoUrl: vendor.logoUrl,
-    });
-    setIsVendorViewDialogOpen(true);
-    setIsVendorDialogOpen(false);
-  };
-
-
-  const confirmDeleteVendor = (vendor: Vendor) => {
-    if (!canEdit) return;
-    setVendorToDelete(vendor);
-  };
-
-  const handleDeleteVendor = () => {
-    if (!vendorToDelete || !canEdit) return;
-    const currentUsers = loadUsers();
-    let usersModified = false;
-    const salespeopleOfVendor = salespeople.filter(sp => sp.vendorId === vendorToDelete.id);
-    const updatedSalespeople = salespeople.filter(sp => sp.vendorId !== vendorToDelete.id);
-    const emailsOfSalespeopleToDelete = salespeopleOfVendor.map(sp => sp.email);
-    const usersToKeep = currentUsers.filter(u => !(emailsOfSalespeopleToDelete.includes(u.email) && u.role === 'vendor'));
-    if (usersToKeep.length < currentUsers.length) usersModified = true;
-
-    setSalespeople(updatedSalespeople);
-    saveSalespeople(updatedSalespeople);
-    if(usersModified) saveUsers(usersToKeep);
-
-    const updatedVendors = vendors.filter(v => v.id !== vendorToDelete.id);
-    setVendors(updatedVendors);
-    saveVendors(updatedVendors);
-
-    setSelectedVendorIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(vendorToDelete.id);
-        return newSet;
-    });
-
-    toast({
-      title: "Fornecedor Excluído!",
-      description: `O fornecedor "${vendorToDelete.name}" e seus vendedores (e logins) vinculados foram removidos.`,
-      variant: "destructive"
-    });
-    setVendorToDelete(null);
-  };
-
-  const onVendorSubmit = (data: VendorFormValues) => {
-    if (!canEdit) return;
-    let updatedVendors;
-    const rawCnpj = cleanCNPJ(data.cnpj);
-    const initialEditingVendor = editingVendor;
-
-    if (initialEditingVendor) {
-      if(vendors.some(v => v.cnpj === rawCnpj && v.id !== initialEditingVendor.id)) {
-        vendorForm.setError("cnpj", {type: "manual", message: "Este CNPJ já está cadastrado para outro fornecedor."});
-        toast({ title: "Erro", description: "CNPJ já cadastrado.", variant: "destructive"});
-        return;
-      }
-      updatedVendors = vendors.map(v =>
-        v.id === initialEditingVendor.id ? { ...initialEditingVendor, ...data, cnpj: rawCnpj } : v
-      );
-      if (vendorForm.formState.isDirty) {
-        toast({ title: "Fornecedor Atualizado!", description: `${data.name} foi atualizado.`, variant: "success" });
-      }
-    } else {
-      if(vendors.some(v => v.cnpj === rawCnpj)) {
-        vendorForm.setError("cnpj", {type: "manual", message: "Este CNPJ já está cadastrado."});
-        toast({ title: "Erro", description: "CNPJ já cadastrado.", variant: "destructive"});
-        return;
-      }
-      const newVendorId = `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`;
-      const newVendor: Vendor = { id: newVendorId, ...data, cnpj: rawCnpj };
-      updatedVendors = [...vendors, newVendor];
-      setEditingVendor(newVendor); 
-      toast({ title: "Fornecedor Cadastrado!", description: `${data.name} foi cadastrado. Você pode adicionar vendedores agora.`, variant: "success" });
-    }
-    setVendors(updatedVendors);
-    saveVendors(updatedVendors);
-
-    if (initialEditingVendor && !viewingVendor && vendorForm.formState.isDirty) {
-        vendorForm.reset();
-        setIsVendorDialogOpen(false);
-        setEditingVendor(null);
-    } else if (!initialEditingVendor) {
-        vendorForm.reset({...data, cnpj: formatDisplayCNPJ(rawCnpj), state: data.state || undefined}); 
-    }
-  };
-
-  const handleAddNewSalesperson = (vendorId: string) => {
-    if (!canEdit) return;
-    setCurrentVendorIdForSalesperson(vendorId);
-    setEditingSalesperson(null);
-    salespersonForm.reset({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
-    setIsSalespersonDialogOpen(true);
-  };
-
-  const handleEditSalesperson = (salesperson: Salesperson) => {
-    if (!canEdit) return;
-    setCurrentVendorIdForSalesperson(salesperson.vendorId);
-    setEditingSalesperson(salesperson);
-    salespersonForm.reset({ name: salesperson.name, phone: salesperson.phone, email: salesperson.email, password: '', confirmPassword: '' });
-    setIsSalespersonDialogOpen(true);
-  };
-
-  const confirmDeleteSalesperson = (salesperson: Salesperson) => {
-    if (!canEdit) return;
-    setSalespersonToDelete(salesperson);
-  };
-
-  const handleDeleteSalesperson = () => {
-    if (!salespersonToDelete || !canEdit) return;
-    const currentUsers = loadUsers();
-    const usersToKeep = currentUsers.filter(u => !(u.email === salespersonToDelete.email && u.role === 'vendor'));
-    if (usersToKeep.length < currentUsers.length) {
-        saveUsers(usersToKeep);
-        toast({ title: "Login do Vendedor Removido", description: `O login para ${salespersonToDelete.email} foi removido.`, variant: "default" });
-    }
-    const updatedSalespeople = salespeople.filter(sp => sp.id !== salespersonToDelete.id);
-    setSalespeople(updatedSalespeople);
-    saveSalespeople(updatedSalespeople);
-    toast({ title: "Vendedor Excluído!", description: `O vendedor "${salespersonToDelete.name}" foi removido.`, variant: "destructive" });
-    setSalespersonToDelete(null);
-  };
-
-  const onSalespersonSubmit = (data: SalespersonFormValues) => {
-    if (!currentVendorIdForSalesperson || !canEdit) return;
-    const vendorForSalesperson = vendors.find(v => v.id === currentVendorIdForSalesperson);
-    if (!vendorForSalesperson) return;
-
-    let updatedSalespeople;
-    const currentUsers = loadUsers();
-    
-    if (editingSalesperson) {
-        const userIndex = currentUsers.findIndex(u => u.email === editingSalesperson.email && u.role === 'vendor');
-        updatedSalespeople = salespeople.map(sp => sp.id === editingSalesperson.id ? { ...editingSalesperson, ...data, vendorId: currentVendorIdForSalesperson, password: data.password || editingSalesperson.password } : sp );
-        toast({ title: "Vendedor Atualizado!", description: `${data.name} atualizado.`, variant: "success" });
-
-        if (userIndex > -1) {
-            currentUsers[userIndex].name = data.name;
-            currentUsers[userIndex].storeName = vendorForSalesperson.name; // Update vendor company name if it changed
-            if (data.password && data.password.length > 0) {
-                 // Schema ensures password is valid if provided
-                currentUsers[userIndex].password = data.password;
-                toast({
-                    title: "Senha do Vendedor Atualizada!",
-                    description: `A senha para ${currentUsers[userIndex].email} foi atualizada.`,
-                    variant: "success",
-                });
-            }
-            saveUsers(currentUsers);
-        }
-    } else { // New salesperson
-        if (!data.password || data.password.length === 0) {
-            salespersonForm.setError("password", {type: "manual", message: "Senha é obrigatória para novo cadastro."});
-            toast({ title: "Erro de Validação", description: "Senha é obrigatória para criar o usuário do vendedor.", variant: "destructive"});
-            return;
-        }
-        if (data.password.length < 6 || (data.password !== data.confirmPassword)) {
-            // Schema should catch this, but double check
-            toast({ title: "Erro de Validação", description: "Verifique os campos de senha.", variant: "destructive"});
-            return;
-        }
-
-        const existingUserWithEmail = currentUsers.find(u => u.email === data.email && u.role === 'vendor');
-        if (existingUserWithEmail) { 
-            salespersonForm.setError("email", { type: "manual", message: "Este email já está em uso por outro vendedor." });
-            toast({ title: "Erro", description: "Email já cadastrado para um vendedor.", variant: "destructive" });
-            return;
-        }
-
-        const newSalesperson: Salesperson = { id: `sp_${Date.now()}_${Math.random().toString(36).substring(2,7)}`, ...data, vendorId: currentVendorIdForSalesperson, password: data.password };
-        updatedSalespeople = [...salespeople, newSalesperson];
-        toast({ title: "Vendedor Cadastrado!", description: `${data.name} cadastrado para ${vendorForSalesperson.name}.`, variant: "success" });
-        
-        const newUserForSalesperson: User = {
-            id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,5)}`,
-            email: data.email,
-            role: 'vendor',
-            name: data.name,
-            storeName: vendorForSalesperson.name, // Store vendor company name
-            password: data.password, 
-        };
-        currentUsers.push(newUserForSalesperson);
-        saveUsers(currentUsers);
-        toast({ title: "Login do Vendedor Criado!", description: `Um login foi criado para ${data.email}.`, variant: "success"});
-    }
-    setSalespeople(updatedSalespeople);
-    saveSalespeople(updatedSalespeople);
-    salespersonForm.reset();
-    setIsSalespersonDialogOpen(false);
-    setEditingSalesperson(null);
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!canEdit) return;
-    const file = event.target.files?.[0];
-    if (file) {
-      setCsvFile(file);
-      setCsvFileName(file.name);
-      setImportErrors([]);
-    } else {
-      setCsvFile(null);
-      setCsvFileName("");
-    }
-  };
-
-  const handleProcessImport = async () => {
-    if (!canEdit) return;
-    if (!csvFile) {
-      toast({ title: "Nenhum arquivo selecionado", description: "Por favor, selecione um arquivo CSV.", variant: "destructive" });
-      return;
-    }
-    setImportLoading(true);
-    setImportErrors([]);
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const text = e.target?.result as string;
-      const { data: parsedVendors, errors: parsingErrors } = parseCSVToVendors(text);
-
-      if (parsingErrors.length > 0) {
-        setImportErrors(parsingErrors);
-        setImportLoading(false);
-        toast({ title: "Erro ao Ler CSV", description: "Verifique os erros listados e o formato do arquivo.", variant: "destructive" });
-        return;
-      }
-
-      const currentVendors = loadVendors();
-      const newVendorsToSave: Vendor[] = [];
-      const validationErrors: string[] = [];
-      let importedCount = 0;
-
-      for (let i = 0; i < parsedVendors.length; i++) {
-        const pv = parsedVendors[i];
-        try {
-          const validatedData = vendorSchema.parse({
-            name: pv.name || '',
-            cnpj: pv.cnpj || '', // CNPJ still passed for validation
-            address: pv.address || '',
-            city: pv.city || '',
-            neighborhood: pv.neighborhood || '',
-            state: pv.state || '',
-            logoUrl: pv.logoUrl || 'https://placehold.co/120x60.png?text=Import',
-          });
-
-          const rawCsvCnpj = cleanCNPJ(pv.cnpj || '');
-          if (currentVendors.some(v => v.cnpj === rawCsvCnpj) || newVendorsToSave.some(v => v.cnpj === rawCsvCnpj)) {
-            validationErrors.push(`Linha ${i + 2}: CNPJ ${pv.cnpj} já existe e foi ignorado.`);
-            continue;
-          }
-
-          newVendorsToSave.push({
-            id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}_${i}`,
-            ...validatedData,
-            cnpj: rawCsvCnpj, // Store cleaned CNPJ
-          });
-          importedCount++;
-        } catch (error) {
-          if (error instanceof z.ZodError) {
-            const fieldErrors = error.errors.map(err => `Linha ${i + 2} (${pv.name || 'Sem nome'}): ${err.path.join('.')} - ${err.message}`).join('; ');
-            validationErrors.push(fieldErrors);
-          } else {
-            validationErrors.push(`Linha ${i + 2} (${pv.name || 'Sem nome'}): Erro inesperado - ${(error as Error).message}`);
-          }
-        }
-      }
-
-      if (newVendorsToSave.length > 0) {
-        const updatedVendorList = [...currentVendors, ...newVendorsToSave];
-        saveVendors(updatedVendorList);
-        setVendors(updatedVendorList);
-      }
-
-      setImportErrors(validationErrors);
-      setImportLoading(false);
-
-      if (importedCount > 0 && validationErrors.length === 0) {
-        toast({ title: "Importação Concluída!", description: `${importedCount} fornecedores importados com sucesso.`, variant: "success" });
-        setIsImportDialogOpen(false);
-        setCsvFile(null);
-        setCsvFileName("");
-      } else if (importedCount > 0 && validationErrors.length > 0) {
-        toast({ title: "Importação Parcial", description: `${importedCount} fornecedores importados. Alguns registros tiveram erros.`, variant: "default" });
-      } else if (importedCount === 0 && validationErrors.length > 0) {
-        toast({ title: "Falha na Importação", description: "Nenhum fornecedor importado devido a erros. Verifique os detalhes.", variant: "destructive" });
-      } else if (importedCount === 0 && validationErrors.length === 0 && parsedVendors.length > 0) {
-        toast({ title: "Nenhum Novo Fornecedor", description: "Nenhum novo fornecedor para importar (possivelmente todos já existem).", variant: "default" });
-      } else {
-         toast({ title: "Nenhum dado para importar", description: "O arquivo CSV parece não conter dados de fornecedores válidos.", variant: "default" });
-      }
-    };
-    reader.onerror = () => {
-      toast({ title: "Erro ao ler arquivo", description: "Não foi possível ler o arquivo selecionado.", variant: "destructive" });
-      setImportLoading(false);
-    };
-    reader.readAsText(csvFile);
-  };
-
-  const handleDownloadSampleCSV = () => {
-    const csvHeader = "nome,cnpj,endereco,cidade,bairro,estado,urllogo\n";
-    const csvExampleRow1 = `"Exemplo Fornecedor Ltda.","12345678000199","Rua Exemplo, 123","Exemplópolis","Centro","SP","https://placehold.co/120x60.png?text=Exemplo1"\n`;
-    const csvExampleRow2 = `"Outro Fornecedor S.A.","98765432000100","Avenida Modelo, 456","Modelândia","Bairro Novo","PR","https://placehold.co/120x60.png?text=Exemplo2"\n`;
-    const csvContent = csvHeader + csvExampleRow1 + csvExampleRow2;
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", "exemplo_fornecedores.csv");
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  const currentVendorInDialog = editingVendor || viewingVendor;
-
-  const salespeopleForCurrentVendorInDialog = useMemo(() => {
-    if (!currentVendorInDialog) return [];
-    return salespeople.filter(sp => sp.vendorId === currentVendorInDialog.id);
-  }, [salespeople, currentVendorInDialog]);
-
-  const handleSelectVendor = (vendorId: string) => {
-    if (!canEdit) return;
-    setSelectedVendorIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(vendorId)) {
-        newSet.delete(vendorId);
-      } else {
-        newSet.add(vendorId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectAllVendors = () => {
-    if (!canEdit) return;
-    if (selectedVendorIds.size === filteredVendors.length) { // Use filteredVendors for "select all" logic
-      setSelectedVendorIds(new Set());
-    } else {
-      setSelectedVendorIds(new Set(filteredVendors.map(v => v.id)));
-    }
-  };
-
-  const handleConfirmDeleteSelectedVendors = () => {
-    if (!canEdit || selectedVendorIds.size === 0) return;
-
-    const currentUsers = loadUsers();
-    let usersModified = false;
-    
-    const salespeopleToDelete = salespeople.filter(sp => selectedVendorIds.has(sp.vendorId));
-    const emailsOfSalespeopleToDelete = salespeopleToDelete.map(sp => sp.email);
-
-    const usersToKeep = currentUsers.filter(u => !(emailsOfSalespeopleToDelete.includes(u.email) && u.role === 'vendor'));
-    if (usersToKeep.length < currentUsers.length) usersModified = true;
-    
-    const updatedSalespeople = salespeople.filter(sp => !selectedVendorIds.has(sp.vendorId));
-    setSalespeople(updatedSalespeople);
-    saveSalespeople(updatedSalespeople);
-    if(usersModified) saveUsers(usersToKeep);
-
-    const updatedVendors = vendors.filter(v => !selectedVendorIds.has(v.id));
-    setVendors(updatedVendors);
-    saveVendors(updatedVendors);
-
-    toast({
-      title: `${selectedVendorIds.size} Fornecedor(es) Excluído(s)!`,
-      description: "Os fornecedores selecionados, seus vendedores e logins associados foram removidos.",
-      variant: "destructive"
-    });
-    setSelectedVendorIds(new Set());
-    setIsDeleteSelectedConfirmOpen(false);
-  };
-  
   const filteredVendors = useMemo(() => {
-    if (!searchTerm.trim()) {
-      return vendors;
-    }
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    const cleanedSearchTermForCnpj = searchTerm.replace(/\D/g, '');
+    let filtered = vendors;
 
-    return vendors.filter(vendor => {
-      const checkString = (value?: string) => value?.toLowerCase().includes(lowerSearchTerm);
-      const checkCnpj = (cnpjValue?: string) => { 
-        if (!cnpjValue) return false;
-        if (cleanedSearchTermForCnpj.length > 0 && cleanCNPJ(cnpjValue).includes(cleanedSearchTermForCnpj)) {
-          return true;
-        }
-        if (cnpjValue.toLowerCase().includes(lowerSearchTerm)) {
-            return true;
-        }
-        return false;
-      };
-
-      return (
-        checkString(vendor.name) ||
-        checkCnpj(vendor.cnpj) ||
-        checkString(vendor.address) ||
-        checkString(vendor.city) ||
-        checkString(vendor.neighborhood) ||
-        checkString(vendor.state)
+    // Filter by search term
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(vendor =>
+        vendor.name.toLowerCase().includes(lowerSearchTerm) ||
+        vendor.cnpj.includes(searchTerm.replace(/\D/g, '')) ||
+        vendor.city.toLowerCase().includes(lowerSearchTerm) ||
+        vendor.state.toLowerCase().includes(lowerSearchTerm)
       );
-    });
+    }
+
+    return filtered;
   }, [vendors, searchTerm]);
 
-  const isAllVendorsSelected = useMemo(() => filteredVendors.length > 0 && selectedVendorIds.size === filteredVendors.length && filteredVendors.every(v => selectedVendorIds.has(v.id)), [filteredVendors, selectedVendorIds]);
+  const handleAddNew = () => {
+    if (isReadOnly) return;
+    setEditingVendor(null);
+    setViewingVendor(null);
+    form.reset({
+      name: '',
+      cnpj: '',
+      address: '',
+      city: '',
+      neighborhood: '',
+      state: '',
+      logoUrl: '',
+      website: '',
+      salespersonName: '',
+      salespersonEmail: '',
+      salespersonPhone: '',
+      salespersonPassword: '',
+    });
+    setIsDialogOpen(true);
+    setIsViewDialogOpen(false);
+  };
+
+  const handleEdit = (vendor: Vendor) => {
+    if (isReadOnly) return;
+    const vendorUser = users.find(u => u.role === 'vendor' && u.storeName === vendor.name);
+    
+    setEditingVendor(vendor);
+    setViewingVendor(null);
+    form.reset({
+      name: vendor.name,
+      cnpj: vendor.cnpj,
+      address: vendor.address,
+      city: vendor.city,
+      neighborhood: vendor.neighborhood,
+      state: vendor.state,
+      logoUrl: vendor.logoUrl,
+      website: vendor.website || '',
+      salespersonName: vendorUser?.name || '',
+      salespersonEmail: vendorUser?.email || '',
+      salespersonPhone: '', // We don't store phone in User model
+      salespersonPassword: '',
+    });
+    setIsDialogOpen(true);
+    setIsViewDialogOpen(false);
+  };
+
+  const handleView = (vendor: Vendor) => {
+    const vendorUser = users.find(u => u.role === 'vendor' && u.storeName === vendor.name);
+    
+    setViewingVendor(vendor);
+    setEditingVendor(null);
+    form.reset({
+      name: vendor.name,
+      cnpj: vendor.cnpj,
+      address: vendor.address,
+      city: vendor.city,
+      neighborhood: vendor.neighborhood,
+      state: vendor.state,
+      logoUrl: vendor.logoUrl,
+      website: vendor.website || '',
+      salespersonName: vendorUser?.name || '',
+      salespersonEmail: vendorUser?.email || '',
+      salespersonPhone: '',
+      salespersonPassword: '',
+    });
+    setIsViewDialogOpen(true);
+    setIsDialogOpen(false);
+  };
+
+  const handleDelete = (vendorId: string) => {
+    if (isReadOnly) return;
+    const vendor = vendors.find(v => v.id === vendorId);
+    if (!vendor) return;
+
+    // Remove vendor
+    const updatedVendors = vendors.filter(v => v.id !== vendorId);
+    setVendors(updatedVendors);
+    saveVendors(updatedVendors);
+
+    // Remove associated user
+    const updatedUsers = users.filter(u => !(u.role === 'vendor' && u.storeName === vendor.name));
+    setUsers(updatedUsers);
+    saveUsers(updatedUsers);
+
+    toast({
+      title: "Fornecedor Excluído",
+      description: "O fornecedor e seu usuário vendedor foram excluídos do armazenamento local.",
+      variant: "destructive"
+    });
+  };
+
+  const onSubmit = (data: VendorFormValues) => {
+    if (isReadOnly) {
+      toast({
+        title: "Acesso Negado",
+        description: "Você não tem permissão para modificar fornecedores.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate password for new vendors
+    if (!editingVendor && (!data.salespersonPassword || data.salespersonPassword.length < 6)) {
+      form.setError("salespersonPassword", { message: "Senha é obrigatória e deve ter pelo menos 6 caracteres para novo fornecedor." });
+      return;
+    }
+
+    // Check for duplicate emails
+    const existingUser = users.find(u => 
+      u.email === data.salespersonEmail && 
+      (!editingVendor || u.storeName !== editingVendor.name)
+    );
+    if (existingUser) {
+      form.setError("salespersonEmail", { message: "Este email já está em uso por outro usuário." });
+      return;
+    }
+
+    let updatedVendors;
+    let updatedUsers = [...users];
+
+    if (editingVendor) {
+      // Update vendor
+      updatedVendors = vendors.map(v =>
+        v.id === editingVendor.id ? {
+          ...editingVendor,
+          name: data.name,
+          cnpj: data.cnpj,
+          address: data.address,
+          city: data.city,
+          neighborhood: data.neighborhood,
+          state: data.state,
+          logoUrl: data.logoUrl,
+          website: data.website,
+        } : v
+      );
+
+      // Update associated user
+      const userIndex = updatedUsers.findIndex(u => u.role === 'vendor' && u.storeName === editingVendor.name);
+      if (userIndex !== -1) {
+        updatedUsers[userIndex] = {
+          ...updatedUsers[userIndex],
+          name: data.salespersonName,
+          email: data.salespersonEmail,
+          storeName: data.name, // Update company name reference
+          ...(data.salespersonPassword && { password: data.salespersonPassword }),
+        };
+      } else {
+        // Create user if it doesn't exist
+        const newUser: User = {
+          id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+          name: data.salespersonName,
+          email: data.salespersonEmail,
+          role: 'vendor',
+          storeName: data.name,
+          password: data.salespersonPassword || 'password123',
+        };
+        updatedUsers.push(newUser);
+      }
+
+      toast({
+        title: "Fornecedor Atualizado!",
+        description: `O fornecedor "${data.name}" foi atualizado no armazenamento local.`,
+        variant: "success",
+      });
+    } else {
+      // Create new vendor
+      const newVendor: Vendor = {
+        id: `vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+        name: data.name,
+        cnpj: data.cnpj,
+        address: data.address,
+        city: data.city,
+        neighborhood: data.neighborhood,
+        state: data.state,
+        logoUrl: data.logoUrl,
+        website: data.website,
+      };
+      updatedVendors = [...vendors, newVendor];
+
+      // Create associated user
+      const newUser: User = {
+        id: `user_vendor_${Date.now()}_${Math.random().toString(36).substring(2,7)}`,
+        name: data.salespersonName,
+        email: data.salespersonEmail,
+        role: 'vendor',
+        storeName: data.name,
+        password: data.salespersonPassword!,
+      };
+      updatedUsers.push(newUser);
+
+      toast({
+        title: "Fornecedor Criado!",
+        description: `O fornecedor "${data.name}" foi criado no armazenamento local.`,
+        variant: "success",
+      });
+    }
+
+    setVendors(updatedVendors);
+    saveVendors(updatedVendors);
+    setUsers(updatedUsers);
+    saveUsers(updatedUsers);
+    
+    form.reset();
+    setIsDialogOpen(false);
+    setIsViewDialogOpen(false);
+    setEditingVendor(null);
+    setViewingVendor(null);
+  };
+
+  const getVendorUser = (vendor: Vendor) => {
+    return users.find(u => u.role === 'vendor' && u.storeName === vendor.name);
+  };
 
   return (
-    <div className="animate-fadeIn space-y-6 sm:space-y-8">
+    <div className="animate-fadeIn">
       <PageHeader
-        title="Fornecedores"
-        description={isReadOnly ? "Visualizando fornecedores e vendedores." : "Adicione, edite ou remova fornecedores e gerencie seus vendedores."}
+        title="Gerenciar Fornecedores"
+        description={isReadOnly ? "Visualizando fornecedores cadastrados. Apenas administradores podem editar." : "Gerencie os fornecedores participantes do evento e seus vendedores."}
         icon={Briefcase}
         iconClassName="text-secondary"
         actions={
-          canEdit && (
-            <div className="flex flex-col sm:flex-row gap-2">
-              {selectedVendorIds.size > 0 && (
-                <Button onClick={() => setIsDeleteSelectedConfirmOpen(true)} variant="destructive" className="w-full sm:w-auto">
-                  <Trash className="mr-2 h-4 w-4" /> Excluir ({selectedVendorIds.size})
-                </Button>
-              )}
-              <Button onClick={() => setIsImportDialogOpen(true)} variant="outline" className="w-full sm:w-auto">
-                <UploadCloud className="mr-2 h-4 w-4" /> Importar (CSV)
-              </Button>
-              <Button onClick={handleAddNewVendor} className="w-full sm:w-auto">
-                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fornecedor
-              </Button>
-            </div>
+          !isReadOnly && (
+            <Button onClick={handleAddNew} className="w-full sm:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Fornecedor
+            </Button>
           )
         }
       />
 
-      <AlertDialog open={isDeleteSelectedConfirmOpen} onOpenChange={setIsDeleteSelectedConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão em Massa</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir {selectedVendorIds.size} fornecedor(es) selecionado(s)?
-              Esta ação também removerá todos os vendedores e logins de usuário associados a estes fornecedores. Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteSelectedConfirmOpen(false)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDeleteSelectedVendors} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir Selecionados</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog
-        open={isVendorDialogOpen || isVendorViewDialogOpen}
+      <Dialog 
+        open={isDialogOpen || isViewDialogOpen} 
         onOpenChange={(openState) => {
-            if (!openState) {
-                setIsVendorDialogOpen(false);
-                setIsVendorViewDialogOpen(false);
-                setEditingVendor(null);
-                setViewingVendor(null);
-                vendorForm.reset();
-            }
+          if (!openState) {
+            setIsDialogOpen(false);
+            setIsViewDialogOpen(false);
+            setEditingVendor(null);
+            setViewingVendor(null);
+            form.reset();
+          }
         }}
-        >
-        <DialogContent className="sm:max-w-3xl">
-          {(isVendorDialogOpen || isVendorViewDialogOpen) && (
+      >
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden">
+          {(isDialogOpen || isViewDialogOpen) && (
             <DynamicVendorFormDialogContent
-              vendorForm={vendorForm}
-              onVendorSubmit={onVendorSubmit}
+              form={form}
+              onSubmit={onSubmit}
               editingVendor={editingVendor}
               viewingVendor={viewingVendor}
-              currentVendorInDialog={currentVendorInDialog}
-              salespeopleForCurrentVendorInDialog={salespeopleForCurrentVendorInDialog}
-              handleAddNewSalesperson={handleAddNewSalesperson}
-              handleEditSalesperson={handleEditSalesperson}
-              confirmDeleteSalesperson={confirmDeleteSalesperson}
-              isSubmittingVendor={vendorForm.formState.isSubmitting}
-              canEdit={canEdit}
+              isSubmitting={form.formState.isSubmitting}
+              isReadOnly={isReadOnly}
             />
           )}
         </DialogContent>
       </Dialog>
 
-       <Dialog open={isSalespersonDialogOpen} onOpenChange={(isOpen) => {
-          setIsSalespersonDialogOpen(isOpen);
-          if (!isOpen) { setEditingSalesperson(null); salespersonForm.reset(); }
-      }}>
-        <DialogContent className="sm:max-w-md">
-           {isSalespersonDialogOpen && (
-            <DynamicSalespersonFormDialogContent
-              salespersonForm={salespersonForm}
-              onSalespersonSubmit={onSalespersonSubmit}
-              editingSalesperson={editingSalesperson}
-              currentVendorForSalespersonName={vendors.find(v => v.id === currentVendorIdForSalesperson)?.name || ''}
-              isSubmittingSalesperson={salespersonForm.formState.isSubmitting}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isImportDialogOpen} onOpenChange={(isOpen) => {
-        setIsImportDialogOpen(isOpen);
-        if (!isOpen) {
-          setCsvFile(null);
-          setCsvFileName("");
-          setImportErrors([]);
-        }
-      }}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Importar Fornecedores (CSV)</DialogTitle>
-            <DialogDescription>
-              Selecione um arquivo CSV para importar fornecedores em massa.
-              O arquivo deve conter as seguintes colunas na primeira linha (cabeçalho):
-              <code className="block bg-muted p-2 rounded-md my-2 text-xs break-all">nome,cnpj,endereco,cidade,bairro,estado,urllogo</code>
-              Certifique-se que o CNPJ esteja formatado corretamente ou apenas com números.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 sm:space-y-4 py-4">
-             <div>
-               <label htmlFor="csv-upload" className="block text-sm font-medium mb-1">Arquivo CSV</label>
+      <Card className="shadow-lg">
+        <CardHeader className="px-4 py-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle>Fornecedores Cadastrados</CardTitle>
+              <CardDescription>Lista de todos os fornecedores e seus vendedores no sistema.</CardDescription>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                id="csv-upload"
-                type="file"
-                accept=".csv"
-                onChange={handleFileSelect}
-                className="h-auto file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                disabled={!canEdit}
+                placeholder="Buscar fornecedores..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full sm:w-64"
               />
             </div>
-            {csvFileName && (
-              <div className="text-sm text-muted-foreground flex items-center">
-                <FileText className="h-4 w-4 mr-2" /> Arquivo selecionado: {csvFileName}
-              </div>
-            )}
-            <Button type="button" variant="link" size="sm" onClick={handleDownloadSampleCSV} className="p-0 h-auto text-primary text-xs sm:text-sm">
-              <Download className="mr-1 h-3 w-3" /> Baixar CSV de Exemplo
-            </Button>
-            {importErrors.length > 0 && (
-              <div className="mt-4 max-h-40 overflow-y-auto rounded-md border border-destructive/50 bg-destructive/10 p-3">
-                <h4 className="font-semibold text-destructive mb-2">Erros na Importação:</h4>
-                <ul className="list-disc list-inside text-xs text-destructive space-y-1">
-                  {importErrors.map((error, index) => <li key={index}>{error}</li>)}
-                </ul>
-              </div>
-            )}
           </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">Cancelar</Button>
-            </DialogClose>
-            <Button onClick={handleProcessImport} disabled={!csvFile || importLoading || !canEdit}>
-              {importLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-              {importLoading ? 'Importando...' : 'Importar Arquivo'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-
-      <AlertDialog open={!!vendorToDelete} onOpenChange={(open) => !open && setVendorToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Excluir "{vendorToDelete?.name}"? Esta ação também removerá vendedores e logins vinculados.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel onClick={() => setVendorToDelete(null)}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteVendor} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog open={!!salespersonToDelete} onOpenChange={(open) => !open && setSalespersonToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle><AlertDialogDescription>Excluir "{salespersonToDelete?.name}"? O login associado também será removido.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel onClick={() => setSalespersonToDelete(null)}>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDeleteSalesperson} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <div className="mb-4 sm:mb-6 relative flex items-center max-w-full sm:max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input 
-          type="text"
-          placeholder="Buscar fornecedores..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      <Card className="shadow-lg mt-0">
-        <CardHeader className="px-4 py-5 sm:p-6">
-            <CardTitle>Fornecedores Cadastrados</CardTitle>
-            <CardDescription>Lista de todos os fornecedores no sistema.</CardDescription>
         </CardHeader>
         <CardContent className="px-2 py-4 sm:px-4 md:px-6 sm:py-6">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12 px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
-                     <Checkbox
-                        checked={isAllVendorsSelected}
-                        onCheckedChange={handleSelectAllVendors}
-                        aria-label="Selecionar todos os fornecedores visíveis"
-                        disabled={filteredVendors.length === 0 || !canEdit}
-                      />
-                  </TableHead>
-                  <TableHead className="w-[60px] sm:w-[80px] px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Logo</TableHead>
-                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Razão Social</TableHead>
-                  <TableHead className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">CNPJ</TableHead>
-                  <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Município</TableHead>
-                  <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Estado</TableHead>
-                  <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Vendedores</TableHead>
-                  <TableHead className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ações</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Logo</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Nome da Empresa</TableHead>
+                  <TableHead className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">CNPJ</TableHead>
+                  <TableHead className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Local</TableHead>
+                  <TableHead className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Vendedor</TableHead>
+                  <TableHead className="text-center px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVendors.length === 0 && (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-4 px-1.5 sm:px-2 md:px-3 lg:px-4">
-                     {searchTerm ? "Nenhum fornecedor encontrado com o termo pesquisado." : "Nenhum fornecedor cadastrado."}
-                  </TableCell></TableRow>
-                )}
-                {filteredVendors.map((vendor) => (
-                  <TableRow key={vendor.id} data-state={selectedVendorIds.has(vendor.id) ? "selected" : ""}>
-                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
-                      <Checkbox
-                        checked={selectedVendorIds.has(vendor.id)}
-                        onCheckedChange={() => handleSelectVendor(vendor.id)}
-                        aria-label={`Selecionar fornecedor ${vendor.name}`}
-                        disabled={!canEdit}
-                      />
-                    </TableCell>
-                    <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4"><Image src={vendor.logoUrl} alt={`Logo ${vendor.name}`} width={60} height={30} className="object-contain rounded" data-ai-hint="vendor logo" /></TableCell>
-                    <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.name}</TableCell>
-                    <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{formatDisplayCNPJ(vendor.cnpj)}</TableCell>
-                    <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.city}</TableCell>
-                    <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{vendor.state}</TableCell>
-                    <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">{salespeople.filter(sp => sp.vendorId === vendor.id).length}</TableCell>
-                    <TableCell className="text-right px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
-                      <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleViewVendor(vendor)}><Eye className="h-4 w-4" /><span className="sr-only">Visualizar</span></Button>
-                      {canEdit && (
-                        <>
-                          <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEditVendor(vendor)}><Edit className="h-4 w-4" /><span className="sr-only">Editar</span></Button>
-                          <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => confirmDeleteVendor(vendor)}><Trash2 className="h-4 w-4" /><span className="sr-only">Excluir</span></Button>
-                        </>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredVendors.map((vendor) => {
+                  const vendorUser = getVendorUser(vendor);
+                  return (
+                    <TableRow key={vendor.id}>
+                      <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                        <div className="relative w-12 h-6 sm:w-16 sm:h-8">
+                          <Image
+                            src={vendor.logoUrl}
+                            alt={`Logo ${vendor.name}`}
+                            layout="fill"
+                            objectFit="contain"
+                            className="rounded"
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                        <div className="truncate max-w-[200px]" title={vendor.name}>
+                          {vendor.name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4 font-mono text-sm">
+                        {vendor.cnpj}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                        {vendor.city} - {vendor.state}
+                      </TableCell>
+                      <TableCell className="px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                        {vendorUser ? (
+                          <div>
+                            <div className="font-medium">{vendorUser.name}</div>
+                            <div className="text-xs text-muted-foreground">{vendorUser.email}</div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Sem vendedor</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center px-1.5 py-3 sm:px-2 md:px-3 lg:px-4">
+                        <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleView(vendor)}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">Visualizar</span>
+                          </Button>
+                          {!isReadOnly && (
+                            <>
+                              <Button variant="ghost" size="icon" className="hover:text-primary h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleEdit(vendor)}>
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Editar</span>
+                              </Button>
+                              <Button variant="ghost" size="icon" className="hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={() => handleDelete(vendor.id)}>
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Excluir</span>
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
+          {filteredVendors.length === 0 && (
+            <p className="py-8 text-center text-muted-foreground">
+              {searchTerm ? "Nenhum fornecedor encontrado com os critérios de busca." : "Nenhum fornecedor cadastrado ainda."}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
