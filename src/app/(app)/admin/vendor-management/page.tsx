@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import Image from 'next/image';
+import { Suspense } from 'react';
 
 const vendorFormSchema = z.object({
   name: z.string().min(5, { message: "Nome da empresa deve ter pelo menos 5 caracteres." }),
@@ -317,8 +318,7 @@ const DynamicVendorFormDialogContent = dynamic(() => Promise.resolve(VendorFormD
   ),
 });
 
-export default function AdminVendorManagementPage() {
-  const searchParams = useSearchParams();
+function VendorManagementContent() {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -333,8 +333,15 @@ export default function AdminVendorManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Safe search params handling
-  const activeTab = searchParams?.get('tab') || 'all';
+  // Get tab from URL without useSearchParams
+  const [activeTab, setActiveTab] = useState('all');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      setActiveTab(urlParams.get('tab') || 'all');
+    }
+  }, []);
 
   useEffect(() => {
     setVendors(loadVendors());
@@ -733,5 +740,13 @@ export default function AdminVendorManagementPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function AdminVendorManagementPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div><p>Carregando página...</p></div></div>}>
+      <VendorManagementContent />
+    </Suspense>
   );
 }

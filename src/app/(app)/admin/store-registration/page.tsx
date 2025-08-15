@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { Suspense } from 'react';
 
 const storeFormSchema = z.object({
   code: z.string().min(3, { message: "Código da loja deve ter pelo menos 3 caracteres." }),
@@ -350,8 +351,7 @@ const DynamicStoreFormDialogContent = dynamic(() => Promise.resolve(StoreFormDia
   ),
 });
 
-export default function AdminStoreRegistrationPage() {
-  const searchParams = useSearchParams();
+function StoreRegistrationContent() {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -365,8 +365,15 @@ export default function AdminStoreRegistrationPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Safe search params handling
-  const activeTab = searchParams?.get('tab') || 'all';
+  // Get tab from URL without useSearchParams
+  const [activeTab, setActiveTab] = useState('all');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      setActiveTab(urlParams.get('tab') || 'all');
+    }
+  }, []);
 
   useEffect(() => {
     setStores(loadStores());
@@ -424,7 +431,7 @@ export default function AdminStoreRegistrationPage() {
   }, [stores, activeTab, searchTerm]);
 
   const updateTab = (newTab: string) => {
-    const params = new URLSearchParams(searchParams?.toString() || '');
+    const params = new URLSearchParams(window.location.search);
     if (newTab === 'all') {
       params.delete('tab');
     } else {
@@ -432,6 +439,7 @@ export default function AdminStoreRegistrationPage() {
     }
     const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
     router.replace(newUrl);
+    setActiveTab(newTab);
   };
 
   const handleAddNew = () => {
@@ -823,5 +831,13 @@ export default function AdminStoreRegistrationPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function AdminStoreRegistrationPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div><p>Carregando página...</p></div></div>}>
+      <StoreRegistrationContent />
+    </Suspense>
   );
 }
